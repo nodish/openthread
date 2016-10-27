@@ -561,12 +561,12 @@ class HarnessCase(unittest.TestCase):
         self._browser.switch_to.window(main_window)
 
         timestamp = time.strftime('%Y%m%d%H%M%S')
-        os.system('move "%%HOMEPATH%%\\Downloads\\NewPdf_*.pdf" %s\\%s-%s.pdf'
-                  % (self.result_dir, self.__class__.__name__, timestamp))
-        os.system('move "%%HOMEPATH%%\\Downloads\\ExcelReport*.xlsx" %s\\%s-%s.xlsx'
-                  % (self.result_dir, self.__class__.__name__, timestamp))
-        os.system('move "%s\\Captures\\*.pcapng" %s\\%s-%s.pcapng'
-                  % (settings.HARNESS_HOME, self.result_dir, self.__class__.__name__, timestamp))
+        os.system('copy "%%HOMEPATH%%\\Downloads\\NewPdf_*.pdf" %s\\'
+                  % (self.result_dir, self.__class__.__name__))
+        os.system('copy "%%HOMEPATH%%\\Downloads\\ExcelReport_*.xlsx" %s\\'
+                  % (self.result_dir, self.__class__.__name__))
+        os.system('copy "%s\\Captures\\*.pcapng" %s\\'
+                  % (settings.HARNESS_HOME, self.result_dir, self.__class__.__name__))
         os.system('copy "%s\\Thread_Harness\\temp\\*.*" "%s"'
                   % (settings.HARNESS_HOME, self.result_dir))
 
