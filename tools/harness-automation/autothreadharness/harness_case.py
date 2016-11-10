@@ -523,12 +523,14 @@ class HarnessCase(unittest.TestCase):
         checkbox = None
         self.wait_until(lambda: self._browser.find_elements_by_css_selector('.tree-node .tree-title') and True)
         elems = self._browser.find_elements_by_css_selector('.tree-node .tree-title')
+        finder = re.compile(r'\b' + case + r'\b')
+        finder_dotted = re.compile(r'\b' + case.replace(' ', r'\.') + r'\b')
         for elem in elems:
             action_chains = ActionChains(self._browser)
             action_chains.move_to_element(elem)
             action_chains.perform()
             logger.debug(elem.text)
-            if elem.text.startswith(case):
+            if finder.match(elem.text) or finder_dotted.match(elem.text):
                 parent = elem.find_element_by_xpath('..')
                 checkbox = parent.find_element_by_class_name('tree-checkbox')
                 break
@@ -591,11 +593,11 @@ class HarnessCase(unittest.TestCase):
 
         timestamp = time.strftime('%Y%m%d%H%M%S')
         os.system('copy "%%HOMEPATH%%\\Downloads\\NewPdf_*.pdf" %s\\'
-                  % (self.result_dir, self.__class__.__name__))
+                  % self.result_dir)
         os.system('copy "%%HOMEPATH%%\\Downloads\\ExcelReport_*.xlsx" %s\\'
-                  % (self.result_dir, self.__class__.__name__))
+                  % self.result_dir)
         os.system('copy "%s\\Captures\\*.pcapng" %s\\'
-                  % (settings.HARNESS_HOME, self.result_dir, self.__class__.__name__))
+                  % (settings.HARNESS_HOME, self.result_dir))
         os.system('copy "%s\\Thread_Harness\\temp\\*.*" "%s"'
                   % (settings.HARNESS_HOME, self.result_dir))
 
