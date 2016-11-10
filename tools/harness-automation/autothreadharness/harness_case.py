@@ -523,8 +523,8 @@ class HarnessCase(unittest.TestCase):
         checkbox = None
         self.wait_until(lambda: self._browser.find_elements_by_css_selector('.tree-node .tree-title') and True)
         elems = self._browser.find_elements_by_css_selector('.tree-node .tree-title')
-        finder = re.compile(r'\b' + case + r'\b')
-        finder_dotted = re.compile(r'\b' + case.replace(' ', r'\.') + r'\b')
+        finder = re.compile(r'.*\b' + case + r'\b')
+        finder_dotted = re.compile(r'.*\b' + case.replace(' ', r'\.') + r'\b')
         for elem in elems:
             action_chains = ActionChains(self._browser)
             action_chains.move_to_element(elem)
