@@ -1,0 +1,3 @@
+[submodule "tools/harness-automation/cc2538-burner"]
+	path = tools/harness-automation/cc2538-burner
+	url = https://github.com/JelmerT/cc2538-bsl.git
