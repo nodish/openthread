@@ -508,6 +508,8 @@ class HarnessCase(unittest.TestCase):
                             bad_ones.append(selected_hw)
 
                     for selected_hw in bad_ones:
+                        form_inputs = selected_hw.find_elements_by_tag_name('input')
+                        form_port = form_inputs[0]
                         port = form_port.get_attribute('value').encode('utf8')
                         if settings.DUT_DEVICE and port == settings.DUT_DEVICE[0]:
                             raise SystemExit('DUT device failed')
