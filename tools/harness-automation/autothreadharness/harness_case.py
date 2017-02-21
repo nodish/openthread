@@ -227,7 +227,8 @@ class HarnessCase(unittest.TestCase):
 
         harness_config = ConfigParser.ConfigParser()
         harness_config.read('%s\\Config\\Configuration.ini' % settings.HARNESS_HOME)
-        if harness_config.getboolean('THREAD_HARNESS_CONFIG', 'BrowserAutoNavigate'):
+        if harness_config.has_option('THREAD_HARNESS_CONFIG', 'BrowserAutoNavigate') and \
+                harness_config.getboolean('THREAD_HARNESS_CONFIG', 'BrowserAutoNavigate'):
             os.system('taskkill /t /f /im chrome.exe')
 
     def _destroy_harness(self):
