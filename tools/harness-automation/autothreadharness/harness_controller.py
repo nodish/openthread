@@ -76,8 +76,8 @@ class HarnessController(object):
         self.harness_file = ''
 
         harness_info = ConfigParser.ConfigParser()
-        harness_info.read('%s\\info.ini')
-        self.version = harness_info.get('Thread_Harness_Info', 'SVN')
+        harness_info.read('%s\\info.ini' % settings.HARNESS_HOME)
+        self.version = harness_info.getint('Thread_Harness_Info', 'SVN')
 
     def start(self):
         logger.info('Starting harness service')
