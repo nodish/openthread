@@ -508,6 +508,7 @@ ThreadError Commissioner::SendPetition(void)
 
     mNetif.GetMle().GetLeaderAloc(*static_cast<Ip6::Address *>(&messageInfo.mPeerAddr));
     messageInfo.SetPeerPort(kCoapUdpPort);
+    messageInfo.SetSockAddr(mNetif.GetMle().GetMeshLocal16());
     SuccessOrExit(error = mNetif.GetCoapClient().SendMessage(*message, messageInfo,
                                                              Commissioner::HandleLeaderPetitionResponse, this));
 
@@ -697,11 +698,6 @@ void Commissioner::HandleRelayReceive(Coap::Header &aHeader, Message &aMessage, 
     if (!mNetif.GetSecureCoapServer().IsConnectionActive())
     {
         memcpy(mJoinerIid, joinerIid.GetIid(), sizeof(mJoinerIid));
-        mJoinerPort = joinerPort.GetUdpPort();
-        mJoinerRloc = joinerRloc.GetJoinerRouterLocator();
-
-        otLogInfoMeshCoP("Received relay receive for %llX, rloc:%x", HostSwap64(mJoinerIid64), mJoinerRloc);
-
         mJoinerIid[0] ^= 0x2;
 
         for (size_t i = 0; i < sizeof(mJoiners) / sizeof(mJoiners[0]); i++)
@@ -731,6 +727,11 @@ void Commissioner::HandleRelayReceive(Coap::Header &aHeader, Message &aMessage, 
     }
 
     VerifyOrExit(enableJoiner, ;);
+
+    mJoinerPort = joinerPort.GetUdpPort();
+    mJoinerRloc = joinerRloc.GetJoinerRouterLocator();
+
+    otLogInfoMeshCoP("Received relay receive for %llX, rloc:%x", HostSwap64(mJoinerIid64), mJoinerRloc);
 
     aMessage.SetOffset(offset);
     SuccessOrExit(error = aMessage.SetLength(offset + length));
