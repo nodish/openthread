@@ -62,10 +62,9 @@ enum
     kDefaultLeisure             = 5,
     kProbingRate                = 1,
 
-    // Note that 2 << (kMaxRetransmit - 1) is equal to kMaxRetransmit power of 2
-    kMaxTransmitSpan            = kAckTimeout * ((2 << (kMaxRetransmit - 1)) - 1) *
+    kMaxTransmitSpan            = kAckTimeout * ((1 << kMaxRetransmit) - 1) *
                                   kAckRandomFactorNumerator / kAckRandomFactorDenominator,
-    kMaxTransmitWait            = kAckTimeout * ((2 << kMaxRetransmit) - 1) *
+    kMaxTransmitWait            = kAckTimeout * ((1 << (kMaxRetransmit + 1)) - 1) *
                                   kAckRandomFactorNumerator / kAckRandomFactorDenominator,
     kMaxLatency                 = 100,
     kProcessingDelay            = kAckTimeout,

@@ -97,8 +97,13 @@ ThreadError Client::SendMessage(Message &aMessage, const Ip6::MessageInfo &aMess
 
     if (header.IsConfirmable())
     {
+#if OPENTHREAD_CONFIG_COAP_MAX_RETRANSMIT
         // Create a copy of entire message and enqueue it.
         copyLength = aMessage.GetLength();
+#else
+        // Just for token information.
+        copyLength = header.GetLength();
+#endif // OPENTHREAD_CONFIG_COAP_MAX_RETRANSMIT
     }
     else if (header.IsNonConfirmable() && header.IsRequest() && (aHandler != NULL))
     {
@@ -259,6 +264,7 @@ void Client::HandleRetransmissionTimer(void)
                 nextDelta = requestMetadata.mNextTimerShot - now;
             }
         }
+#if OPENTHREAD_CONFIG_COAP_MAX_RETRANSMIT
         else if ((requestMetadata.mConfirmable) &&
                  (requestMetadata.mRetransmissionCount < kMaxRetransmit))
         {
@@ -284,6 +290,7 @@ void Client::HandleRetransmissionTimer(void)
                 SendCopy(*message, messageInfo);
             }
         }
+#endif // OPENTHREAD_CONFIG_COAP_MAX_RETRANSMIT
         else
         {
             // No expected response or acknowledgment.
