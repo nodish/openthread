@@ -538,7 +538,6 @@ NcpBase::NcpBase(otInstance *aInstance):
     otIp6SetReceiveCallback(mInstance, &NcpBase::HandleDatagramFromStack, this);
     otIp6SetReceiveFilterEnabled(mInstance, true);
     otLinkSetPcapCallback(mInstance, &NcpBase::HandleRawFrame, static_cast<void*>(this));
-    otIcmp6SetEchoEnabled(mInstance, false);
 
     mUpdateChangedPropsTask.Post();
 

@@ -780,6 +780,11 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
         }
         else
         {
+            if (fromLocalHost == false)
+            {
+                ProcessReceiveCallback(message, messageInfo, nextHeader);
+            }
+
             hopLimit = header.GetHopLimit();
             message.Write(Header::GetHopLimitOffset(), Header::GetHopLimitSize(), &hopLimit);
             SuccessOrExit(error = ForwardMessage(message, messageInfo, nextHeader));
@@ -827,23 +832,10 @@ ThreadError Ip6::ForwardMessage(Message &message, MessageInfo &messageInfo, uint
     }
     else
     {
-        // try passing to host
-        error = ProcessReceiveCallback(message, messageInfo, ipproto);
+        (void)ipproto;
 
-        switch (error)
-        {
-        case kThreadError_None:
-            // the caller transfers custody in the success case, so free the message here
-            message.Free();
-            break;
-
-        case kThreadError_NoRoute:
-            otDumpDebgIp6("no route", &messageInfo.GetSockAddr(), 16);
-            break;
-
-        default:
-            break;
-        }
+        otDumpDebgIp6("no route", &messageInfo.GetSockAddr(), 16);
+        error = kThreadError_NoRoute;
 
         ExitNow();
     }
