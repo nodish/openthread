@@ -227,6 +227,22 @@ namespace Thread {
 #define OPENTHREAD_URI_COMMISSIONER_SET         "c/cs"
 
 /**
+ * @def OPENTHREAD_URI_COMMISSIONER_KA
+ *
+ * The URI Path for Commissioner Keep Alive.
+ *
+ */
+#define OPENTHREAD_URI_COMMISSIONER_KEEP_ALIVE  "c/ca"
+
+/**
+ * @def OPENTHREAD_URI_COMMISSIONER_PET
+ *
+ * The URI Path for Commissioner Petition.
+ *
+ */
+#define OPENTHREAD_URI_COMMISSIONER_PETITION    "c/cp"
+
+/**
  * @def OPENTHREAD_URI_DIAGNOSTIC_GET_REQUEST
  *
  * The URI Path for Network Diagnostic Get Request.
@@ -259,21 +275,5 @@ namespace Thread {
 #define OPENTHREAD_URI_DIAGNOSTIC_RESET         "d/dr"
 
 }  // namespace Thread
-
-/**
- * @def OPENTHREAD_URI_COMMISSIONER_PET
- *
- * The URI Path for Commissioner Petition.
- *
- */
-#define OPENTHREAD_URI_COMMISSIONER_PETITION    "c/cp"
-
-/**
- * @def OPENTHREAD_URI_COMMISSIONER_KA
- *
- * The URI Path for Commissioner Keep Alive.
- *
- */
-#define OPENTHREAD_URI_COMMISSIONER_KEEP_ALIVE  "c/ca"
 
 #endif  // THREAD_URIS_HPP_
