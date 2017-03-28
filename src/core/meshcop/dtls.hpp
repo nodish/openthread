@@ -50,8 +50,6 @@
 
 namespace Thread {
 
-class ThreadNetif;
-
 namespace MeshCoP {
 
 class Dtls
@@ -66,10 +64,10 @@ public:
     /**
      * This constructor initializes the DTLS object.
      *
-     * @param[in]  aNetif  A reference to the Thread network interface.
+     * @param[in]  aInstance  A reference to the Thread network interface.
      *
      */
-    Dtls(ThreadNetif &aNetif);
+    Dtls(otInstance &aInstance);
 
     /**
      * This method returns the pointer to the parent otInstance structure.
@@ -256,7 +254,7 @@ private:
 
     uint8_t mMessageSubType;
 
-    ThreadNetif &mNetif;
+    otInstance &mInstance;
 };
 
 }  // namespace MeshCoP

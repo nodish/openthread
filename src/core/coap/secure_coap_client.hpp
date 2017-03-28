@@ -61,7 +61,7 @@ public:
      * @param[in]  aNetif  A reference to the network interface that secure CoAP client should be assigned to.
      *
      */
-    SecureClient(ThreadNetif &aNetif);
+    SecureClient(otInstance &aInstance);
 
     /**
      * This method stops the secure CoAP client.
@@ -134,6 +134,17 @@ public:
      */
     ThreadError SendMessage(Message &aMessage, otCoapResponseHandler aHandler = NULL, void *aContext = NULL);
 
+    /**
+     * This method sets the PSK.
+     *
+     * @param[in]  aPSK       A pointer to the PSK.
+     * @param[in]  aPskLenght A PSK length.
+     *
+     * @retval kThreadError_None         Successfully set the PSK.
+     * @retval kThreadError_InvalidArgs  The PSK is invalid.
+     *
+     */
+    ThreadError SetPsk(const uint8_t *aPsk, uint8_t aPskLength);
 private:
     static ThreadError Send(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
     ThreadError Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
@@ -156,9 +167,8 @@ private:
     Ip6::MessageInfo mPeerAddress;
     ConnectedCallback mConnectedCallback;
     void *mContext;
-    ThreadNetif &mNetif;
+    otInstance &mInstance;
     Message *mTransmitMessage;
-    Tasklet mTransmitTask;
 };
 
 }  // namespace Coap

@@ -41,13 +41,12 @@
 namespace Thread {
 namespace Coap {
 
-SecureServer::SecureServer(ThreadNetif &aNetif, uint16_t aPort):
-    Server(aNetif, aPort, &SecureServer::Send, &SecureServer::Receive),
+SecureServer::SecureServer(otInstance &aInstance, uint16_t aPort):
+    Server(aInstance, aPort, &SecureServer::Send, &SecureServer::Receive),
     mTransmitCallback(NULL),
     mContext(NULL),
-    mNetif(aNetif),
     mTransmitMessage(NULL),
-    mTransmitTask(aNetif.GetIp6().mTaskletScheduler, &SecureServer::HandleUdpTransmit, this)
+    mInstance(aInstance)
 {
 }
 
@@ -69,9 +68,9 @@ ThreadError SecureServer::Start(TransportCallback aCallback, void *aContext)
 
 ThreadError SecureServer::Stop()
 {
-    if (mNetif.GetDtls().IsStarted())
+    if (mInstance.mDtls.IsStarted())
     {
-        mNetif.GetDtls().Stop();
+        mInstance.mDtls.Stop();
     }
 
     if (mTransmitMessage != NULL)
@@ -90,7 +89,7 @@ ThreadError SecureServer::Stop()
 
 bool SecureServer::IsConnectionActive(void)
 {
-    return mNetif.GetDtls().IsStarted();
+    return mInstance.mDtls.IsStarted();
 };
 
 ThreadError SecureServer::Send(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
@@ -101,7 +100,7 @@ ThreadError SecureServer::Send(void *aContext, Message &aMessage, const Ip6::Mes
 ThreadError SecureServer::Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     (void)aMessageInfo;
-    return mNetif.GetDtls().Send(aMessage, aMessage.GetLength());
+    return mInstance.mDtls.Send(aMessage, aMessage.GetLength());
 }
 
 void SecureServer::Receive(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
@@ -113,12 +112,14 @@ void SecureServer::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
 {
     otLogFuncEntry();
 
-    if (!mNetif.GetDtls().IsStarted())
+    if (!mInstance.mDtls.IsStarted())
     {
         mPeerAddress.SetPeerAddr(aMessageInfo.GetPeerAddr());
         mPeerAddress.SetPeerPort(aMessageInfo.GetPeerPort());
+        mPeerAddress.SetSockAddr(aMessageInfo.GetSockAddr());
+        mPeerAddress.SetSockPort(aMessageInfo.GetSockPort());
 
-        mNetif.GetDtls().Start(false, HandleDtlsConnected, HandleDtlsReceive, HandleDtlsSend, this);
+        mInstance.mDtls.Start(false, HandleDtlsConnected, HandleDtlsReceive, HandleDtlsSend, this);
     }
     else
     {
@@ -127,9 +128,9 @@ void SecureServer::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
                      (mPeerAddress.GetPeerPort() == aMessageInfo.GetPeerPort()), ;);
     }
 
-    mNetif.GetDtls().SetClientId(mPeerAddress.GetPeerAddr().mFields.m8,
+    mInstance.mDtls.SetClientId(mPeerAddress.GetPeerAddr().mFields.m8,
                                  sizeof(mPeerAddress.GetPeerAddr().mFields));
-    mNetif.GetDtls().Receive(aMessage, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
+    mInstance.mDtls.Receive(aMessage, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
 
 exit:
     otLogFuncExit();
@@ -137,7 +138,7 @@ exit:
 
 ThreadError SecureServer::SetPsk(const uint8_t *aPsk, uint8_t aPskLength)
 {
-    return mNetif.GetDtls().SetPsk(aPsk, aPskLength);
+    return mInstance.mDtls.SetPsk(aPsk, aPskLength);
 }
 
 void SecureServer::HandleDtlsConnected(void *aContext, bool aConnected)
@@ -161,7 +162,7 @@ void SecureServer::HandleDtlsReceive(uint8_t *aBuf, uint16_t aLength)
 
     otLogFuncEntry();
 
-    VerifyOrExit((message = mNetif.GetIp6().mMessagePool.New(Message::kTypeIp6, 0)) != NULL, ;);
+    VerifyOrExit((message = mInstance.mUdp.NewMessage(0)) != NULL, ;);
     SuccessOrExit(message->Append(aBuf, aLength));
 
     ProcessReceivedMessage(*message, mPeerAddress);
@@ -196,7 +197,7 @@ ThreadError SecureServer::HandleDtlsSend(const uint8_t *aBuf, uint16_t aLength, 
 
     VerifyOrExit(mTransmitMessage->Append(aBuf, aLength) == kThreadError_None, error = kThreadError_NoBufs);
 
-    mTransmitTask.Post();
+    HandleUdpTransmit();
 
 exit:
 

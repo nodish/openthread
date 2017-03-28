@@ -29,11 +29,11 @@
 #ifndef COAP_BASE_HPP_
 #define COAP_BASE_HPP_
 
+#include "openthread-instance.h"
 #include "openthread/coap.h"
 
 #include <coap/coap_header.hpp>
 #include <common/message.hpp>
-#include <net/netif.hpp>
 #include <net/udp6.hpp>
 
 /**

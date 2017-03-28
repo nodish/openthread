@@ -612,18 +612,6 @@ public:
     void SetLinkSecurityEnabled(bool aLinkSecurityEnabled);
 
     /**
-     * This method is used to update a checksum value.
-     *
-     * @param[in]  aChecksum  Initial checksum value.
-     * @param[in]  aOffset    Byte offset within the message to begin checksum computation.
-     * @param[in]  aLength    Number of bytes to compute the checksum over.
-     *
-     * @retval The updated checksum value.
-     *
-     */
-    uint16_t UpdateChecksum(uint16_t aChecksum, uint16_t aOffset, uint16_t aLength) const;
-
-    /**
      * This method returns a pointer to the message queue (if any) where this message is queued.
      *
      * @returns A pointer to the message queue or NULL if not in any message queue.

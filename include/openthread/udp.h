@@ -69,6 +69,7 @@ typedef struct otUdpSocket
     otUdpReceive         mHandler;   ///< A function pointer to the application callback.
     void                *mContext;   ///< A pointer to application-specific context.
     void                *mTransport; ///< A pointer to the transport object (internal use only).
+    void                *mHandle;    ///< A vague data for other UDP implementation.
     struct otUdpSocket  *mNext;      ///< A pointer to the next UDP socket (internal use only).
 } otUdpSocket;
 

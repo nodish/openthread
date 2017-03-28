@@ -38,9 +38,9 @@
 namespace Thread {
 namespace Coap {
 
-Server::Server(Ip6::Netif &aNetif, uint16_t aPort, SenderFunction aSender, ReceiverFunction aReceiver):
-    CoapBase(aNetif.GetIp6().mUdp, aSender, aReceiver),
-    mResponsesQueue(aNetif)
+Server::Server(otInstance &aInstance, uint16_t aPort, SenderFunction aSender, ReceiverFunction aReceiver):
+    CoapBase(aInstance.mUdp, aSender, aReceiver),
+    mResponsesQueue(aInstance.mTimerScheduler)
 {
     mPort = aPort;
     mResources = NULL;
@@ -192,6 +192,9 @@ void Server::ProcessReceivedMessage(Message &aMessage, const Ip6::MessageInfo &a
             break;
 
         case kCoapOptionContentFormat:
+            break;
+
+        case kCoapOptionUriPort:
             break;
 
         default:

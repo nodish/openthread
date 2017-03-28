@@ -33,6 +33,11 @@
 
 #include <stdio.h>
 
+#if PLATFORM_UDP
+#include "platform_udp.h"
+#include "openthread-instance.h"
+#endif
+
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
 #include <net/ip6.hpp>
@@ -66,7 +71,11 @@ ThreadError UdpSocket::Open(otUdpReceive aHandler, void *aContext)
 ThreadError UdpSocket::Bind(const SockAddr &aSockAddr)
 {
     mSockName = aSockAddr;
+#if PLATFORM_UDP
+    return platform_udp_bind(this);
+#else
     return kThreadError_None;
+#endif
 }
 
 ThreadError UdpSocket::Close(void)
@@ -83,6 +92,9 @@ exit:
 
 ThreadError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo)
 {
+#if PLATFORM_UDP
+    return platform_udp_send(this, &aMessage, &aMessageInfo);
+#else
     ThreadError error = kThreadError_None;
     MessageInfo messageInfoLocal;
     UdpHeader udpHeader;
@@ -110,17 +122,21 @@ ThreadError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo
 
 exit:
     return error;
+#endif
 }
 
-Udp::Udp(Ip6 &aIp6):
+Udp::Udp():
     mEphemeralPort(kDynamicPortMin),
-    mSockets(NULL),
-    mIp6(aIp6)
+    mSockets(NULL)
 {
 }
 
 ThreadError Udp::AddSocket(UdpSocket &aSocket)
 {
+    ThreadError error = kThreadError_None;
+#if PLATFORM_UDP
+    SuccessOrExit(error = platform_udp_socket(&aSocket));
+#endif
     for (UdpSocket *cur = mSockets; cur; cur = cur->GetNext())
     {
         if (cur == &aSocket)
@@ -133,11 +149,14 @@ ThreadError Udp::AddSocket(UdpSocket &aSocket)
     mSockets = &aSocket;
 
 exit:
-    return kThreadError_None;
+    return error;
 }
 
 ThreadError Udp::RemoveSocket(UdpSocket &aSocket)
 {
+#if PLATFORM_UDP
+    platform_udp_close(&aSocket);
+#endif
     if (mSockets == &aSocket)
     {
         mSockets = mSockets->GetNext();
@@ -177,9 +196,24 @@ uint16_t Udp::GetEphemeralPort(void)
 
 Message *Udp::NewMessage(uint16_t aReserved)
 {
-    return mIp6.NewMessage(sizeof(UdpHeader) + aReserved);
+#if PLATFORM_UDP
+    return otInstanceFromUdp(this)->mMessagePool.New(Message::kTypeIp6, aReserved);
+#else
+    return mMessagePool.New(Message::kTypeIp6, aReserved);
+#endif
 }
 
+#if PLATFORM_UDP
+ThreadError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo)
+{
+    for (UdpSocket *socket = mSockets; socket; socket = socket->GetNext())
+    {
+        if (socket->mHandle == (void*)(long)aMessageInfo.mSockAddr.mFields.m32[0])
+            socket->HandleUdpReceive(aMessage, aMessageInfo);
+    }
+    return kThreadError_None;
+}
+#else
 ThreadError Udp::SendDatagram(Message &aMessage, MessageInfo &aMessageInfo, IpProto aIpProto)
 {
     return mIp6.SendDatagram(aMessage, aMessageInfo, aIpProto);
@@ -264,6 +298,7 @@ ThreadError Udp::UpdateChecksum(Message &aMessage, uint16_t aChecksum)
     aMessage.Write(aMessage.GetOffset() + UdpHeader::GetChecksumOffset(), sizeof(aChecksum), &aChecksum);
     return kThreadError_None;
 }
+#endif
 
 }  // namespace Ip6
 }  // namespace Thread

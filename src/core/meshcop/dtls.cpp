@@ -47,10 +47,10 @@
 namespace Thread {
 namespace MeshCoP {
 
-Dtls::Dtls(ThreadNetif &aNetif):
+Dtls::Dtls(otInstance &aInstance):
     mPskLength(0),
     mStarted(false),
-    mTimer(aNetif.GetIp6().mTimerScheduler, &Dtls::HandleTimer, this),
+    mTimer(aInstance.mTimerScheduler, &Dtls::HandleTimer, this),
     mTimerIntermediate(0),
     mTimerSet(false),
     mReceiveMessage(NULL),
@@ -62,7 +62,7 @@ Dtls::Dtls(ThreadNetif &aNetif):
     mContext(NULL),
     mClient(false),
     mMessageSubType(0),
-    mNetif(aNetif)
+    mInstance(aInstance)
 {
     memset(mPsk, 0, sizeof(mPsk));
     memset(&mEntropy, 0, sizeof(mEntropy));
@@ -75,7 +75,7 @@ Dtls::Dtls(ThreadNetif &aNetif):
 
 otInstance *Dtls::GetInstance()
 {
-    return mNetif.GetInstance();
+    return &mInstance;
 }
 
 ThreadError Dtls::Start(bool aClient, ConnectedHandler aConnectedHandler, ReceiveHandler aReceiveHandler,
@@ -360,7 +360,7 @@ int Dtls::HandleMbedtlsExportKeys(const unsigned char *aMasterSecret, const unsi
     sha256.Update(aKeyBlock, 2 * static_cast<uint16_t>(aMacLength + aKeyLength + aIvLength));
     sha256.Finish(kek);
 
-    mNetif.GetKeyManager().SetKek(kek);
+    //mInstance.GetKeyManager().SetKek(kek);
 
     otLogInfoMeshCoP(GetInstance(), "Generated KEK");
 

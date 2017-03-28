@@ -35,7 +35,6 @@
 #include <coap/coap_header.hpp>
 #include <common/message.hpp>
 #include <common/timer.hpp>
-#include <net/netif.hpp>
 #include <net/udp6.hpp>
 
 /**
@@ -171,7 +170,7 @@ public:
      * @param[in]  aReceiver A pointer to a function for handling received messages.
      *
      */
-    Client(Ip6::Netif &aNetif, SenderFunction aSender = &Client::Send, ReceiverFunction aReceiver = &Client::Receive);
+    Client(otInstance &aInstance, SenderFunction aSender = &Client::Send, ReceiverFunction aReceiver = &Client::Receive);
 
     /**
      * This method starts the CoAP client.

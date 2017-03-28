@@ -1076,6 +1076,7 @@ examples/Makefile
 examples/apps/Makefile
 examples/apps/cli/Makefile
 examples/apps/ncp/Makefile
+examples/apps/border-agent/Makefile
 examples/platforms/Makefile
 examples/platforms/cc2538/Makefile
 examples/platforms/cc2650/Makefile

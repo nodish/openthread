@@ -44,9 +44,9 @@
 namespace Thread {
 namespace Coap {
 
-Client::Client(Ip6::Netif &aNetif, SenderFunction aSender, ReceiverFunction aReceiver):
-    CoapBase(aNetif.GetIp6().mUdp, aSender, aReceiver),
-    mRetransmissionTimer(aNetif.GetIp6().mTimerScheduler, &Client::HandleRetransmissionTimer, this)
+Client::Client(otInstance &aInstance, SenderFunction aSender, ReceiverFunction aReceiver):
+    CoapBase(aInstance.mUdp, aSender, aReceiver),
+    mRetransmissionTimer(aInstance.mTimerScheduler, &Client::HandleRetransmissionTimer, this)
 {
     mMessageId = static_cast<uint16_t>(otPlatRandomGet());
 }

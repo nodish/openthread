@@ -62,7 +62,7 @@ public:
      * @param[in]  aPort   The port to listen on.
      *
      */
-    SecureServer(ThreadNetif &aNetif, uint16_t aPort);
+    SecureServer(otInstance &aotInstance, uint16_t aPort);
 
     /**
      * This method starts the secure CoAP server.
@@ -135,9 +135,8 @@ private:
     Ip6::MessageInfo mPeerAddress;
     TransportCallback mTransmitCallback;
     void *mContext;
-    ThreadNetif &mNetif;
     Message *mTransmitMessage;
-    Tasklet mTransmitTask;
+    otInstance &mInstance;
 };
 
 }  // namespace Coap

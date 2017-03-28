@@ -38,7 +38,7 @@ DIST_SUBDIRS                            = \
 # Always build (e.g. for 'make all') these subdirectories.
 
 SUBDIRS                                 = \
-    $(NULL)
+    border-agent
 
 if OPENTHREAD_ENABLE_CLI
 SUBDIRS                                += cli

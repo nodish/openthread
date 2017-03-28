@@ -163,7 +163,11 @@ public:
      * @param[in]  aIp6  A reference to the IPv6 network object.
      *
      */
+#if PLATFORM_UDP
+    Udp();
+#else
     Udp(Ip6 &aIp6);
+#endif
 
     /**
      * This method adds a UDP socket.
@@ -248,8 +252,9 @@ private:
     };
     uint16_t mEphemeralPort;
     UdpSocket *mSockets;
-
+#if !PLATFORM_UDP
     Ip6 &mIp6;
+#endif
 };
 
 OT_TOOL_PACKED_BEGIN

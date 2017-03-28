@@ -31,7 +31,6 @@
 #include <coap/secure_coap_client.hpp>
 #include <common/logging.hpp>
 #include <meshcop/dtls.hpp>
-#include <thread/thread_netif.hpp>
 
 /**
  * @file
@@ -41,13 +40,12 @@
 namespace Thread {
 namespace Coap {
 
-SecureClient::SecureClient(ThreadNetif &aNetif):
-    Client(aNetif, &SecureClient::Send, &SecureClient::Receive),
+SecureClient::SecureClient(otInstance &aInstance):
+    Client(aInstance, &SecureClient::Send, &SecureClient::Receive),
     mConnectedCallback(NULL),
     mContext(NULL),
-    mNetif(aNetif),
-    mTransmitMessage(NULL),
-    mTransmitTask(aNetif.GetIp6().mTaskletScheduler, &SecureClient::HandleUdpTransmit, this)
+    mInstance(aInstance),
+    mTransmitMessage(NULL)
 {
 }
 
@@ -67,34 +65,39 @@ ThreadError SecureClient::Stop(void)
     return Client::Stop();
 }
 
+ThreadError SecureClient::SetPsk(const uint8_t *aPsk, uint8_t aPskLength)
+{
+    return mInstance.mClientDtls.SetPsk(aPsk, aPskLength);
+}
+
 ThreadError SecureClient::Connect(const Ip6::MessageInfo &aMessageInfo, ConnectedCallback aCallback, void *aContext)
 {
     mPeerAddress = aMessageInfo;
     mConnectedCallback = aCallback;
     mContext = aContext;
 
-    return mNetif.GetDtls().Start(true, &SecureClient::HandleDtlsConnected, &SecureClient::HandleDtlsReceive,
+    return mInstance.mClientDtls.Start(true, &SecureClient::HandleDtlsConnected, &SecureClient::HandleDtlsReceive,
                                   &SecureClient::HandleDtlsSend, this);
 }
 
 bool SecureClient::IsConnectionActive(void)
 {
-    return mNetif.GetDtls().IsStarted();
+    return mInstance.mClientDtls.IsStarted();
 };
 
 bool SecureClient::IsConnected(void)
 {
-    return mNetif.GetDtls().IsConnected();
+    return mInstance.mClientDtls.IsConnected();
 };
 
 ThreadError SecureClient::Disconnect(void)
 {
-    return mNetif.GetDtls().Stop();
+    return mInstance.mClientDtls.Stop();
 }
 
 MeshCoP::Dtls &SecureClient::GetDtls(void)
 {
-    return mNetif.GetDtls();
+    return mInstance.mClientDtls;
 };
 
 ThreadError SecureClient::SendMessage(Message &aMessage, otCoapResponseHandler aHandler, void *aContext)
@@ -120,7 +123,7 @@ ThreadError SecureClient::Send(void *aContext, Message &aMessage, const Ip6::Mes
 ThreadError SecureClient::Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     (void)aMessageInfo;
-    return mNetif.GetDtls().Send(aMessage, aMessage.GetLength());
+    return mInstance.mClientDtls.Send(aMessage, aMessage.GetLength());
 }
 
 void SecureClient::Receive(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
@@ -135,7 +138,7 @@ void SecureClient::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     VerifyOrExit((mPeerAddress.GetPeerAddr() == aMessageInfo.GetPeerAddr()) &&
                  (mPeerAddress.GetPeerPort() == aMessageInfo.GetPeerPort()), ;);
 
-    mNetif.GetDtls().Receive(aMessage, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
+    mInstance.mClientDtls.Receive(aMessage, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
 
 exit:
     otLogFuncExit();
@@ -165,7 +168,7 @@ void SecureClient::HandleDtlsReceive(uint8_t *aBuf, uint16_t aLength)
 
     otLogFuncEntry();
 
-    VerifyOrExit((message = mNetif.GetIp6().mMessagePool.New(Message::kTypeIp6, 0)) != NULL, ;);
+    VerifyOrExit((message = mInstance.mUdp.NewMessage(0)) != NULL, ;);
     SuccessOrExit(message->Append(aBuf, aLength));
 
     ProcessReceivedMessage(*message, mPeerAddress);
@@ -200,7 +203,7 @@ ThreadError SecureClient::HandleDtlsSend(const uint8_t *aBuf, uint16_t aLength, 
 
     VerifyOrExit(mTransmitMessage->Append(aBuf, aLength) == kThreadError_None, error = kThreadError_NoBufs);
 
-    mTransmitTask.Post();
+    HandleUdpTransmit(this);
 
 exit:
 

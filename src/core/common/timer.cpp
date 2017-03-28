@@ -138,21 +138,21 @@ void TimerScheduler::SetAlarm(void)
 
     if (mHead == NULL)
     {
-        otPlatAlarmStop(GetIp6()->GetInstance());
+        otPlatAlarmStop(otInstanceFromTimerScheduler(this));
     }
     else
     {
         elapsed = now - mHead->mT0;
         remaining = (mHead->mDt > elapsed) ? mHead->mDt - elapsed : 0;
 
-        otPlatAlarmStartAt(GetIp6()->GetInstance(), now, remaining);
+        otPlatAlarmStartAt(otInstanceFromTimerScheduler(this), now, remaining);
     }
 }
 
 extern "C" void otPlatAlarmFired(otInstance *aInstance)
 {
     otLogFuncEntry();
-    aInstance->mIp6.mTimerScheduler.FireTimers();
+    aInstance->mTimerScheduler.FireTimers();
     otLogFuncExit();
 }
 

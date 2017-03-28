@@ -196,8 +196,8 @@ public:
      * @param[in]  aNetif  A reference to the network interface that CoAP server should be assigned to.
      *
      */
-    ResponsesQueue(Ip6::Netif &aNetif):
-        mTimer(aNetif.GetIp6().mTimerScheduler, &ResponsesQueue::HandleTimer, this) {}
+    ResponsesQueue(TimerScheduler &aTimerScheduler):
+        mTimer(aTimerScheduler, &ResponsesQueue::HandleTimer, this) {}
 
     /**
      * Add given response to the cache.
@@ -296,7 +296,7 @@ public:
      * @param[in]  aReceiver A pointer to a function for handling received messages.
      *
      */
-    Server(Ip6::Netif &aNetif, uint16_t aPort, SenderFunction aSender = &Server::Send,
+    Server(otInstance &aInstance, uint16_t aPort, SenderFunction aSender = &Server::Send,
            ReceiverFunction aReceiver = &Server::Receive);
 
     /**
