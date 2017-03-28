@@ -178,7 +178,7 @@ public:
      * @retval kThreadError_None  Successfully started the CoAP client.
      *
      */
-    ThreadError Start(void);
+    ThreadError Start(Ip6::Address aAddress = Ip6::Address());
 
     /**
      * This method stops the CoAP client.

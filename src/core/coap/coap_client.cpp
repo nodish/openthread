@@ -51,9 +51,10 @@ Client::Client(otInstance &aInstance, SenderFunction aSender, ReceiverFunction a
     mMessageId = static_cast<uint16_t>(otPlatRandomGet());
 }
 
-ThreadError Client::Start(void)
+ThreadError Client::Start(Ip6::Address aAddress)
 {
     Ip6::SockAddr addr;
+    addr.mAddress = aAddress;
     addr.mPort = static_cast<Ip6::Udp *>(mSocket.mTransport)->GetEphemeralPort();
 
     return CoapBase::Start(addr);

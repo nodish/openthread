@@ -51,7 +51,7 @@ SecureServer::SecureServer(otInstance &aInstance, uint16_t aPort):
 {
 }
 
-ThreadError SecureServer::Start(TransportCallback aCallback, void *aContext)
+ThreadError SecureServer::Start(TransportCallback aCallback, void *aContext, Ip6::Address aAddress)
 {
     ThreadError error = kThreadError_None;
     mTransmitCallback = aCallback;
@@ -61,7 +61,7 @@ ThreadError SecureServer::Start(TransportCallback aCallback, void *aContext)
     // to transmit/receive messages, so do not open it in that case.
     if (mTransmitCallback == NULL)
     {
-        error = Server::Start();
+        error = Server::Start(aAddress);
     }
 
     return error;

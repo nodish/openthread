@@ -73,7 +73,7 @@ public:
      * @retval kThreadError_None  Successfully started the CoAP server.
      *
      */
-    ThreadError Start(TransportCallback aCallback = NULL, void *aContext = NULL);
+    ThreadError Start(TransportCallback aCallback = NULL, void *aContext = NULL, Ip6::Address aAddress = Ip6::Address());
 
     /**
      * This method stops the secure CoAP server.

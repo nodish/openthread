@@ -204,13 +204,18 @@ Message *Udp::NewMessage(uint16_t aReserved)
 }
 
 #if PLATFORM_UDP
-ThreadError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo)
+otUdpSocket *Udp::FindSocketByHandle(void* aHandle)
 {
     for (UdpSocket *socket = mSockets; socket; socket = socket->GetNext())
     {
-        if (socket->mHandle == (void*)(long)aMessageInfo.mSockAddr.mFields.m32[0])
-            socket->HandleUdpReceive(aMessage, aMessageInfo);
+        if (socket->mHandle == aHandle)
+            return socket;
     }
+    return NULL;
+}
+ThreadError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo, UdpSocket &aUdpSocket)
+{
+    aUdpSocket.HandleUdpReceive(aMessage, aMessageInfo);
     return kThreadError_None;
 }
 #else

@@ -22,6 +22,8 @@ const uint8_t psk[] =
 };
 
 uint32_t NODE_ID = 1;
+Ip6::Address sClientAddress;
+Ip6::Address sServerAddress;
 
 void coap_handler(void* aContext, otCoapHeader *aHeader, otMessage *aMessage, const otMessageInfo *aMessageInfo)
 {
@@ -74,9 +76,6 @@ void test_request_secure(Coap::SecureClient &cc)
   header.SetToken(Coap::Header::kDefaultTokenLength);
   header.AppendUriPathOptions("o");
   Message *message = cc.NewMessage(header);
-  Ip6::Address dest;
-  dest.FromString("::1");
-
   cc.SendMessage(*message, response_handler, NULL);
 }
 
@@ -99,33 +98,28 @@ void test_request(Coap::Client &cc)
   header.SetToken(Coap::Header::kDefaultTokenLength);
   header.AppendUriPathOptions("o");
   Message *message = cc.NewMessage(header);
-  Ip6::Address dest;
-  dest.FromString("::1");
-
   Ip6::MessageInfo messageInfo;
-  messageInfo.SetPeerAddr(dest);
+  messageInfo.SetPeerAddr(sServerAddress);
   messageInfo.SetPeerPort(4433);
   cc.SendMessage(*message, messageInfo, response_handler, NULL);
 }
 
 void test_connect(Coap::SecureClient &cc)
 {
-  Ip6::Address dest;
-  dest.FromString("::1");
   Ip6::MessageInfo messageInfo;
-  messageInfo.SetPeerAddr(dest);
+  messageInfo.SetPeerAddr(sServerAddress);
   messageInfo.SetPeerPort(4433);
   cc.Connect(messageInfo, connect_handler, &cc);
 }
 
-void test_coaps(void* aContext)
+void coaps_connect(void* aContext)
 {
   printf("*************************\n");
   Coap::SecureClient &cc = *(Coap::SecureClient*)aContext;
   test_connect(cc);
 }
 
-void test_coap(void* aContext)
+void coap_request(void* aContext)
 {
   Coap::Client &cc = *(Coap::Client*)aContext;
   test_request(cc);
@@ -141,11 +135,11 @@ void test_coaps()
   Coap::Resource test("o", coap_handler_secure, &ss);
   ss.AddResource(test);
   ss.SetPsk(psk, sizeof(psk));
-  ss.Start();
+  ss.Start(NULL, NULL, sServerAddress);
   cc.SetPsk(psk, sizeof(psk));
-  cc.Start();
+  cc.Start(sClientAddress);
 
-  Thread::Timer timer(nc.mTimerScheduler, test_coaps, &cc);;
+  Thread::Timer timer(nc.mTimerScheduler, coaps_connect, &cc);;
   timer.Start(1000);
 
   while (!usleep(1000)) {
@@ -167,7 +161,7 @@ void test_coap()
   ss.Start();
   cc.Start();
 
-  Thread::Timer timer(nc.mTimerScheduler, test_coap, &cc);;
+  Thread::Timer timer(nc.mTimerScheduler, coap_request, &cc);;
   timer.Start(1000);
 
   while (!usleep(1000)) {
@@ -185,6 +179,11 @@ void platform_init()
 
 int main()
 {
+    // test ip4
+    //sClientAddress.FromString("ffff:ffff:ffff:ffff:ffff:ffff:7f00:1");
+    //sServerAddress.FromString("ffff:ffff:ffff:ffff:ffff:ffff:7f00:1");
+    // test ip6
+    sServerAddress.FromString("::1");
     platform_init();
     test_coaps();
 }

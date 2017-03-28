@@ -13,6 +13,10 @@ void otUdpHandleMessage(otInstance *aInstance, otMessage *aMessage, otMessageInf
 
 otMessage *otMessageNew(otInstance *aInstance, uint16_t aReserved);
 
+void otUdpSocketHandleReceive(otUdpSocket *aUdpSocket, otMessage *aMessage, otMessageInfo *aMessageInfo);
+
+otUdpSocket *otUdpFindSocketByHandle(otInstance *aInstance, void* aHandle);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

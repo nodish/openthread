@@ -46,9 +46,10 @@ Server::Server(otInstance &aInstance, uint16_t aPort, SenderFunction aSender, Re
     mResources = NULL;
 }
 
-ThreadError Server::Start(void)
+ThreadError Server::Start(Ip6::Address aAddress)
 {
     Ip6::SockAddr sockaddr;
+    sockaddr.mAddress = aAddress;
     sockaddr.mPort = mPort;
 
     return CoapBase::Start(sockaddr);

@@ -220,6 +220,10 @@ public:
      */
     ThreadError SendDatagram(Message &aMessage, MessageInfo &aMessageInfo, IpProto aIpProto);
 
+#if PLATFORM_UDP
+    otUdpSocket *FindSocketByHandle(void* aHandle);
+    ThreadError HandleMessage(Message &aMessage, MessageInfo &aMessageInfo, UdpSocket &aUdpSocket);
+#else
     /**
      * This method handles a received UDP message.
      *
@@ -231,6 +235,7 @@ public:
      *
      */
     ThreadError HandleMessage(Message &aMessage, MessageInfo &aMessageInfo);
+#endif
 
     /**
      * This method updates the UDP checksum.

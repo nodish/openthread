@@ -1,12 +1,19 @@
 #include <common/message.hpp>
 #include "openthread-instance.h"
 #include "api.h"
+#include <net/udp6.hpp>
 
 using namespace Thread;
 
-void otUdpHandleMessage(otInstance *aInstance, otMessage *aMessage, otMessageInfo *aMessageInfo)
+void otUdpSocketHandleReceive(otUdpSocket *aUdpSocket, otMessage *aMessage, otMessageInfo *aMessageInfo)
 {
-    aInstance->mUdp.HandleMessage(*static_cast<Message*>(aMessage), *static_cast<Ip6::MessageInfo*>(aMessageInfo));
+    Ip6::Udp &udp = *static_cast<Ip6::Udp*>(aUdpSocket->mTransport);
+    udp.HandleMessage(*static_cast<Message *>(aMessage), *static_cast<Ip6::MessageInfo*>(aMessageInfo), *static_cast<Ip6::UdpSocket*>(aUdpSocket));
+}
+
+otUdpSocket *otUdpFindSocketByHandle(otInstance *aInstance, void* aHandle)
+{
+    return aInstance->mUdp.FindSocketByHandle(aHandle);
 }
 
 otMessage *otMessageNew(otInstance *aInstance, uint16_t aReserved)
