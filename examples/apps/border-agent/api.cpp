@@ -80,3 +80,14 @@ int otMessageWrite(otMessage *aMessage, uint16_t aOffset, const void *aBuf, uint
     Message *message = static_cast<Message *>(aMessage);
     return message->Write(aOffset, aLength, aBuf);
 }
+
+void otTaskletsProcess(otInstance *aInstance)
+{
+    aInstance->mTaskletScheduler.ProcessQueuedTasklets();
+}
+
+bool otTaskletsArePending(otInstance *aInstance)
+{
+    return aInstance->mTaskletScheduler.AreTaskletsPending();
+}
+

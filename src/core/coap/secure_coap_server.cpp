@@ -45,8 +45,9 @@ SecureServer::SecureServer(otInstance &aInstance, uint16_t aPort):
     Server(aInstance, aPort, &SecureServer::Send, &SecureServer::Receive),
     mTransmitCallback(NULL),
     mContext(NULL),
+    mInstance(aInstance),
     mTransmitMessage(NULL),
-    mInstance(aInstance)
+    mTransmitTask(aInstance.mTaskletScheduler, &SecureServer::HandleUdpTransmit, this)
 {
 }
 
@@ -197,7 +198,7 @@ ThreadError SecureServer::HandleDtlsSend(const uint8_t *aBuf, uint16_t aLength, 
 
     VerifyOrExit(mTransmitMessage->Append(aBuf, aLength) == kThreadError_None, error = kThreadError_NoBufs);
 
-    HandleUdpTransmit();
+    mTransmitTask.Post();
 
 exit:
 

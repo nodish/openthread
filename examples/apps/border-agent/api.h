@@ -1,6 +1,7 @@
 #ifndef API_H_
 #define API_H_
 #include <openthread/types.h>
+#include <openthread/tasklet.h>
 #include <openthread/message.h>
 #include <openthread/udp.h>
 

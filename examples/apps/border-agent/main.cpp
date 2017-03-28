@@ -149,6 +149,7 @@ void test_coaps()
   timer.Start(1000);
 
   while (!usleep(1000)) {
+    otTaskletsProcess(&nc);
     platformAlarmProcess(&nc);
     udp_process(&nc);
   }
@@ -170,6 +171,7 @@ void test_coap()
   timer.Start(1000);
 
   while (!usleep(1000)) {
+    otTaskletsProcess(&nc);
     platformAlarmProcess(&nc);
     udp_process(&nc);
   }

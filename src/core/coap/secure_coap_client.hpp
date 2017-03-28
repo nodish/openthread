@@ -145,6 +145,7 @@ public:
      *
      */
     ThreadError SetPsk(const uint8_t *aPsk, uint8_t aPskLength);
+
 private:
     static ThreadError Send(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
     ThreadError Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
@@ -169,6 +170,7 @@ private:
     void *mContext;
     otInstance &mInstance;
     Message *mTransmitMessage;
+    Tasklet mTransmitTask;
 };
 
 }  // namespace Coap

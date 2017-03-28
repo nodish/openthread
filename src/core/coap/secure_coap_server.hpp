@@ -135,8 +135,9 @@ private:
     Ip6::MessageInfo mPeerAddress;
     TransportCallback mTransmitCallback;
     void *mContext;
-    Message *mTransmitMessage;
     otInstance &mInstance;
+    Message *mTransmitMessage;
+    Tasklet mTransmitTask;
 };
 
 }  // namespace Coap

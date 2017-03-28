@@ -45,7 +45,8 @@ SecureClient::SecureClient(otInstance &aInstance):
     mConnectedCallback(NULL),
     mContext(NULL),
     mInstance(aInstance),
-    mTransmitMessage(NULL)
+    mTransmitMessage(NULL),
+    mTransmitTask(aInstance.mTaskletScheduler, &SecureClient::HandleUdpTransmit, this)
 {
 }
 
@@ -203,7 +204,7 @@ ThreadError SecureClient::HandleDtlsSend(const uint8_t *aBuf, uint16_t aLength, 
 
     VerifyOrExit(mTransmitMessage->Append(aBuf, aLength) == kThreadError_None, error = kThreadError_NoBufs);
 
-    HandleUdpTransmit(this);
+    mTransmitTask.Post();
 
 exit:
 

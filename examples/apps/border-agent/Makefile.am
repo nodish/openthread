@@ -49,6 +49,7 @@ SOURCES_COMMON                                                         = \
     @top_srcdir@/src/core/coap/secure_coap_client.cpp              \
     @top_srcdir@/src/core/common/logging.cpp                \
     @top_srcdir@/src/core/common/message.cpp                \
+    @top_srcdir@/src/core/common/tasklet.cpp                  \
     @top_srcdir@/src/core/common/timer.cpp                  \
     @top_srcdir@/src/core/crypto/mbedtls.cpp                  \
     @top_srcdir@/src/core/crypto/sha256.cpp                  \
