@@ -201,7 +201,8 @@ void test_border_agent()
 
     MeshCoP::Dtls serverDtls(nc);
     Coap::SecureServer css(nc, serverDtls, 49191);
-    css.Start();
+    //ba will restart this server
+    //css.Start();
     nc.mSecureCoapServer = &css;
 
     MeshCoP::BorderAgent ba(nc);
