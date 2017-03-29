@@ -51,9 +51,11 @@ SOURCES_COMMON                                                         = \
     @top_srcdir@/src/core/common/message.cpp                \
     @top_srcdir@/src/core/common/tasklet.cpp                  \
     @top_srcdir@/src/core/common/timer.cpp                  \
+    @top_srcdir@/src/core/common/tlvs.cpp                  \
     @top_srcdir@/src/core/crypto/mbedtls.cpp                  \
     @top_srcdir@/src/core/crypto/sha256.cpp                  \
     @top_srcdir@/src/core/meshcop/dtls.cpp                 \
+    @top_srcdir@/src/core/meshcop/border_agent.cpp                 \
     @top_srcdir@/src/core/net/udp6.cpp                  \
     @top_srcdir@/src/core/net/ip6_address.cpp                  \
     @top_srcdir@/examples/platforms/posix/alarm.c                  \

@@ -46,7 +46,7 @@
 
 namespace Thread {
 
-class ThreadNetif;
+class Instance;
 
 namespace MeshCoP {
 
@@ -56,10 +56,10 @@ public:
     /**
      * This constructor initializes the BorderAgent object.
      *
-     * @param[in]  aThreadNetif  A reference to the Thread network interface.
+     * @param[in]  aInstance  A reference to the Thread network interface.
      *
      */
-    BorderAgent(ThreadNetif &aThreadNetif);
+    BorderAgent(otInstance &aInstance);
 
     /**
      * This method returns the pointer to the parent otInstance structure.
@@ -94,7 +94,7 @@ private:
     static void HandleCommissionerPetition(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                            const otMessageInfo *aMessageInfo);
     void HandleCommissionerPetition(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
-    
+
     static void HandleLeaderPetitionResponse(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                              const otMessageInfo *aMessageInfo, ThreadError aResult);
     void HandleLeaderPetitionResponse(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo,
@@ -139,11 +139,11 @@ private:
     Coap::Resource mCommissionerPetition;
     Coap::Resource mCommissionerKeepAlive;
     Coap::Resource mMgmtCommissionerSet;
-    
+
     Timer mTimer;
-    ThreadNetif &mNetif;
+    otInstance &mInstance;
     Ip6::Address mCommissionerAddr;
-    uint8_t mCommissionerUdpPort;
+    uint16_t mCommissionerUdpPort;
 };
 
 }  // namespace MeshCoP

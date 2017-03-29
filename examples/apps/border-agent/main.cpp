@@ -6,6 +6,7 @@
 #include <coap/coap_client.hpp>
 #include <coap/secure_coap_client.hpp>
 #include <coap/secure_coap_server.hpp>
+#include <meshcop/border_agent.hpp>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include "platform_udp.h"
@@ -127,7 +128,9 @@ void coap_request(void* aContext)
 
 void test_coaps()
 {
-  otInstance nc;
+  Ip6::Address meshLocal16;
+  meshLocal16.FromString("fd00::1");
+  otInstance nc(meshLocal16);
   MeshCoP::Dtls serverDtls(nc);
   MeshCoP::Dtls clientDtls(nc);
   udp_init(&nc);
@@ -153,7 +156,9 @@ void test_coaps()
 
 void test_coap()
 {
-  otInstance nc;
+  Ip6::Address meshLocal16;
+  meshLocal16.FromString("fd00::1");
+  otInstance nc(meshLocal16);
   udp_init(&nc);
 
   Coap::Server ss(nc, 4433);
@@ -179,13 +184,43 @@ void platform_init()
     platformRandomInit();
 }
 
+void test_border_agent()
+{
+    Ip6::Address meshLocal16;
+    meshLocal16.FromString("fd00::1");
+    otInstance nc(meshLocal16);
+    udp_init(&nc);
+
+    Coap::Server cs(nc, 61631);
+    cs.Start();
+    nc.mCoapServer = &cs;
+
+    Coap::Client cc(nc);
+    cc.Start();
+    nc.mCoapClient = &cc;
+
+    MeshCoP::Dtls serverDtls(nc);
+    Coap::SecureServer css(nc, serverDtls, 49191);
+    css.Start();
+    nc.mSecureCoapServer = &css;
+
+    MeshCoP::BorderAgent ba(nc);
+    ba.Start();
+    while (!usleep(1000)) {
+      otTaskletsProcess(&nc);
+      platformAlarmProcess(&nc);
+      udp_process(&nc);
+    }
+}
+
 int main()
 {
     // test ip4
     //sClientAddress.FromString("ffff:ffff:ffff:ffff:ffff:ffff:7f00:1");
     //sServerAddress.FromString("ffff:ffff:ffff:ffff:ffff:ffff:7f00:1");
     // test ip6
-    sServerAddress.FromString("::1");
+    //sServerAddress.FromString("::1");
     platform_init();
-    test_coaps();
+    //test_coaps();
+    test_border_agent();
 }
