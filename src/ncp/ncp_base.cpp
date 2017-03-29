@@ -691,10 +691,10 @@ void NcpBase::HandleRawFrame(const RadioPacket *aFrame)
             SPINEL_DATATYPE_INT8_S
             SPINEL_DATATYPE_UINT16_S
             SPINEL_DATATYPE_STRUCT_S( // PHY-data
-                // Empty for now
+                "" // Empty for now
             )
             SPINEL_DATATYPE_STRUCT_S( // Vendor-data
-                // Empty for now
+                "" // Empty for now
             ),
             aFrame->mPower,   // TX Power
             -128,             // Noise Floor (Currently unused)
@@ -2460,6 +2460,7 @@ ThreadError NcpBase::GetPropertyHandler_THREAD_CHILD_TABLE(uint8_t header, spine
                     SPINEL_DATATYPE_UINT8_S         // Link Quality In
                     SPINEL_DATATYPE_INT8_S          // Average RSS
                     SPINEL_DATATYPE_UINT8_S         // Mode (flags)
+                    SPINEL_DATATYPE_INT8_S          // Most recent RSS
                 ),
                 childInfo.mExtAddress.m8,
                 childInfo.mRloc16,
@@ -2468,7 +2469,8 @@ ThreadError NcpBase::GetPropertyHandler_THREAD_CHILD_TABLE(uint8_t header, spine
                 childInfo.mNetworkDataVersion,
                 childInfo.mLinkQualityIn,
                 childInfo.mAverageRssi,
-                modeFlags
+                modeFlags,
+                childInfo.mLastRssi
         ));
     }
 
@@ -2527,6 +2529,7 @@ ThreadError NcpBase::GetPropertyHandler_THREAD_NEIGHBOR_TABLE(uint8_t header, sp
                     SPINEL_DATATYPE_BOOL_S          // Is Child
                     SPINEL_DATATYPE_UINT32_S        // Link Frame Counter
                     SPINEL_DATATYPE_UINT32_S        // MLE Frame Counter
+                    SPINEL_DATATYPE_INT8_S          // Most recent RSS
                 ),
                 neighInfo.mExtAddress.m8,
                 neighInfo.mRloc16,
@@ -2536,7 +2539,8 @@ ThreadError NcpBase::GetPropertyHandler_THREAD_NEIGHBOR_TABLE(uint8_t header, sp
                 modeFlags,
                 neighInfo.mIsChild,
                 neighInfo.mLinkFrameCounter,
-                neighInfo.mMleFrameCounter
+                neighInfo.mMleFrameCounter,
+                neighInfo.mLastRssi
         ));
     }
 

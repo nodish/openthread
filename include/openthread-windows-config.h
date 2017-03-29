@@ -44,6 +44,9 @@
 /* Define to 1 to enable the joiner role. */
 #define OPENTHREAD_ENABLE_JOINER 1
 
+/* Define to 1 to enable the border agent role. */
+#define OPENTHREAD_ENABLE_BORDER_AGENT 1
+
 /* Define to 1 to enable the jam detection. */
 #define OPENTHREAD_ENABLE_JAM_DETECTION 0
 
@@ -97,9 +100,6 @@
 
 // Redefine rand to random for test code
 #define random rand
-
-// Temporary !!! TODO - Remove this once we figure out the strncpy issue
-#define _CRT_SECURE_NO_WARNINGS
 
 #ifdef OTBUILD
 #include <strlcat/strlcat.h>
