@@ -11,15 +11,11 @@
 typedef struct otInstance {
 public:
   Thread::Ip6::Udp mUdp;
-  Thread::MeshCoP::Dtls mDtls;
-  Thread::MeshCoP::Dtls mClientDtls;
   Thread::TaskletScheduler mTaskletScheduler;
   Thread::TimerScheduler mTimerScheduler;
   Thread::MessagePool mMessagePool;
   Thread::Crypto::MbedTls mMbedTls;
   otInstance():
-    mDtls(*this),
-    mClientDtls(*this),
     mMessagePool(this) {}
 } otInstance;
 

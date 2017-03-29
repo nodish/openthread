@@ -61,7 +61,7 @@ public:
      * @param[in]  aNetif  A reference to the network interface that secure CoAP client should be assigned to.
      *
      */
-    SecureClient(otInstance &aInstance);
+    SecureClient(otInstance &aInstance, MeshCoP::Dtls &aDtls);
 
     /**
      * This method stops the secure CoAP client.
@@ -169,6 +169,7 @@ private:
     ConnectedCallback mConnectedCallback;
     void *mContext;
     otInstance &mInstance;
+    MeshCoP::Dtls &mDtls;
     Message *mTransmitMessage;
     Tasklet mTransmitTask;
 };

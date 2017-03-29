@@ -30,6 +30,7 @@
 #define SECURE_COAP_SERVER_HPP_
 
 #include "coap/coap_server.hpp"
+#include "meshcop/dtls.hpp"
 
 /**
  * @file
@@ -62,7 +63,7 @@ public:
      * @param[in]  aPort   The port to listen on.
      *
      */
-    SecureServer(otInstance &aotInstance, uint16_t aPort);
+    SecureServer(otInstance &aotInstance, MeshCoP::Dtls &aDtls, uint16_t aPort);
 
     /**
      * This method starts the secure CoAP server.
@@ -136,6 +137,7 @@ private:
     TransportCallback mTransmitCallback;
     void *mContext;
     otInstance &mInstance;
+    MeshCoP::Dtls &mDtls;
     Message *mTransmitMessage;
     Tasklet mTransmitTask;
 };

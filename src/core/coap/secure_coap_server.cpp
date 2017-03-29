@@ -41,11 +41,12 @@
 namespace Thread {
 namespace Coap {
 
-SecureServer::SecureServer(otInstance &aInstance, uint16_t aPort):
+SecureServer::SecureServer(otInstance &aInstance, MeshCoP::Dtls &aDtls, uint16_t aPort):
     Server(aInstance, aPort, &SecureServer::Send, &SecureServer::Receive),
     mTransmitCallback(NULL),
     mContext(NULL),
     mInstance(aInstance),
+    mDtls(aDtls),
     mTransmitMessage(NULL),
     mTransmitTask(aInstance.mTaskletScheduler, &SecureServer::HandleUdpTransmit, this)
 {
@@ -69,9 +70,9 @@ ThreadError SecureServer::Start(TransportCallback aCallback, void *aContext, Ip6
 
 ThreadError SecureServer::Stop()
 {
-    if (mInstance.mDtls.IsStarted())
+    if (mDtls.IsStarted())
     {
-        mInstance.mDtls.Stop();
+        mDtls.Stop();
     }
 
     if (mTransmitMessage != NULL)
@@ -90,7 +91,7 @@ ThreadError SecureServer::Stop()
 
 bool SecureServer::IsConnectionActive(void)
 {
-    return mInstance.mDtls.IsStarted();
+    return mDtls.IsStarted();
 };
 
 ThreadError SecureServer::Send(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
@@ -101,7 +102,7 @@ ThreadError SecureServer::Send(void *aContext, Message &aMessage, const Ip6::Mes
 ThreadError SecureServer::Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     (void)aMessageInfo;
-    return mInstance.mDtls.Send(aMessage, aMessage.GetLength());
+    return mDtls.Send(aMessage, aMessage.GetLength());
 }
 
 void SecureServer::Receive(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
@@ -113,17 +114,17 @@ void SecureServer::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
 {
     otLogFuncEntry();
 
-    if (!mInstance.mDtls.IsStarted())
+    if (!mDtls.IsStarted())
     {
         mPeerAddress.SetPeerAddr(aMessageInfo.GetPeerAddr());
         mPeerAddress.SetPeerPort(aMessageInfo.GetPeerPort());
-        if (mNetif.IsUnicastAddress(aMessageInfo.GetSockAddr()))
+        if (!aMessageInfo.GetSockAddr().IsMulticast())
         {
             mPeerAddress.SetSockAddr(aMessageInfo.GetSockAddr());
         }
         mPeerAddress.SetSockPort(aMessageInfo.GetSockPort());
 
-        mInstance.mDtls.Start(false, HandleDtlsConnected, HandleDtlsReceive, HandleDtlsSend, this);
+        mDtls.Start(false, HandleDtlsConnected, HandleDtlsReceive, HandleDtlsSend, this);
     }
     else
     {
@@ -132,9 +133,9 @@ void SecureServer::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
                      (mPeerAddress.GetPeerPort() == aMessageInfo.GetPeerPort()), ;);
     }
 
-    mInstance.mDtls.SetClientId(mPeerAddress.GetPeerAddr().mFields.m8,
+    mDtls.SetClientId(mPeerAddress.GetPeerAddr().mFields.m8,
                                  sizeof(mPeerAddress.GetPeerAddr().mFields));
-    mInstance.mDtls.Receive(aMessage, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
+    mDtls.Receive(aMessage, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
 
 exit:
     otLogFuncExit();
@@ -142,7 +143,7 @@ exit:
 
 ThreadError SecureServer::SetPsk(const uint8_t *aPsk, uint8_t aPskLength)
 {
-    return mInstance.mDtls.SetPsk(aPsk, aPskLength);
+    return mDtls.SetPsk(aPsk, aPskLength);
 }
 
 void SecureServer::HandleDtlsConnected(void *aContext, bool aConnected)

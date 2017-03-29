@@ -40,11 +40,12 @@
 namespace Thread {
 namespace Coap {
 
-SecureClient::SecureClient(otInstance &aInstance):
+SecureClient::SecureClient(otInstance &aInstance, MeshCoP::Dtls &aDtls):
     Client(aInstance, &SecureClient::Send, &SecureClient::Receive),
     mConnectedCallback(NULL),
     mContext(NULL),
     mInstance(aInstance),
+    mDtls(aDtls),
     mTransmitMessage(NULL),
     mTransmitTask(aInstance.mTaskletScheduler, &SecureClient::HandleUdpTransmit, this)
 {
@@ -68,7 +69,7 @@ ThreadError SecureClient::Stop(void)
 
 ThreadError SecureClient::SetPsk(const uint8_t *aPsk, uint8_t aPskLength)
 {
-    return mInstance.mClientDtls.SetPsk(aPsk, aPskLength);
+    return mDtls.SetPsk(aPsk, aPskLength);
 }
 
 ThreadError SecureClient::Connect(const Ip6::MessageInfo &aMessageInfo, ConnectedCallback aCallback, void *aContext)
@@ -77,28 +78,28 @@ ThreadError SecureClient::Connect(const Ip6::MessageInfo &aMessageInfo, Connecte
     mConnectedCallback = aCallback;
     mContext = aContext;
 
-    return mInstance.mClientDtls.Start(true, &SecureClient::HandleDtlsConnected, &SecureClient::HandleDtlsReceive,
+    return mDtls.Start(true, &SecureClient::HandleDtlsConnected, &SecureClient::HandleDtlsReceive,
                                   &SecureClient::HandleDtlsSend, this);
 }
 
 bool SecureClient::IsConnectionActive(void)
 {
-    return mInstance.mClientDtls.IsStarted();
+    return mDtls.IsStarted();
 };
 
 bool SecureClient::IsConnected(void)
 {
-    return mInstance.mClientDtls.IsConnected();
+    return mDtls.IsConnected();
 };
 
 ThreadError SecureClient::Disconnect(void)
 {
-    return mInstance.mClientDtls.Stop();
+    return mDtls.Stop();
 }
 
 MeshCoP::Dtls &SecureClient::GetDtls(void)
 {
-    return mInstance.mClientDtls;
+    return mDtls;
 };
 
 ThreadError SecureClient::SendMessage(Message &aMessage, otCoapResponseHandler aHandler, void *aContext)
@@ -124,7 +125,7 @@ ThreadError SecureClient::Send(void *aContext, Message &aMessage, const Ip6::Mes
 ThreadError SecureClient::Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     (void)aMessageInfo;
-    return mInstance.mClientDtls.Send(aMessage, aMessage.GetLength());
+    return mDtls.Send(aMessage, aMessage.GetLength());
 }
 
 void SecureClient::Receive(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
@@ -139,7 +140,7 @@ void SecureClient::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     VerifyOrExit((mPeerAddress.GetPeerAddr() == aMessageInfo.GetPeerAddr()) &&
                  (mPeerAddress.GetPeerPort() == aMessageInfo.GetPeerPort()), ;);
 
-    mInstance.mClientDtls.Receive(aMessage, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
+    mDtls.Receive(aMessage, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
 
 exit:
     otLogFuncExit();

@@ -128,10 +128,12 @@ void coap_request(void* aContext)
 void test_coaps()
 {
   otInstance nc;
+  MeshCoP::Dtls serverDtls(nc);
+  MeshCoP::Dtls clientDtls(nc);
   udp_init(&nc);
 
-  Coap::SecureServer ss(nc, 4433);
-  Coap::SecureClient cc(nc);
+  Coap::SecureServer ss(nc, serverDtls, 4433);
+  Coap::SecureClient cc(nc, clientDtls);
   Coap::Resource test("o", coap_handler_secure, &ss);
   ss.AddResource(test);
   ss.SetPsk(psk, sizeof(psk));
