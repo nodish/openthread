@@ -28,12 +28,18 @@ public:
   Coap::Client *mCoapClient;
   Coap::SecureServer *mSecureCoapServer;
   Ip6::Address mMeshLocal16;
+  Ip6::Address mMeshLocal64;
   MessagePool mMessagePool;
 
 
   Ip6::Address &GetMeshLocal16()
   {
       return mMeshLocal16;
+  }
+
+  Ip6::Address &GetMeshLocal64()
+  {
+      return mMeshLocal64;
   }
 
   Coap::Client &GetCoapClient()
@@ -75,8 +81,9 @@ public:
       };
       return aThreadPSKc;
   }
-  otInstance(Ip6::Address &aMeshLocal16):
+  otInstance(Ip6::Address &aMeshLocal16, Ip6::Address &aMeshLocal64):
     mMeshLocal16(aMeshLocal16),
+    mMeshLocal64(aMeshLocal64),
     mMessagePool(this) {}
 
 } otInstance;

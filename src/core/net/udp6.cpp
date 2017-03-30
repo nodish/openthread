@@ -35,6 +35,7 @@
 
 #if PLATFORM_UDP
 #include "platform_udp.h"
+#include "api.h"
 #include "openthread-instance.h"
 #endif
 
@@ -92,9 +93,17 @@ exit:
 
 ThreadError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo)
 {
-#if PLATFORM_UDP
-    return platform_udp_send(this, &aMessage, &aMessageInfo);
-#else
+    Address &meshLocal16 = otInstanceFromUdp(static_cast<Udp *>(mTransport))->GetMeshLocal16();
+    //char ip[100];
+    //printf("Sending to ip6 %s\n", aMessageInfo.GetPeerAddr().ToString(ip, 100));
+    //printf("Sending from ip6 %s\n", aMessageInfo.GetSockAddr().ToString(ip, 100));
+
+    if (memcmp(&meshLocal16, &aMessageInfo.GetPeerAddr(), 8))
+    {
+        return platform_udp_send(this, &aMessage, &aMessageInfo);
+    }
+
+    // This is mesh local destination
     ThreadError error = kThreadError_None;
     MessageInfo messageInfoLocal;
     UdpHeader udpHeader;
@@ -122,7 +131,6 @@ ThreadError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo
 
 exit:
     return error;
-#endif
 }
 
 Udp::Udp():
@@ -197,7 +205,7 @@ uint16_t Udp::GetEphemeralPort(void)
 Message *Udp::NewMessage(uint16_t aReserved)
 {
 #if PLATFORM_UDP
-    return otInstanceFromUdp(this)->mMessagePool.New(Message::kTypeIp6, aReserved);
+    return otInstanceFromUdp(this)->mMessagePool.New(Message::kTypeIp6, sizeof(Header) + sizeof(UdpHeader) + aReserved);
 #else
     return mMessagePool.New(Message::kTypeIp6, aReserved);
 #endif
@@ -218,12 +226,95 @@ ThreadError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo, Udp
     aUdpSocket.HandleUdpReceive(aMessage, aMessageInfo);
     return kThreadError_None;
 }
-#else
-ThreadError Udp::SendDatagram(Message &aMessage, MessageInfo &aMessageInfo, IpProto aIpProto)
+#endif
+
+uint16_t Ip6::UpdateChecksum(uint16_t checksum, uint16_t val)
 {
-    return mIp6.SendDatagram(aMessage, aMessageInfo, aIpProto);
+    uint16_t result = checksum + val;
+    return result + (result < checksum);
 }
 
+uint16_t Ip6::UpdateChecksum(uint16_t checksum, const void *buf, uint16_t len)
+{
+    const uint8_t *bytes = reinterpret_cast<const uint8_t *>(buf);
+
+    for (int i = 0; i < len; i++)
+    {
+        checksum = UpdateChecksum(checksum, (i & 1) ? bytes[i] : static_cast<uint16_t>(bytes[i] << 8));
+    }
+
+    return checksum;
+}
+
+uint16_t UpdateChecksum(uint16_t checksum, const Address &address)
+{
+    return Ip6::UpdateChecksum(checksum, address.mFields.m8, sizeof(address));
+}
+
+uint16_t ComputePseudoheaderChecksum(const Address &src, const Address &dst, uint16_t length, IpProto proto)
+{
+    uint16_t checksum;
+
+    checksum = Ip6::UpdateChecksum(0, length);
+    checksum = Ip6::UpdateChecksum(checksum, static_cast<uint16_t>(proto));
+    checksum = UpdateChecksum(checksum, src);
+    checksum = UpdateChecksum(checksum, dst);
+
+    return checksum;
+}
+
+ThreadError Udp::SendDatagram(Message &aMessage, MessageInfo &aMessageInfo, IpProto aIpProto)
+{
+    ThreadError error = kThreadError_None;
+    Header header;
+    uint16_t payloadLength = aMessage.GetLength();
+    uint16_t checksum;
+
+    //printf("Sending to thread %u\n", payloadLength);
+    aMessageInfo.SetSockAddr(otInstanceFromUdp(this)->GetMeshLocal64());
+    header.Init();
+    header.SetPayloadLength(payloadLength);
+    header.SetNextHeader(aIpProto);
+    header.SetHopLimit(aMessageInfo.mHopLimit ? aMessageInfo.mHopLimit : static_cast<uint8_t>(Ip6::kDefaultHopLimit));
+
+    if (aMessageInfo.GetSockAddr().IsUnspecified() ||
+        aMessageInfo.GetSockAddr().IsAnycastRoutingLocator() ||
+        aMessageInfo.GetSockAddr().IsMulticast())
+    {
+        header.SetSource(otInstanceFromUdp(this)->GetMeshLocal16());
+    }
+    else
+    {
+        header.SetSource(aMessageInfo.GetSockAddr());
+    }
+
+    header.SetDestination(aMessageInfo.GetPeerAddr());
+
+    if (header.GetDestination().IsLinkLocal() || header.GetDestination().IsLinkLocalMulticast())
+    {
+        VerifyOrExit(aMessageInfo.GetInterfaceId() != 0, error = kThreadError_Drop);
+    }
+
+    SuccessOrExit(error = aMessage.Prepend(&header, sizeof(header)));
+
+    // compute checksum
+    checksum = ComputePseudoheaderChecksum(header.GetSource(), header.GetDestination(),
+                                           payloadLength, aIpProto);
+
+    SuccessOrExit(error = UpdateChecksum(aMessage, checksum));
+
+exit:
+
+    if (error == kThreadError_None)
+    {
+        aMessage.SetInterfaceId(aMessageInfo.GetInterfaceId());
+        ncp_ip6_send(&aMessage);
+    }
+
+    return error;
+}
+
+#if !PLATFORM_UDP
 ThreadError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo)
 {
     ThreadError error = kThreadError_None;
@@ -237,7 +328,7 @@ ThreadError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo)
     VerifyOrExit(payloadLength >= sizeof(UdpHeader), error = kThreadError_Parse);
 
     // verify checksum
-    checksum = Ip6::ComputePseudoheaderChecksum(aMessageInfo.GetPeerAddr(), aMessageInfo.GetSockAddr(),
+    checksum = ComputePseudoheaderChecksum(aMessageInfo.GetPeerAddr(), aMessageInfo.GetSockAddr(),
                                                 payloadLength, kProtoUdp);
     checksum = aMessage.UpdateChecksum(checksum, aMessage.GetOffset(), payloadLength);
     VerifyOrExit(checksum == 0xffff, ;);
@@ -289,6 +380,7 @@ ThreadError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo)
 exit:
     return error;
 }
+#endif
 
 ThreadError Udp::UpdateChecksum(Message &aMessage, uint16_t aChecksum)
 {
@@ -303,7 +395,6 @@ ThreadError Udp::UpdateChecksum(Message &aMessage, uint16_t aChecksum)
     aMessage.Write(aMessage.GetOffset() + UdpHeader::GetChecksumOffset(), sizeof(aChecksum), &aChecksum);
     return kThreadError_None;
 }
-#endif
 
 }  // namespace Ip6
 }  // namespace Thread

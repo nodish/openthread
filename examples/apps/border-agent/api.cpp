@@ -110,6 +110,11 @@ const char* shell(const char* cmd)
 }
 
 #define CMD_PREFIX "/Users/xyk/wpantund-output/usr/local/bin/wpanctl -I utun1 "
+const char* otGetMeshLocal64()
+{
+    return shell(CMD_PREFIX "getprop IPv6:MeshLocalAddress | grep 'fd[0-9a-f:]*' -o | tr -d '\\n'");
+}
+
 const char* otGetMeshLocal16()
 {
     static char buf[128] = {0};
@@ -119,4 +124,38 @@ const char* otGetMeshLocal16()
     p += sprintf(p, "%s", shell(CMD_PREFIX "getprop Thread:RLOC16 | cut -dx -f2 | tr -d '\\n'"));
     *p = 0;
     return buf;
+}
+
+int sprint_hex(char *out, uint8_t* buf, uint16_t len)
+{
+    static const char hex_str[]= "0123456789abcdef";
+    unsigned int  i;
+
+    out[len * 2] = '\0';
+
+    if (!len) return 0;
+
+    for (i = 0; i < len; i++)
+    {
+        out[i * 2 + 0] = hex_str[(buf[i] >> 4) & 0x0F];
+        out[i * 2 + 1] = hex_str[(buf[i]     ) & 0x0F];
+    }
+
+    return len * 2;
+}
+
+void ncp_ip6_send(otMessage *aMessage)
+{
+    static uint8_t buf[1300];
+    static char cmd[100 + 2600 + 1];
+    int len;
+    len = otMessageRead(aMessage, 0, buf, otMessageGetLength(aMessage));
+
+    char* p = cmd;
+    p += sprintf(p, CMD_PREFIX "set 'Stream:Net' -d ");
+    p += sprint_hex(p, buf, (uint16_t)len);
+
+    shell(cmd);
+
+    otMessageFree(aMessage);
 }

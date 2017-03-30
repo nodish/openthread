@@ -17,16 +17,17 @@ extern "C" {
 
 using namespace Thread;
 
-const uint8_t psk[] =
-{
-    0xc3, 0xf5, 0x93, 0x68, 0x44, 0x5a, 0x1b, 0x61,
-    0x06, 0xbe, 0x42, 0x0a, 0x70, 0x6d, 0x4c, 0xc9,
-};
+//const uint8_t psk[] =
+//{
+//    0xc3, 0xf5, 0x93, 0x68, 0x44, 0x5a, 0x1b, 0x61,
+//    0x06, 0xbe, 0x42, 0x0a, 0x70, 0x6d, 0x4c, 0xc9,
+//};
 
 uint32_t NODE_ID = 1;
 Ip6::Address sClientAddress;
 Ip6::Address sServerAddress;
 
+#if 0
 void coap_handler(void* aContext, otCoapHeader *aHeader, otMessage *aMessage, const otMessageInfo *aMessageInfo)
 {
   Coap::Server &server = *(Coap::Server*)aContext;
@@ -179,6 +180,8 @@ void test_coap()
   }
 }
 
+#endif
+
 void platform_init()
 {
     platformAlarmInit();
@@ -188,9 +191,12 @@ void platform_init()
 void test_border_agent()
 {
     Ip6::Address meshLocal16;
+    Ip6::Address meshLocal64;
     printf("mesh local 16 is %s\n", otGetMeshLocal16());
     meshLocal16.FromString(otGetMeshLocal16());
-    otInstance nc(meshLocal16);
+    meshLocal64.FromString(otGetMeshLocal64());
+    printf("mesh local 64 is %s\n", otGetMeshLocal64());
+    otInstance nc(meshLocal16, meshLocal64);
     udp_init(&nc);
 
     Coap::Server cs(nc, 61631);

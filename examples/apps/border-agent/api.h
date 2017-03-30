@@ -17,6 +17,11 @@ void otUdpSocketHandleReceive(otUdpSocket *aUdpSocket, otMessage *aMessage, otMe
 
 otUdpSocket *otUdpFindSocketByHandle(otInstance *aInstance, void* aHandle);
 
+const char* otGetMeshLocal16();
+const char* otGetMeshLocal64();
+
+void ncp_ip6_send(otMessage *aMessage);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

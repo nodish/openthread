@@ -78,9 +78,10 @@ const char* dump_ip(const otIp6Address *aAddress)
 
 static int isIp4Address(otIp6Address *aAddress)
 {
-    return (aAddress->mFields.m32[0] == 0xffffffff &&
-            aAddress->mFields.m32[1] == 0xffffffff &&
-            aAddress->mFields.m32[2] == 0xffffffff);
+    return (aAddress->mFields.m32[0] == 0 &&
+            aAddress->mFields.m32[1] == 0 &&
+            aAddress->mFields.m16[4] == 0 &&
+            aAddress->mFields.m16[5] == 0xffff);
 }
 
 ThreadError platform_udp_bind_ip4(otUdpSocket *aUdpSocket)
@@ -109,6 +110,13 @@ ThreadError platform_udp_bind_ip6(otUdpSocket *aUdpSocket)
 
     int fd = (int)(long)aUdpSocket->mHandle;
     bind(fd, (struct sockaddr *)&sin6, sizeof(sin6));
+
+    int flags = 1;
+#ifdef __APPLE__
+    setsockopt(fd, IPPROTO_IPV6, IP_RECVDSTADDR, &flags, sizeof(flags));
+#else
+    setsockopt(fd, IPPROTO_IPV6, IP_RECVORIGDSTADDR, &flags, sizeof(flags));
+#endif
     return kThreadError_None;
 }
 ThreadError platform_udp_bind(otUdpSocket *aUdpSocket)
@@ -121,10 +129,6 @@ ThreadError platform_udp_bind(otUdpSocket *aUdpSocket)
     {
         platform_udp_bind_ip6(aUdpSocket);
     }
-
-    // TODO get destination of udp
-    //int flags = 1;
-    //setsockopt(mSocket, IPPROTO_IP, IP_RECVORIGDSTADDR, &flags, sizeof(flags));
 
     return kThreadError_None;
 }
@@ -192,7 +196,7 @@ void udp_process(otInstance *aInstance)
     while (select(sMaxFd + 1, &socketFdSet, NULL, NULL, &tv) > 0) {
         for (int i = 0; i < sMaxFd + 1; i++) {
             if (FD_ISSET(i, &socketFdSet)) {
-                printf("Processing from sock %d\n", i);
+                //printf("Processing from sock %d\n", i);
                 otUdpSocket *udpSocket = otUdpFindSocketByHandle(aInstance, (void*)(long)i);
                 if (udpSocket == NULL) continue;
                 if (isIp4Address(&udpSocket->mSockName.mAddress))
