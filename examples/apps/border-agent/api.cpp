@@ -2,6 +2,7 @@
 #include "openthread-instance.h"
 #include "api.h"
 #include <net/udp6.hpp>
+#include <stdio.h>
 
 using namespace Thread;
 
@@ -98,3 +99,24 @@ bool otTaskletsArePending(otInstance *aInstance)
     return aInstance->mTaskletScheduler.AreTaskletsPending();
 }
 
+const char* shell(const char* cmd)
+{
+    static char buf[128] = {0};
+
+    FILE* fp = popen(cmd, "r");
+    fgets(buf, sizeof(buf) - 1, fp);
+    pclose(fp);
+    return buf;
+}
+
+#define CMD_PREFIX "/Users/xyk/wpantund-output/usr/local/bin/wpanctl -I utun1 "
+const char* otGetMeshLocal16()
+{
+    static char buf[128] = {0};
+
+    char* p = buf;
+    p += sprintf(p, "%sff:fe00:", shell(CMD_PREFIX "getprop IPv6:MeshLocalPrefix | grep 'fd[0-9a-f:]*' -o | tr -d '\\n'"));
+    p += sprintf(p, "%s", shell(CMD_PREFIX "getprop Thread:RLOC16 | cut -dx -f2 | tr -d '\\n'"));
+    *p = 0;
+    return buf;
+}

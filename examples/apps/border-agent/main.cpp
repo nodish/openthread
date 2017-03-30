@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include "platform_udp.h"
+#include "api.h"
 extern "C" {
 #include "posix/platform-posix.h"
 };
@@ -187,7 +188,8 @@ void platform_init()
 void test_border_agent()
 {
     Ip6::Address meshLocal16;
-    meshLocal16.FromString("fd00::1");
+    printf("mesh local 16 is %s\n", otGetMeshLocal16());
+    meshLocal16.FromString(otGetMeshLocal16());
     otInstance nc(meshLocal16);
     udp_init(&nc);
 
