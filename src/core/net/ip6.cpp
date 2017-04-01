@@ -631,7 +631,7 @@ exit:
 }
 
 ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interfaceId, const void *linkMessageInfo,
-                                bool fromLocalHost)
+                                bool fromNcpHost)
 {
     ThreadError error = kThreadError_None;
     MessageInfo messageInfo;
@@ -688,7 +688,7 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
         {
             forward = true;
 
-            if (fromLocalHost)
+            if (fromNcpHost)
             {
                 SuccessOrExit(error = InsertMplOption(message, header, messageInfo));
             }
@@ -722,6 +722,11 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
         forward = false;
     }
 
+    if (fromNcpHost == false || (multicastPromiscuous && !receive))
+    {
+        ProcessReceiveCallback(message, messageInfo, nextHeader);
+    }
+
     // process IPv6 Payload
     if (receive)
     {
@@ -730,20 +735,11 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
             // Remove encapsulating header.
             message.RemoveHeader(message.GetOffset());
 
-            HandleDatagram(message, netif, interfaceId, linkMessageInfo, fromLocalHost);
+            HandleDatagram(message, netif, interfaceId, linkMessageInfo, fromNcpHost);
             ExitNow(tunnel = true);
         }
 
-        if (fromLocalHost == false)
-        {
-            ProcessReceiveCallback(message, messageInfo, nextHeader);
-        }
-
         SuccessOrExit(error = HandlePayload(message, messageInfo, nextHeader));
-    }
-    else if (multicastPromiscuous)
-    {
-        ProcessReceiveCallback(message, messageInfo, nextHeader);
     }
 
     if (forward)
@@ -807,23 +803,9 @@ ThreadError Ip6::ForwardMessage(Message &message, MessageInfo &messageInfo, uint
     }
     else
     {
-        // try passing to host
-        error = ProcessReceiveCallback(message, messageInfo, ipproto);
-
-        switch (error)
-        {
-        case kThreadError_None:
-            // the caller transfers custody in the success case, so free the message here
-            message.Free();
-            break;
-
-        case kThreadError_NoRoute:
-            otDumpDebgIp6(GetInstance(), "no route", &messageInfo.GetSockAddr(), 16);
-            break;
-
-        default:
-            break;
-        }
+        (void)ipproto;
+        otDumpDebgIp6(GetInstance(), "no route", &messageInfo.GetSockAddr(), 16);
+        error = kThreadError_NoRoute;
 
         ExitNow();
     }
