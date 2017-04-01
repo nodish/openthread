@@ -34,6 +34,7 @@ libopenthread_posix_a_CPPFLAGS            = \
     -I$(top_srcdir)/include                 \
     -I$(top_srcdir)/examples/platforms      \
     -I$(top_srcdir)/src/core                \
+    -I$(top_srcdir)/src                     \
     -D_GNU_SOURCE                           \
     $(NULL)
 
@@ -42,10 +43,13 @@ libopenthread_posix_a_SOURCES             = \
     misc.c                                  \
     logging.c                               \
     platform.c                              \
+    link-raw.cpp                            \
     radio.c                                 \
     random.c                                \
     uart-posix.c                            \
     flash.c                                 \
+    @top_builddir@/src/ncp/hdlc.cpp         \
+    @top_builddir@/src/ncp/spinel.c         \
     $(NULL)
 
 if OPENTHREAD_ENABLE_DIAG

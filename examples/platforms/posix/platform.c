@@ -82,6 +82,7 @@ void PlatformInit(int argc, char *argv[])
 
 void PlatformProcessDrivers(otInstance *aInstance)
 {
+#if 0
     fd_set read_fds;
     fd_set write_fds;
     fd_set error_fds;
@@ -107,6 +108,7 @@ void PlatformProcessDrivers(otInstance *aInstance)
             exit(EXIT_FAILURE);
         }
     }
+#endif
 
     platformUartProcess();
     platformRadioProcess(aInstance);
