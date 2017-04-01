@@ -34,6 +34,7 @@ libopenthread_posix_a_CPPFLAGS            = \
     -I$(top_srcdir)/include                 \
     -I$(top_srcdir)/examples/platforms      \
     -I$(top_srcdir)/src/core                \
+    -I$(top_srcdir)/src                     \
     -D_GNU_SOURCE                           \
     $(NULL)
 
@@ -44,6 +45,7 @@ PLATFORM_SOURCES                          = \
     logging.c                               \
     platform.c                              \
     radio.c                                 \
+    radio-spinel.c                          \
     random.c                                \
     uart-posix.c                            \
     flash.c                                 \
@@ -51,11 +53,20 @@ PLATFORM_SOURCES                          = \
     sim/alarm-sim.c                         \
     sim/platform-sim.c                      \
     sim/radio-sim.c                         \
+    ../../../src/ncp/hdlc.cpp               \
+    ../../../src/ncp/spinel.c               \
     $(NULL)
 
 libopenthread_posix_a_SOURCES             = \
      $(PLATFORM_SOURCES)                    \
     $(NULL)
+
+if OPENTHREAD_ENABLE_POSIX_RADIO_SPINEL
+libopenthread_posix_a_SOURCES            += \
+    frame_cache.cpp                         \
+    ncp_spinel.cpp                          \
+    $(NULL)
+endif
 
 noinst_HEADERS                            = \
     platform-posix.h                        \

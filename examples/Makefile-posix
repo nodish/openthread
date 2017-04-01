@@ -38,6 +38,7 @@ MAKE                           := make
 MKDIR_P                        := mkdir -p
 LN_S                           := ln -s
 RM_F                           := rm -f
+RADIO                          ?= sim
 
 BuildJobs                      ?= 10
 
@@ -66,6 +67,7 @@ configure_OPTIONS                   = \
     --enable-tmf-proxy                \
     --with-examples=posix             \
     --with-ncp-bus=uart               \
+    --with-posix-radio=$(RADIO)       \
     $(NULL)
 
 TopSourceDir                   := $(dir $(shell readlink $(firstword $(MAKEFILE_LIST))))..
@@ -75,7 +77,7 @@ CONFIG_FILE      = OPENTHREAD_PROJECT_CORE_CONFIG_FILE='\"openthread-core-posix-
 CONFIG_FILE_PATH = $(AbsTopSourceDir)/examples/platforms/posix/
 
 COMMONCFLAGS                   := \
-    -O1                           \
+    -O0                           \
     -g                            \
     -D$(CONFIG_FILE)              \
     -I$(CONFIG_FILE_PATH)         \

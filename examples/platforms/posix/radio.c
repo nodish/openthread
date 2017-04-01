@@ -36,6 +36,8 @@
 
 #include "utils/code_utils.h"
 
+#if OPENTHREAD_ENABLE_POSIX_RADIO_SIM
+
 enum
 {
     IEEE802154_MIN_LENGTH = 5,
@@ -580,7 +582,7 @@ void radioSendMessage(otInstance *aInstance)
     }
 }
 
-void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd)
+void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd, struct timeval *aTimeout)
 {
     if (aReadFdSet != NULL && (sState != OT_RADIO_STATE_TRANSMIT || sAckWait))
     {
@@ -601,19 +603,18 @@ void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMax
             *aMaxFd = sSockFd;
         }
     }
+
+    (void)aTimeout;
 }
 
-void platformRadioProcess(otInstance *aInstance)
+void platformRadioProcess(otInstance *aInstance, fd_set *aReadFdSet, fd_set *aWriteFdSet)
 {
-    const int     flags  = POLLIN | POLLRDNORM | POLLERR | POLLNVAL | POLLHUP;
-    struct pollfd pollfd = {sSockFd, flags, 0};
-
-    if (POLL(&pollfd, 1, 0) > 0 && (pollfd.revents & flags) != 0)
+    if (FD_ISSET(sSockFd, aReadFdSet))
     {
         radioReceive(aInstance);
     }
 
-    if (sState == OT_RADIO_STATE_TRANSMIT && !sAckWait)
+    if (sState == OT_RADIO_STATE_TRANSMIT && !sAckWait && FD_ISSET(sSockFd, aWriteFdSet))
     {
         radioSendMessage(aInstance);
     }
@@ -862,4 +863,5 @@ int8_t otPlatRadioGetReceiveSensitivity(otInstance *aInstance)
     return POSIX_RECEIVE_SENSITIVITY;
 }
 
+#endif // OPENTHREAD_ENABLE_POSIX_RADIO_SIM
 #endif // OPENTHREAD_POSIX_VIRTUAL_TIME == 0

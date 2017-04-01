@@ -121,23 +121,26 @@ void PlatformProcessDrivers(otInstance *aInstance)
     FD_ZERO(&write_fds);
     FD_ZERO(&error_fds);
 
-    platformUartUpdateFdSet(&read_fds, &write_fds, &error_fds, &max_fd);
-    platformRadioUpdateFdSet(&read_fds, &write_fds, &max_fd);
     platformAlarmUpdateTimeout(&timeout);
+    platformRadioUpdateFdSet(&read_fds, &write_fds, &max_fd, &timeout);
+    platformUartUpdateFdSet(&read_fds, &write_fds, &error_fds, &max_fd);
 
-    if (!otTaskletsArePending(aInstance))
+    if (otTaskletsArePending(aInstance))
     {
-        rval = select(max_fd + 1, &read_fds, &write_fds, &error_fds, &timeout);
-
-        if ((rval < 0) && (errno != EINTR))
-        {
-            perror("select");
-            exit(EXIT_FAILURE);
-        }
+        timeout.tv_sec  = 0;
+        timeout.tv_usec = 0;
     }
 
-    platformUartProcess();
-    platformRadioProcess(aInstance);
+    rval = select(max_fd + 1, &read_fds, &write_fds, &error_fds, &timeout);
+
+    if ((rval < 0) && (errno != EINTR))
+    {
+        perror("select");
+        exit(EXIT_FAILURE);
+    }
+
+    platformUartProcess(&read_fds, &write_fds, &error_fds);
+    platformRadioProcess(aInstance, &read_fds, &write_fds);
     platformAlarmProcess(aInstance);
 }
 

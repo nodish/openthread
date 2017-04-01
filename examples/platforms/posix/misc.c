@@ -28,6 +28,7 @@
 
 #include "platform-posix.h"
 
+#include <sys/wait.h>
 #ifndef _WIN32
 #include <unistd.h>
 #endif
@@ -57,6 +58,7 @@ void otPlatReset(otInstance *aInstance)
 #else // elif OPENTHREAD_PLATFORM_USE_PSEUDO_RESET
     // Restart the process using execvp.
     char *argv[gArgumentsCount + 1];
+    int   status;
 
     for (int i = 0; i < gArgumentsCount; ++i)
     {
@@ -67,6 +69,7 @@ void otPlatReset(otInstance *aInstance)
 
     PlatformDeinit();
     platformUartRestore();
+    wait(&status);
 
     alarm(0);
 
