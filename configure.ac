@@ -464,6 +464,40 @@ AM_CONDITIONAL([OPENTHREAD_ENABLE_NCP_MTD],  [test "${enable_ncp_app_mtd}" == "y
 AM_CONDITIONAL([OPENTHREAD_ENABLE_NCP_FTD],  [test "${enable_ncp_app_ftd}" == "yes"])
 
 #
+# Posix Radio
+#
+
+AC_ARG_WITH(
+    [posix-radio],
+    [AS_HELP_STRING([--with-posix-radio],[Specify the POSIX radio (sim|spinel) @<:@default=sim@:>@.])],
+    [
+        case "${with_posix_radio}" in
+        sim)
+            OPENTHREAD_ENABLE_POSIX_RADIO_SIM=1
+            OPENTHREAD_ENABLE_POSIX_RADIO_SPINEL=0
+            ;;
+        spinel)
+            OPENTHREAD_ENABLE_POSIX_RADIO_SIM=0
+            OPENTHREAD_ENABLE_POSIX_RADIO_SPINEL=1
+            ;;
+        *)
+            AC_MSG_ERROR([unexpected --with-posix-radio=${with_posix_radio}])
+            ;;
+        esac
+    ],
+    [
+            OPENTHREAD_ENABLE_POSIX_RADIO_SIM=1
+            OPENTHREAD_ENABLE_POSIX_RADIO_SPINEL=0
+    ])
+
+AC_SUBST(OPENTHREAD_ENABLE_POSIX_RADIO_SIM)
+AC_SUBST(OPENTHREAD_ENABLE_POSIX_RADIO_SPINEL)
+AM_CONDITIONAL([OPENTHREAD_ENABLE_POSIX_RADIO_SIM], [test "${with_posix_radio}" == "sim"])
+AM_CONDITIONAL([OPENTHREAD_ENABLE_POSIX_RADIO_SPINEL], [test "${with_posix_radio}" == "spinel"])
+AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_POSIX_RADIO_SIM], [${OPENTHREAD_ENABLE_POSIX_RADIO_SIM}], [Define to 1 to simulate radio for POSIX.])
+AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_POSIX_RADIO_SPINEL], [${OPENTHREAD_ENABLE_POSIX_RADIO_SPINEL}], [Define to 1 to use spinel based radio for POSIX.])
+
+#
 # NCP BUS - how does the NCP talk to the host?
 #
 

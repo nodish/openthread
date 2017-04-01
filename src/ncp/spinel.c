@@ -348,7 +348,14 @@ spinel_datatype_vunpack_(const uint8_t *data_ptr, spinel_size_t data_len, const 
 
             if (arg_ptr)
             {
-                *arg_ptr = (spinel_eui64_t *)data_ptr;
+                if (*arg_ptr)
+                {
+                    memcpy(*arg_ptr, data_ptr, 8);
+                }
+                else
+                {
+                    *arg_ptr = (spinel_eui64_t *)data_ptr;
+                }
             }
 
             ret += sizeof(spinel_eui64_t);

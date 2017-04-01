@@ -60,13 +60,8 @@ char  **gArguments = NULL;
 
 void PlatformInit(int argc, char *argv[])
 {
-    char *endptr;
-
-    if (argc != 2)
-    {
-        exit(EXIT_FAILURE);
-    }
-
+    (void)argc;
+    (void)argv;
 #ifndef _WIN32
     openlog(basename(argv[0]), LOG_PID, LOG_USER);
     setlogmask(setlogmask(0) & LOG_UPTO(LOG_NOTICE));
@@ -74,14 +69,6 @@ void PlatformInit(int argc, char *argv[])
     gArgumentsCount = argc;
     gArguments = argv;
 #endif
-
-    NODE_ID = (uint32_t)strtol(argv[1], &endptr, 0);
-
-    if (*endptr != '\0')
-    {
-        fprintf(stderr, "Invalid NODE_ID: %s\n", argv[1]);
-        exit(EXIT_FAILURE);
-    }
 
     platformAlarmInit();
     platformRadioInit();

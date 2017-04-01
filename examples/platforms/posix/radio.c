@@ -34,6 +34,8 @@
 
 #include "utils/code_utils.h"
 
+#if OPENTHREAD_ENABLE_POSIX_RADIO_SIM
+
 enum
 {
     IEEE802154_MIN_LENGTH         = 5,
@@ -769,3 +771,5 @@ int8_t otPlatRadioGetReceiveSensitivity(otInstance *aInstance)
     (void)aInstance;
     return POSIX_RECEIVE_SENSITIVITY;
 }
+
+#endif // OPENTHREAD_ENABLE_POSIX_RADIO_SIM

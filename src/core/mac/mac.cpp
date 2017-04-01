@@ -1055,6 +1055,7 @@ void Mac::TransmitDoneTask(otRadioFrame *aFrame, otRadioFrame *aAckFrame, otErro
 
     mCsmaAttempts = 0;
 
+    fprintf(stderr, "??????????????mState=%d\r\n", mState);
     switch (mState)
     {
     case kStateTransmitData:
@@ -1073,6 +1074,7 @@ void Mac::TransmitDoneTask(otRadioFrame *aFrame, otRadioFrame *aAckFrame, otErro
 
     case kStateActiveScan:
     case kStateTransmitBeacon:
+    fprintf(stderr, "sentframe\r\n");
         SentFrame(aError);
         break;
 
@@ -1082,6 +1084,7 @@ void Mac::TransmitDoneTask(otRadioFrame *aFrame, otRadioFrame *aAckFrame, otErro
     }
 
 exit:
+    fprintf(stderr, "done done mState=%d\r\n", mState);
     return;
 }
 

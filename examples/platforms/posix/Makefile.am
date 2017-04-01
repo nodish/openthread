@@ -34,6 +34,7 @@ libopenthread_posix_a_CPPFLAGS            = \
     -I$(top_srcdir)/include                 \
     -I$(top_srcdir)/examples/platforms      \
     -I$(top_srcdir)/src/core                \
+    -I$(top_srcdir)/src                     \
     -D_GNU_SOURCE                           \
     $(NULL)
 
@@ -43,9 +44,12 @@ libopenthread_posix_a_SOURCES             = \
     logging.c                               \
     platform.c                              \
     radio.c                                 \
+    radio-spinel.c                          \
     random.c                                \
     uart-posix.c                            \
     flash.c                                 \
+    ../../../src/ncp/hdlc.cpp               \
+    ../../../src/ncp/spinel.c               \
     $(NULL)
 
 if OPENTHREAD_ENABLE_DIAG
@@ -57,6 +61,12 @@ endif
 if OPENTHREAD_ENABLE_NCP_SPI
 libopenthread_posix_a_SOURCES            += \
     spi-stubs.c                             \
+    $(NULL)
+endif
+
+if OPENTHREAD_ENABLE_POSIX_RADIO_SPINEL
+libopenthread_posix_a_SOURCES            += \
+    ncp_spinel.cpp                          \
     $(NULL)
 endif
 
