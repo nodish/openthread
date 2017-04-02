@@ -9,9 +9,10 @@ extern "C" {
 #endif
 
 typedef void (*MacFrameHandler)(void *aContext, const uint8_t *aFrame, uint16_t aFrameLength);
+typedef void (*MacFrameDoneHandler)(otInstance *aInstance);
 typedef void (*SpinelCmdHandler)( otInstance *aInstance, void* Context, uint32_t command, spinel_prop_key_t key, const uint8_t* data, spinel_size_t dataLength);
 
-int otcOpen(MacFrameHandler aMacFrameHandler);
+int otcOpen(MacFrameHandler aMacFrameHandler, MacFrameDoneHandler aMacFrameDoneHandler);
 
 /**
  * read bytes

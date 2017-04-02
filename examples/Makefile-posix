@@ -42,7 +42,7 @@ RM_F                           := rm -f
 BuildJobs                      ?= 10
 
 COMMONCFLAGS                   := \
-    -O1                           \
+    -O0                           \
     -g                            \
     $(NULL)
 

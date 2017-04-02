@@ -82,9 +82,10 @@ struct RadioMessage
     uint8_t mPsdu[kMaxPHYPacketSize];
 } OT_TOOL_PACKED_END;
 
-static void radioTransmit(struct RadioMessage *msg, const struct RadioPacket *pkt);
+static void radioTransmit(otInstance *aInstance, const struct RadioPacket *pkt);
+static void radioTransmitDone(otInstance *aInstance);
 static void radioSendMessage(otInstance *aInstance);
-static void radioSendAck(void);
+static void radioSendAck(otInstance *aInstance);
 static void radioProcessFrame(otInstance *aInstance);
 
 static PhyState sState = kStateDisabled;
@@ -101,6 +102,10 @@ static uint16_t sPanid;
 static int sSockFd;
 static bool sPromiscuous = false;
 static bool sAckWait = false;
+
+bool sLastTransmitFramePending;
+ThreadError sLastTransmitError;
+RadioPacket *sLastTransmitPacket;
 
 void handleMacFrame(void* aContext, const uint8_t *aBuf, uint16_t aLength);
 
@@ -318,7 +323,7 @@ void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
 
 void platformRadioInit(void)
 {
-    sSockFd = otcOpen(handleMacFrame);
+    sSockFd = otcOpen(handleMacFrame, radioTransmitDone);
     otcGetProp(NULL, SPINEL_PROP_HWADDR, handleGetPropHwAddr, NULL);
 
     sReceiveFrame.mPsdu = sReceiveMessage.mPsdu;
@@ -334,11 +339,13 @@ bool otPlatRadioIsEnabled(otInstance *aInstance)
 
 ThreadError otPlatRadioEnable(otInstance *aInstance)
 {
+    printf("enable radio\r\n");
     if (!otPlatRadioIsEnabled(aInstance))
     {
         sState = kStateSleep;
     }
 
+    printf("-----------enable radio\r\n");
     otcSetProp(
             aInstance,
             SPINEL_PROP_PHY_ENABLED,
@@ -367,7 +374,6 @@ ThreadError otPlatRadioDisable(otInstance *aInstance)
 ThreadError otPlatRadioSleep(otInstance *aInstance)
 {
     ThreadError error = kThreadError_InvalidState;
-    (void)aInstance;
 
     if (sState == kStateSleep || sState == kStateReceive)
     {
@@ -375,50 +381,55 @@ ThreadError otPlatRadioSleep(otInstance *aInstance)
         sState = kStateSleep;
     }
 
-    otcSetProp(
+    return otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_RAW_STREAM_ENABLED,
             SPINEL_DATATYPE_BOOL_S,
             false
             );
-    return error;
 }
 
 ThreadError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel)
 {
     ThreadError error = kThreadError_InvalidState;
 
-    if (sState != kStateDisabled)
-    {
-        error = kThreadError_None;
-        sState = kStateReceive;
-        sAckWait = false;
-        if (sReceiveFrame.mChannel != aChannel)
-        {
-            otcSetProp(
-                    aInstance,
-                    SPINEL_PROP_PHY_CHAN,
-                    SPINEL_DATATYPE_UINT8_S,
-                    aChannel);
-        }
-        sReceiveFrame.mChannel = aChannel;
+    printf("%s called sState %d\r\n", __func__, sState);
 
+    VerifyOrExit(sState != kStateDisabled, );
+
+    error = kThreadError_None;
+
+    if (sReceiveFrame.mChannel != aChannel)
+    {
+        sAckWait = false;
+        error = otcSetProp(
+                aInstance,
+                SPINEL_PROP_PHY_CHAN,
+                SPINEL_DATATYPE_UINT8_S,
+                aChannel);
+        printf("error setting channel %d\r\n", error);
+        sReceiveFrame.mChannel = aChannel;
     }
 
     if (sState == kStateSleep)
     {
-        otcSetProp(
+        sState = kStateReceive;
+        error = otcSetProp(
                 aInstance,
                 SPINEL_PROP_MAC_RAW_STREAM_ENABLED,
                 SPINEL_DATATYPE_BOOL_S,
                 true);
+        printf("error setting raw stream %d\r\n", error);
     }
+
+exit:
 
     return error;
 }
 
 ThreadError otPlatRadioTransmit(otInstance *aInstance, RadioPacket *aPacket)
 {
+    printf("%s called sState %d\r\n", __func__, sState);
     ThreadError error = kThreadError_InvalidState;
     (void)aInstance;
     (void)aPacket;
@@ -427,6 +438,7 @@ ThreadError otPlatRadioTransmit(otInstance *aInstance, RadioPacket *aPacket)
     {
         error = kThreadError_None;
         sState = kStateTransmit;
+        sLastTransmitPacket = aPacket;
     }
 
     return error;
@@ -462,6 +474,7 @@ void radioReceiveFrame(otInstance *aInstance)
         isFrameTypeAck(sReceiveFrame.mPsdu) &&
         getDsn(sReceiveFrame.mPsdu) == getDsn(sTransmitFrame.mPsdu))
     {
+        printf("AAAAAAAAAAAAAACCCCCCCCCCCCCCCCCCCCCCKKKKKKKKKKKKKKKKK\r\n");
         sState = kStateReceive;
         sAckWait = false;
 
@@ -534,9 +547,9 @@ void radioReceive(otInstance *aInstance)
 
 void radioSendMessage(otInstance *aInstance)
 {
-    printf("sending ........channel %u length %u\n", sTransmitFrame.mChannel, sTransmitFrame.mLength);
-    radioTransmit(&sTransmitMessage, &sTransmitFrame);
+    radioTransmit(aInstance, &sTransmitFrame);
 
+#if 0
     sAckWait = isAckRequested(sTransmitFrame.mPsdu);
 
     if (!sAckWait)
@@ -555,6 +568,7 @@ void radioSendMessage(otInstance *aInstance)
             otPlatRadioTransmitDone(aInstance, &sTransmitFrame, false, kThreadError_None);
         }
     }
+#endif
 }
 
 void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd)
@@ -596,13 +610,29 @@ void platformRadioProcess(otInstance *aInstance)
     }
 }
 
-void radioTransmit(struct RadioMessage *msg, const struct RadioPacket *pkt)
+void radioTransmitDone(otInstance *aInstance)
 {
-    (void)msg;
-    otcSendPacket(NULL, pkt);
+    printf("%s begin\r\n", __func__);
+    if (sState == kStateTransmit)
+    {
+        printf("%s in %d %d\r\n", __func__, sLastTransmitFramePending, sLastTransmitError);
+        sState = kStateReceive;
+        otPlatRadioTransmitDone(aInstance, sLastTransmitPacket, sLastTransmitFramePending, sLastTransmitError);
+    }
+    printf("%s done\r\n", __func__);
 }
 
-void radioSendAck(void)
+void radioTransmit(otInstance *aInstance, const struct RadioPacket *pkt)
+{
+    ThreadError error = otcSendPacket(aInstance, pkt);
+    if (kThreadError_None != error)
+    {
+        printf("!!!!!!!!!!!!!error %d\r\n", error);
+        radioTransmitDone(aInstance);
+    }
+}
+
+void radioSendAck(otInstance *aInstance)
 {
     sAckFrame.mLength = IEEE802154_ACK_LENGTH;
     sAckMessage.mPsdu[0] = IEEE802154_FRAME_TYPE_ACK;
@@ -615,7 +645,7 @@ void radioSendAck(void)
     sAckMessage.mPsdu[1] = 0;
     sAckMessage.mPsdu[2] = getDsn(sReceiveFrame.mPsdu);
 
-    radioTransmit(&sAckMessage, &sAckFrame);
+    radioTransmit(aInstance, &sAckFrame);
 }
 
 void radioProcessFrame(otInstance *aInstance)
@@ -657,7 +687,7 @@ void radioProcessFrame(otInstance *aInstance)
     // generate acknowledgment
     if (isAckRequested(sReceiveFrame.mPsdu))
     {
-        radioSendAck();
+        radioSendAck(aInstance);
     }
 
 exit:
