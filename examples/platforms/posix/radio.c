@@ -103,8 +103,7 @@ static int sSockFd;
 static bool sPromiscuous = false;
 static bool sAckWait = false;
 
-void handleHdlcError(void* aContext, ThreadError aError, uint8_t *aBuf, uint16_t aLength);
-void handleHdlcFrame(void* aContext, uint8_t *aBuf, uint16_t aLength);
+void handleMacFrame(void* aContext, const uint8_t *aBuf, uint16_t aLength);
 
 static inline bool isFrameTypeAck(const uint8_t *frame)
 {
@@ -249,6 +248,8 @@ static inline void getExtAddress(const uint8_t *frame, otExtAddress *address)
     }
 }
 
+uint8_t sFactoryAddress[8] = {0};
+
 void otPlatRadioGetIeeeEui64(otInstance *aInstance, uint8_t *aIeeeEui64)
 {
     (void)aInstance;
@@ -265,7 +266,7 @@ void otPlatRadioGetIeeeEui64(otInstance *aInstance, uint8_t *aIeeeEui64)
 void otPlatRadioSetPanId(otInstance *aInstance, uint16_t panid)
 {
     sPanid = panid;
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_15_4_PANID,
             SPINEL_DATATYPE_UINT16_S,
@@ -278,7 +279,7 @@ void otPlatRadioSetExtendedAddress(otInstance *aInstance, uint8_t *address)
     {
         sExtendedAddress[i] = address[sizeof(sExtendedAddress) - 1 - i];
     }
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_15_4_LADDR,
             SPINEL_DATATYPE_EUI64_S,
@@ -288,7 +289,7 @@ void otPlatRadioSetExtendedAddress(otInstance *aInstance, uint8_t *address)
 void otPlatRadioSetShortAddress(otInstance *aInstance, uint16_t address)
 {
     sShortAddress = address;
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_15_4_SADDR,
             SPINEL_DATATYPE_UINT16_S,
@@ -299,7 +300,7 @@ void otPlatRadioSetShortAddress(otInstance *aInstance, uint16_t address)
 void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
 {
     sPromiscuous = aEnable;
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_PROMISCUOUS_MODE,
             SPINEL_DATATYPE_UINT8_S,
@@ -307,9 +308,20 @@ void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
             );
 }
 
+void handleGetPropHwAddr(otInstance *aInstance,
+        void* aContext,
+        uint32_t command,
+        spinel_prop_key_t key,
+        const uint8_t *data,
+        spinel_size_t dataLength)
+{
+    otcGetPropHandler(aInstance, command, key, data, dataLength, SPINEL_DATATYPE_EUI64_S, sFactoryAddress);
+}
+
 void platformRadioInit(void)
 {
-    sSockFd = otLinkRawInit();
+    sSockFd = otcOpen(handleMacFrame);
+    otcGetProp(NULL, SPINEL_PROP_HWADDR, handleGetPropHwAddr, NULL);
     sReceiveFrame.mPsdu = sReceiveMessage.mPsdu;
     sTransmitFrame.mPsdu = sTransmitMessage.mPsdu;
     sAckFrame.mPsdu = sAckMessage.mPsdu;
@@ -327,7 +339,7 @@ ThreadError otPlatRadioEnable(otInstance *aInstance)
     {
         sState = kStateSleep;
     }
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_PHY_ENABLED,
             SPINEL_DATATYPE_BOOL_S,
@@ -343,7 +355,7 @@ ThreadError otPlatRadioDisable(otInstance *aInstance)
         sState = kStateDisabled;
     }
 
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_PHY_ENABLED,
             SPINEL_DATATYPE_BOOL_S,
@@ -363,7 +375,7 @@ ThreadError otPlatRadioSleep(otInstance *aInstance)
         sState = kStateSleep;
     }
 
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_RAW_STREAM_ENABLED,
             SPINEL_DATATYPE_BOOL_S,
@@ -383,7 +395,7 @@ ThreadError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel)
         sAckWait = false;
         if (sReceiveFrame.mChannel != aChannel)
         {
-            otNcpSetProp(
+            otcSetProp(
                     aInstance,
                     SPINEL_PROP_PHY_CHAN,
                     SPINEL_DATATYPE_UINT8_S,
@@ -395,7 +407,7 @@ ThreadError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel)
 
     if (sState == kStateSleep)
     {
-        otNcpSetProp(
+        otcSetProp(
                 aInstance,
                 SPINEL_PROP_MAC_RAW_STREAM_ENABLED,
                 SPINEL_DATATYPE_BOOL_S,
@@ -444,9 +456,8 @@ bool otPlatRadioGetPromiscuous(otInstance *aInstance)
     return sPromiscuous;
 }
 
-void radioReceiveFrame(otInstance *aInstance, ThreadError aError)
+void radioReceiveFrame(otInstance *aInstance)
 {
-    (void)aError;
     if (sAckWait &&
         sTransmitFrame.mChannel == sReceiveMessage.mChannel &&
         isFrameTypeAck(sReceiveFrame.mPsdu) &&
@@ -483,7 +494,11 @@ void handleMacFrame(void* aContext, const uint8_t *aBuf, uint16_t aLength)
                     SPINEL_DATATYPE_UINT16_S,
                     &packetLength) &&
                 packetLength <= sizeof(sReceiveMessage.mPsdu) &&
-                aLength > sizeof(uint16_t) + packetLength)) return;
+                aLength > sizeof(uint16_t) + packetLength))
+    {
+        printf("Invalid mac frame packet\n");
+        return;
+    }
 
     sReceiveFrame.mLength = (uint8_t)packetLength;
 
@@ -497,37 +512,26 @@ void handleMacFrame(void* aContext, const uint8_t *aBuf, uint16_t aLength)
         length -= sReceiveFrame.mLength;
     }
 
-    int8_t noiseFloor = -128;
     uint16_t flags = 0;
-    ThreadError errorCode = kThreadError_None;
+    int8_t noiseFloor = -128;
     if (try_spinel_datatype_unpack(
                 aBuf + offset,
                 length,
                 SPINEL_DATATYPE_INT8_S
                 SPINEL_DATATYPE_INT8_S
-                SPINEL_DATATYPE_UINT16_S
-                SPINEL_DATATYPE_STRUCT_S( // PHY-data
-                    SPINEL_DATATYPE_UINT8_S // 802.15.4 channel
-                    SPINEL_DATATYPE_UINT8_S // 802.15.4 LQI
-                    )
-                SPINEL_DATATYPE_STRUCT_S( // Vendor-data
-                    SPINEL_DATATYPE_UINT_PACKED_S
-                    ),
+                SPINEL_DATATYPE_UINT16_S,
                 &sReceiveFrame.mPower,
                 &noiseFloor,
-                &flags,
-                &sReceiveFrame.mChannel,
-                &sReceiveFrame.mLqi,
-                &errorCode))
+                &flags))
     {
-        radioReceiveFrame((otInstance*)aContext, errorCode);
+        radioReceiveFrame((otInstance*)aContext);
     }
 
 }
 
 void radioReceive(otInstance *aInstance)
 {
-    otNcpReceive(aInstance, handleMacFrame);
+    otcReceive(aInstance);
 }
 
 void radioSendMessage(otInstance *aInstance)
@@ -556,6 +560,29 @@ void radioSendMessage(otInstance *aInstance)
     }
 }
 
+void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd)
+{
+    if (aReadFdSet != NULL && (sState != kStateTransmit || sAckWait))
+    {
+        FD_SET(sSockFd, aReadFdSet);
+
+        if (aMaxFd != NULL && *aMaxFd < sSockFd)
+        {
+            *aMaxFd = sSockFd;
+        }
+    }
+
+    if (aWriteFdSet != NULL && sState == kStateTransmit && !sAckWait)
+    {
+        FD_SET(sSockFd, aWriteFdSet);
+
+        if (aMaxFd != NULL && *aMaxFd < sSockFd)
+        {
+            *aMaxFd = sSockFd;
+        }
+    }
+}
+
 void platformRadioProcess(otInstance *aInstance)
 {
     const int flags = POLLIN | POLLRDNORM | POLLERR | POLLNVAL | POLLHUP;
@@ -575,7 +602,7 @@ void platformRadioProcess(otInstance *aInstance)
 void radioTransmit(struct RadioMessage *msg, const struct RadioPacket *pkt)
 {
     (void)msg;
-    otNcpSendPacket(NULL, pkt);
+    otcSendPacket(NULL, pkt);
 }
 
 void radioSendAck(void)
@@ -630,7 +657,6 @@ void radioProcessFrame(otInstance *aInstance)
             ExitNow(error = kThreadError_Abort);
     }
 
-    sReceiveFrame.mPower = -20;
     sReceiveFrame.mLqi = kPhyNoLqi;
 
     // generate acknowledgment
@@ -658,7 +684,7 @@ void otPlatRadioEnableSrcMatch(otInstance *aInstance, bool aEnable)
 {
     (void)aInstance;
     (void)aEnable;
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_ENABLED,
             SPINEL_DATATYPE_BOOL_S,
@@ -667,10 +693,7 @@ void otPlatRadioEnableSrcMatch(otInstance *aInstance, bool aEnable)
 
 ThreadError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, const uint16_t aShortAddress)
 {
-    (void)aInstance;
-    (void)aShortAddress;
-    printf("*************not implemented\n");
-    otNcpInsertProp(
+    otcInsertProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_SHORT_ADDRESSES,
             SPINEL_DATATYPE_UINT16_S,
@@ -681,10 +704,7 @@ ThreadError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, const uint16
 
 ThreadError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const uint8_t *aExtAddress)
 {
-    (void)aInstance;
-    (void)aExtAddress;
-    printf("*************not implemented\n");
-    otNcpInsertProp(
+    otcInsertProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_EXTENDED_ADDRESSES,
             SPINEL_DATATYPE_EUI64_S,
@@ -695,10 +715,7 @@ ThreadError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const uint8_t 
 
 ThreadError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, const uint16_t aShortAddress)
 {
-    (void)aInstance;
-    (void)aShortAddress;
-    printf("*************not implemented\n");
-    otNcpRemoveProp(
+    otcRemoveProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_SHORT_ADDRESSES,
             SPINEL_DATATYPE_UINT16_S,
@@ -709,10 +726,7 @@ ThreadError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, const uint
 
 ThreadError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const uint8_t *aExtAddress)
 {
-    (void)aInstance;
-    (void)aExtAddress;
-    printf("*************not implemented\n");
-    otNcpRemoveProp(
+    otcRemoveProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_EXTENDED_ADDRESSES,
             SPINEL_DATATYPE_EUI64_S,
@@ -723,7 +737,7 @@ ThreadError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const uint8_
 
 void otPlatRadioClearSrcMatchShortEntries(otInstance *aInstance)
 {
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_SHORT_ADDRESSES,
             NULL
@@ -732,7 +746,7 @@ void otPlatRadioClearSrcMatchShortEntries(otInstance *aInstance)
 
 void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance)
 {
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_EXTENDED_ADDRESSES,
             NULL
@@ -741,19 +755,19 @@ void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance)
 
 ThreadError otPlatRadioEnergyScan(otInstance *aInstance, uint8_t aScanChannel, uint16_t aScanDuration)
 {
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_SCAN_MASK,
             SPINEL_DATATYPE_UINT8_S,
             aScanChannel
             );
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_SCAN_PERIOD,
             SPINEL_DATATYPE_UINT16_S,
             aScanDuration
             );
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_SCAN_STATE,
             SPINEL_DATATYPE_UINT8_S,
@@ -764,7 +778,7 @@ ThreadError otPlatRadioEnergyScan(otInstance *aInstance, uint8_t aScanChannel, u
 
 void otPlatRadioSetDefaultTxPower(otInstance *aInstance, int8_t aPower)
 {
-    otNcpSetProp(
+    otcSetProp(
             aInstance,
             SPINEL_PROP_PHY_TX_POWER,
             SPINEL_DATATYPE_INT8_S,

@@ -1,3 +1,5 @@
+// TODO rename to otc.cpp
+// OpenThread Controller
 #include "platform-posix.h"
 
 #include <termios.h>
@@ -59,7 +61,7 @@ UartTxBuffer sTxBuffer;
 
 int sCmdResetReason;
 
-typedef void (*SpinelCmdHandler)( otInstance *aInstance, void* Context, uint32_t Command, spinel_prop_key_t Key, const uint8_t* Data, spinel_size_t DataLength);
+typedef void (*SpinelCmdHandler)( otInstance *aInstance, void* Context, uint32_t command, spinel_prop_key_t key, const uint8_t* data, spinel_size_t dataLength);
 
 typedef struct SpinelCmdHandlerEntry
 {
@@ -73,25 +75,28 @@ typedef struct _SpinelSetPropContext
 {
     uint32_t                Expire;
     uint32_t                ExpectedResultCommand;
-    spinel_prop_key_t       Key;
+    spinel_prop_key_t       key;
     ThreadError             Status;
 } SpinelSetPropContext;
 
 typedef struct _SpinelGetPropContext
 {
     uint32_t                Expire;
-    spinel_prop_key_t   Key;
-    void              *DataBuffer;
+    spinel_prop_key_t   key;
+    void              *dataBuffer;
     const char*         Format;
     va_list             Args;
     ThreadError            Status;
 } SpinelGetPropContext;
 
+SpinelSetPropContext sSetPropContext;
+SpinelGetPropContext sGetPropContext;
+
 SpinelCmdHandlerEntry          *sCmdHandlers = NULL;
 spinel_tid_t                    sCmdNextTID;
 uint16_t                        sCmdTIDsInUse;
 
-void handleFrame(void *aContext, uint8_t *aFrame, uint16_t aFrameLength);
+void handleHdlcFrame(void *aContext, uint8_t *aFrame, uint16_t aFrameLength);
 
 void handleError(void *aContext, ThreadError aError, uint8_t *aFrame, uint16_t aFrameLength)
 {
@@ -101,7 +106,7 @@ void handleError(void *aContext, ThreadError aError, uint8_t *aFrame, uint16_t a
     (void)aFrameLength;
 }
 
-Thread::Hdlc::Decoder sDecoder(sOutBuf, sizeof(sOutBuf), handleFrame, handleError, NULL);
+Thread::Hdlc::Decoder sDecoder(sOutBuf, sizeof(sOutBuf), handleHdlcFrame, handleError, NULL);
 
 static int
 open_system_socket_forkpty(const char* command)
@@ -180,31 +185,30 @@ cleanup_and_fail:
 	return -1;
 }
 
-int otLinkRawInit()
+int otcOpen(MacFrameHandler aMacFrameHandler)
 {
     char *ncpFile = getenv("NCP_FILE");
     sSockFd = open_system_socket_forkpty(ncpFile);
+    sMacFrameHandler = aMacFrameHandler;
     return sSockFd;
 }
 
-void otNcpReceive(otInstance *aInstance, MacFrameHandler aFrameHandler)
+void otcReceive(otInstance *aInstance)
 {
     uint8_t buf[255];
     ssize_t rval = read(sSockFd, buf, sizeof(buf));
-
     if (rval < 0)
     {
         perror("read");
         exit(EXIT_FAILURE);
     }
 
-    sMacFrameHandler = aFrameHandler;
     sContext = aInstance;
     sDecoder.Decode(buf, (uint16_t)rval);
 }
 
 spinel_tid_t
-otNcpGetNextTID()
+otcGetNextTID()
 {
     spinel_tid_t TID = 0;
     while (TID == 0)
@@ -225,7 +229,7 @@ otNcpGetNextTID()
 }
 
 void
-otNcpAddHandler(
+otcAddCmdHandler(
     SpinelCmdHandlerEntry *pEntry
     )
 {
@@ -233,7 +237,7 @@ otNcpAddHandler(
 
     // Get the next transaction ID. This call will block if there are
     // none currently available.
-    pEntry->TransactionId = otNcpGetNextTID();
+    pEntry->TransactionId = otcGetNextTID();
 
     // Add to the handlers list
     pEntry->mNext = sCmdHandlers;
@@ -241,11 +245,50 @@ otNcpAddHandler(
     sCmdHandlers = pEntry;
 }
 
+SpinelCmdHandlerEntry* otcRemoveCmdHandler(spinel_tid_t tid, bool error)
+{
+    SpinelCmdHandlerEntry* pEntry = sCmdHandlers;
+    SpinelCmdHandlerEntry* Prev = NULL;
+
+    while (pEntry != NULL)
+    {
+        if (tid == pEntry->TransactionId)
+        {
+            // Remove the transaction ID from the 'in use' bit field
+            sCmdTIDsInUse &= ~(1 << pEntry->TransactionId);
+
+            break;
+        }
+        Prev = pEntry;
+        pEntry = pEntry->mNext;
+    }
+
+    if (pEntry)
+    {
+        // Call the handler function
+        if (error)
+        {
+            pEntry->Handler(NULL, pEntry->Context, 0, (spinel_prop_key_t)0, NULL, 0);
+        }
+
+        if (Prev)
+        {
+            Prev->mNext = pEntry->mNext;
+        }
+        else
+        {
+            sCmdHandlers = pEntry->mNext;
+        }
+    }
+
+    return pEntry;
+}
+
 ThreadError
-otNcpEncodeAndSendAsync(
+otcEncodeAndSendAsync(
     otInstance *aInstance,
-    uint32_t Command,
-    spinel_prop_key_t Key,
+    uint32_t command,
+    spinel_prop_key_t key,
     spinel_tid_t tid,
     uint32_t MaxDataLength,
     const char *pack_format,
@@ -263,8 +306,8 @@ otNcpEncodeAndSendAsync(
             sizeof(buffer),
             "Cii",
             SPINEL_HEADER_FLAG | SPINEL_HEADER_IID_0 | tid,
-            Command,
-            Key);
+            command,
+            key);
 
     if (packedLength < 0 || (uint32_t)packedLength > sizeof(buffer))
     {
@@ -303,13 +346,13 @@ otNcpEncodeAndSendAsync(
 }
 
 ThreadError
-otNcpSendAsyncV(
+otcSendAsyncV(
     otInstance *aInstance,
     SpinelCmdHandler Handler,
     void* HandlerContext,
     spinel_tid_t *pTid,
-    uint32_t Command,
-    spinel_prop_key_t Key,
+    uint32_t command,
+    spinel_prop_key_t key,
     uint32_t MaxDataLength,
     const char *pack_format,
     va_list args
@@ -333,12 +376,12 @@ otNcpSendAsyncV(
         pEntry->Handler = Handler;
         pEntry->Context = HandlerContext;
 
-        otNcpAddHandler(pEntry);
+        otcAddCmdHandler(pEntry);
 
         if (pTid) *pTid = pEntry->TransactionId;
     }
 
-    status = otNcpEncodeAndSendAsync(aInstance, Command, Key, pEntry ? pEntry->TransactionId : 0, MaxDataLength, pack_format, args);
+    status = otcEncodeAndSendAsync(aInstance, command, key, pEntry ? pEntry->TransactionId : 0, MaxDataLength, pack_format, args);
 
     // Remove the handler entry from the list
     if (status != kThreadError_None && pEntry)
@@ -360,13 +403,13 @@ exit:
 }
 
 ThreadError
-otNcpSendAsync(
+otcSendAsync(
     otInstance *aInstance,
     SpinelCmdHandler Handler,
     void* HandlerContext,
     spinel_tid_t *pTid,
-    uint32_t Command,
-    spinel_prop_key_t Key,
+    uint32_t command,
+    spinel_prop_key_t key,
     uint32_t MaxDataLength,
     const char *pack_format,
     ...
@@ -374,13 +417,13 @@ otNcpSendAsync(
 {
     va_list args;
     va_start(args, pack_format);
-    ThreadError status = otNcpSendAsyncV(aInstance, Handler, HandlerContext, pTid, Command, Key, MaxDataLength, pack_format, args);
+    ThreadError status = otcSendAsyncV(aInstance, Handler, HandlerContext, pTid, command, key, MaxDataLength, pack_format, args);
     va_end(args);
     return status;
 }
 
 void
-otNcpValueIs(
+otcValueIs(
     otInstance *aInstance,
     spinel_prop_key_t key,
     const uint8_t* value_data_ptr,
@@ -432,11 +475,11 @@ otNcpValueIs(
         {
             if (strnlen((char*)output, output_len) != output_len)
             {
+                printf("DEBUG INFO corrupt\n");
             }
-            else if (output_len < 128)
+            else
             {
-                char strOutput[128] = { 0 };
-                memcpy(strOutput, output, output_len);
+                printf("DEBUG INFO %s\n", output);
             }
         }
     }
@@ -444,7 +487,7 @@ otNcpValueIs(
 }
 
 void
-otNcpValueInserted(
+otcValueInserted(
     otInstance* aInstance,
     spinel_prop_key_t key,
     const uint8_t* value_data_ptr,
@@ -458,14 +501,14 @@ otNcpValueInserted(
 }
 
 void
-otNcpProcess(
+otcProcess(
     otInstance *aInstance,
     uint32_t command,
     const uint8_t* cmd_data_ptr,
     spinel_size_t cmd_data_len
     )
 {
-    uint8_t Header;
+    uint8_t header;
     spinel_prop_key_t key;
     uint8_t* value_data_ptr = NULL;
     spinel_size_t value_data_len = 0;
@@ -477,13 +520,13 @@ otNcpProcess(
     }
 
     // Decode the key and data
-    if (spinel_datatype_unpack(cmd_data_ptr, cmd_data_len, "CiiD", &Header, NULL, &key, &value_data_ptr, &value_data_len) == -1)
+    if (spinel_datatype_unpack(cmd_data_ptr, cmd_data_len, "CiiD", &header, NULL, &key, &value_data_ptr, &value_data_len) == -1)
     {
         return;
     }
 
     // Get the transaction ID
-    if (SPINEL_HEADER_GET_TID(Header) == 0)
+    if (SPINEL_HEADER_GET_TID(header) == 0)
     {
         // Handle out of band last status locally
         if (command == SPINEL_CMD_PROP_VALUE_IS && key == SPINEL_PROP_LAST_STATUS)
@@ -503,85 +546,60 @@ otNcpProcess(
             // If this is a 'Value Is' command, process it for notification of state changes.
             if (command == SPINEL_CMD_PROP_VALUE_IS)
             {
-                otNcpValueIs(aInstance, key, value_data_ptr, value_data_len);
+                otcValueIs(aInstance, key, value_data_ptr, value_data_len);
             }
             else if (command == SPINEL_CMD_PROP_VALUE_INSERTED)
             {
-                otNcpValueInserted(aInstance, key, value_data_ptr, value_data_len);
+                otcValueInserted(aInstance, key, value_data_ptr, value_data_len);
             }
         }
     }
     // If there was a transaction ID, then look for the corresponding command handler
     else
     {
-        SpinelCmdHandlerEntry* pEntry = sCmdHandlers;
-        SpinelCmdHandlerEntry* Prev = NULL;
-
-        // Search for matching handlers for this command
-        while (pEntry != NULL)
-        {
-            if (SPINEL_HEADER_GET_TID(Header) == pEntry->TransactionId)
-            {
-                // Remove the transaction ID from the 'in use' bit field
-                sCmdTIDsInUse &= ~(1 << pEntry->TransactionId);
-
-                break;
-            }
-            Prev = pEntry;
-            pEntry = pEntry->mNext;
-        }
-
-        // TODO - Set event
-
-        // Process the handler we found, outside the lock
+        SpinelCmdHandlerEntry* pEntry = otcRemoveCmdHandler(SPINEL_HEADER_GET_TID(header), false);
         if (pEntry)
         {
             // Call the handler function
-            pEntry->Handler(NULL, pEntry->Context, command, key, value_data_ptr, value_data_len);
-
-            if (Prev)
-            {
-                Prev->mNext = pEntry->mNext;
-            }
-            else
-            {
-                sCmdHandlers = pEntry->mNext;
-            }
-
-            // Free the entry
-            delete pEntry;
+            pEntry->Handler(aInstance, pEntry->Context, command, key, value_data_ptr, value_data_len);
         }
     }
 }
 
-void handleFrame(
+void handleHdlcFrame(
     void* aContext,
-    uint8_t *Buffer,
-    uint16_t BufferLength)
+    uint8_t *buffer,
+    uint16_t bufferLength)
 {
-    uint8_t Header;
-    uint32_t Command;
+    uint8_t header;
+    uint32_t command;
+
+    // Make sure the context are set
+    if (aContext == NULL)
+    {
+        return;
+    }
 
     // Unpack the header from the buffer
-    if (spinel_datatype_unpack(Buffer, BufferLength, "Ci", &Header, &Command) <= 0)
+    if (spinel_datatype_unpack(buffer, bufferLength, "Ci", &header, &command) <= 0)
     {
         return;
     }
 
     // Validate the header
-    if ((Header & SPINEL_HEADER_FLAG) != SPINEL_HEADER_FLAG)
+    if ((header & SPINEL_HEADER_FLAG) != SPINEL_HEADER_FLAG)
     {
         return;
     }
 
     // We only support IID zero for now
-    if (SPINEL_HEADER_GET_IID(Header) != 0)
+    if (SPINEL_HEADER_GET_IID(header) != 0)
     {
         return;
     }
 
     // Process the received command
-    otNcpProcess((otInstance*)aContext,Command, Buffer, BufferLength);
+    otcProcess((otInstance*)aContext, command, buffer, bufferLength);
 }
 
 
@@ -602,9 +620,9 @@ try_spinel_datatype_unpack(
 }
 
 ThreadError
-otNcpSendPacket(otInstance *aInstance, const struct RadioPacket *pkt)
+otcSendPacket(otInstance *aInstance, const struct RadioPacket *pkt)
 {
-    return otNcpSendAsync(
+    return otcSendAsync(
             aInstance,
             NULL,
             NULL,
@@ -698,143 +716,58 @@ SpinelStatusToThreadError(
 }
 
 void
-otNcpSetPropHandler(
+otcSetPropHandler(
     otInstance *aInstance,
     void* Context,
-    uint32_t Command,
-    spinel_prop_key_t Key,
-    const uint8_t* Data,
-    spinel_size_t DataLength
+    uint32_t command,
+    spinel_prop_key_t key,
+    const uint8_t* data,
+    spinel_size_t dataLength
     )
 {
-    SpinelSetPropContext* CmdContext = (SpinelSetPropContext*)Context;
+    SpinelSetPropContext* cmdContext = (SpinelSetPropContext*)Context;
 
-    if (Data == NULL)
+    if (data == NULL)
     {
-        CmdContext->Status = kThreadError_Abort;
+        cmdContext->Status = kThreadError_Abort;
     }
-    else if (Command == SPINEL_CMD_PROP_VALUE_IS && Key == SPINEL_PROP_LAST_STATUS)
+    else if (command == SPINEL_CMD_PROP_VALUE_IS && key == SPINEL_PROP_LAST_STATUS)
     {
         spinel_status_t spinel_status = SPINEL_STATUS_OK;
-        spinel_ssize_t packed_len = spinel_datatype_unpack(Data, DataLength, "i", &spinel_status);
-        if (packed_len < 0 || (uint32_t)packed_len > DataLength)
+        spinel_ssize_t packed_len = spinel_datatype_unpack(data, dataLength, "i", &spinel_status);
+        if (packed_len < 0 || (uint32_t)packed_len > dataLength)
         {
-            CmdContext->Status = kThreadError_NoBufs;
+            cmdContext->Status = kThreadError_NoBufs;
         }
         else
         {
             ThreadError errorCode = SpinelStatusToThreadError(spinel_status);
-            CmdContext->Status = errorCode;
+            cmdContext->Status = errorCode;
         }
     }
-    else if (Command != CmdContext->ExpectedResultCommand)
+    else if (command != cmdContext->ExpectedResultCommand)
     {
-        CmdContext->Status = kThreadError_InvalidArgs;
+        cmdContext->Status = kThreadError_InvalidArgs;
     }
-    else if (Key == CmdContext->Key)
+    else if (key == cmdContext->key)
     {
-        CmdContext->Status = kThreadError_None;
+        cmdContext->Status = kThreadError_None;
     }
     else
     {
-        CmdContext->Status = kThreadError_InvalidArgs;
+        cmdContext->Status = kThreadError_InvalidArgs;
     }
 
-    // TODO
-    (void)aInstance;
-    //otNcpCancel();
-}
-void
-otNcpGetPropHandler(
-    otInstance *aInstance,
-    void* Context,
-    uint32_t Command,
-    spinel_prop_key_t Key,
-    const uint8_t* Data,
-    spinel_size_t DataLength
-    )
-{
-    SpinelGetPropContext* CmdContext = (SpinelGetPropContext*)Context;
-
-    if (Data == NULL)
-    {
-        CmdContext->Status = kThreadError_Abort;
-    }
-    else if (Command != SPINEL_CMD_PROP_VALUE_IS)
-    {
-        CmdContext->Status = kThreadError_InvalidArgs;
-    }
-    else if (Key == SPINEL_PROP_LAST_STATUS)
-    {
-        spinel_status_t spinel_status = SPINEL_STATUS_OK;
-        spinel_ssize_t packed_len = spinel_datatype_unpack(Data, DataLength, "i", &spinel_status);
-        if (packed_len < 0 || (uint32_t)packed_len > DataLength)
-        {
-            CmdContext->Status = kThreadError_NoBufs;
-        }
-        else
-        {
-            CmdContext->Status = SpinelStatusToThreadError(spinel_status);
-        }
-    }
-    else if (Key == CmdContext->Key)
-    {
-        spinel_ssize_t packed_len = spinel_datatype_vunpack(Data, DataLength, CmdContext->Format, CmdContext->Args);
-        if (packed_len < 0 || (uint32_t)packed_len > DataLength)
-        {
-            CmdContext->Status = kThreadError_NoBufs;
-        }
-        else
-        {
-            CmdContext->Status = kThreadError_None;
-        }
-    }
-    else
-    {
-        CmdContext->Status = kThreadError_InvalidArgs;
-    }
-
-    // Set the completion event
-    //KeSetEvent(&CmdContext->CompletionEvent, 0, false);
-    (void)aInstance;
+    cmdContext->Expire = 0;
+    (void) aInstance;
 }
 
-void otNcpCancel(spinel_tid_t tid)
-{
-    SpinelCmdHandlerEntry* pEntry = sCmdHandlers;
-    SpinelCmdHandlerEntry* Prev = NULL;
-
-    while (pEntry != NULL)
-    {
-        if (tid == pEntry->TransactionId)
-        {
-            // Remove the transaction ID from the 'in use' bit field
-            sCmdTIDsInUse &= ~(1 << pEntry->TransactionId);
-
-            break;
-        }
-        Prev = pEntry;
-        pEntry = pEntry->mNext;
-    }
-
-    if (pEntry)
-    {
-        // Call the handler function
-        pEntry->Handler(NULL, pEntry->Context, 0, (spinel_prop_key_t)0, NULL, 0);
-
-        if (Prev) Prev->mNext = pEntry->mNext;
-        else
-            sCmdHandlers = pEntry->mNext;
-        // Free the entry
-        delete pEntry;
-    }
-}
 
 ThreadError
-otNcpSetPropV(
+otcSetPropV(
     otInstance *aInstance,
-    uint32_t Command,
-    spinel_prop_key_t Key,
+    uint32_t command,
+    spinel_prop_key_t key,
     const char *pack_format,
     va_list args
     )
@@ -843,141 +776,173 @@ otNcpSetPropV(
     spinel_tid_t tid;
 
     // Create the context structure
-    SpinelSetPropContext Context;
-    Context.Key = Key;
-    Context.Status = kThreadError_None;
-    Context.Expire = otPlatAlarmGetNow() + 1000;
+    uint32_t now = otPlatAlarmGetNow();
+    if (now < sSetPropContext.Expire)
+    {
+        return kThreadError_Busy;
+    }
 
-    if (Command == SPINEL_CMD_PROP_VALUE_SET)
+    sSetPropContext.key = key;
+    sSetPropContext.Status = kThreadError_None;
+    sSetPropContext.Expire = now + 1000;
+
+    if (command == SPINEL_CMD_PROP_VALUE_SET)
     {
-        Context.ExpectedResultCommand = SPINEL_CMD_PROP_VALUE_IS;
+        sSetPropContext.ExpectedResultCommand = SPINEL_CMD_PROP_VALUE_IS;
     }
-    else if (Command == SPINEL_CMD_PROP_VALUE_INSERT)
+    else if (command == SPINEL_CMD_PROP_VALUE_INSERT)
     {
-        Context.ExpectedResultCommand = SPINEL_CMD_PROP_VALUE_INSERTED;
+        sSetPropContext.ExpectedResultCommand = SPINEL_CMD_PROP_VALUE_INSERTED;
     }
-    else if (Command == SPINEL_CMD_PROP_VALUE_REMOVE)
+    else if (command == SPINEL_CMD_PROP_VALUE_REMOVE)
     {
-        Context.ExpectedResultCommand = SPINEL_CMD_PROP_VALUE_REMOVED;
+        sSetPropContext.ExpectedResultCommand = SPINEL_CMD_PROP_VALUE_REMOVED;
     }
     else
     {
-        // TODO ASSERT(false);
+        ExitNow(status = kThreadError_Parse);
     }
 
     // Send the request transaction
-    status =
-        otNcpSendAsyncV(
+    status = otcSendAsyncV(
             aInstance,
-            otNcpSetPropHandler,
-            &Context,
+            otcSetPropHandler,
+            &sSetPropContext,
             &tid,
-            Command,
-            Key,
+            command,
+            key,
             8,
             pack_format,
             args);
 
-    if (status == kThreadError_None)
+exit:
+
+    return status;
+}
+
+ThreadError
+otcSetProp(
+    otInstance *aInstance,
+    spinel_prop_key_t key,
+    const char *pack_format,
+    ...
+    )
+{
+    va_list args;
+    va_start(args, pack_format);
+    ThreadError status = otcSetPropV(aInstance, SPINEL_CMD_PROP_VALUE_SET, key, pack_format, args);
+    va_end(args);
+    return status;
+}
+
+ThreadError
+otcInsertProp(
+    otInstance *aInstance,
+    spinel_prop_key_t key,
+    const char *pack_format,
+    ...
+    )
+{
+    va_list args;
+    va_start(args, pack_format);
+    ThreadError status = otcSetPropV(aInstance, SPINEL_CMD_PROP_VALUE_INSERT, key, pack_format, args);
+    va_end(args);
+    return status;
+}
+
+ThreadError
+otcRemoveProp(
+    otInstance *aInstance,
+    spinel_prop_key_t key,
+    const char *pack_format,
+    ...
+    )
+{
+    va_list args;
+    va_start(args, pack_format);
+    ThreadError status = otcSetPropV(aInstance, SPINEL_CMD_PROP_VALUE_REMOVE, key, pack_format, args);
+    va_end(args);
+    return status;
+}
+
+ThreadError
+otcGetPropHandler(
+    otInstance *aInstance,
+    uint32_t command,
+    spinel_prop_key_t key,
+    const uint8_t* data,
+    spinel_size_t dataLength,
+    const char* aFormat,
+    ...
+    )
+{
+    ThreadError error;
+
+    if (data == NULL)
     {
-        // TODO Timer to cancel command
+        error = kThreadError_Abort;
     }
-    else
+    else if (command != SPINEL_CMD_PROP_VALUE_IS)
     {
-        Context.Status = status;
+        error = kThreadError_InvalidArgs;
+    }
+    else if (key == SPINEL_PROP_LAST_STATUS)
+    {
+        spinel_status_t spinel_status = SPINEL_STATUS_OK;
+        spinel_ssize_t packed_len = spinel_datatype_unpack(data, dataLength, "i", &spinel_status);
+        if (packed_len < 0 || (uint32_t)packed_len > dataLength)
+        {
+            error = kThreadError_NoBufs;
+        }
+        else
+        {
+            error = SpinelStatusToThreadError(spinel_status);
+        }
+    }
+    else if (key == cmdContext->key)
+    {
+        va_start(args, aFormat);
+        spinel_ssize_t packed_len = spinel_datatype_vunpack(data, dataLength, aFormat, args);
+        if (packed_len < 0 || (uint32_t)packed_len > dataLength)
+        {
+            error = kThreadError_NoBufs;
+        }
+        else
+        {
+            error = kThreadError_None;
+        }
+        va_end(args);
+
+    } else {
+        error = kThreadError_InvalidArgs;
     }
 
-    return Context.Status;
+    return error;
 }
 
 ThreadError
-otNcpSetProp(
+otcGetProp(
     otInstance *aInstance,
-    spinel_prop_key_t Key,
-    const char *pack_format,
-    ...
-    )
-{
-    va_list args;
-    va_start(args, pack_format);
-    ThreadError status = otNcpSetPropV(aInstance, SPINEL_CMD_PROP_VALUE_SET, Key, pack_format, args);
-    va_end(args);
-    return status;
-}
-
-ThreadError
-otNcpInsertProp(
-    otInstance *aInstance,
-    spinel_prop_key_t Key,
-    const char *pack_format,
-    ...
-    )
-{
-    va_list args;
-    va_start(args, pack_format);
-    ThreadError status = otNcpSetPropV(aInstance, SPINEL_CMD_PROP_VALUE_INSERT, Key, pack_format, args);
-    va_end(args);
-    return status;
-}
-
-ThreadError
-otNcpRemoveProp(
-    otInstance *aInstance,
-    spinel_prop_key_t Key,
-    const char *pack_format,
-    ...
-    )
-{
-    va_list args;
-    va_start(args, pack_format);
-    ThreadError status = otNcpSetPropV(aInstance, SPINEL_CMD_PROP_VALUE_REMOVE, Key, pack_format, args);
-    va_end(args);
-    return status;
-}
-ThreadError
-otNcpGetProp(
-    otInstance *aInstance,
-    void *DataBuffer,
-    spinel_prop_key_t Key,
-    const char *pack_format,
-    ...
-    )
+    spinel_prop_key_t key,
+    SpinelCmdHandler aHandler,
+    void *aContext)
 {
     ThreadError status;
     spinel_tid_t tid;
 
-    // Create the context structure
-    SpinelGetPropContext Context;
-    Context.Key = Key;
-    Context.DataBuffer = DataBuffer;
-    Context.Format = pack_format;
-    Context.Status = kThreadError_None;
-    Context.Expire = otPlatAlarmGetNow() + 1000;
-    va_start(Context.Args, pack_format);
-
     // Send the request transaction
-    status =
-        otNcpSendAsyncV(
+    status = otcSendAsyncV(
             aInstance,
-            otNcpGetPropHandler,
-            &Context,
+            aHandler,
+            aContext,
             &tid,
             SPINEL_CMD_PROP_VALUE_GET,
-            Key,
+            key,
             0,
             NULL,
             NULL);
-    if (status == kThreadError_None)
-    {
-    }
-    else
-    {
-        Context.Status = status;
-    }
 
-    va_end(Context.Args);
-
-    return Context.Status;
+    return status;
 }
 
 #ifdef __cplusplus
