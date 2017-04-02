@@ -43,7 +43,7 @@ libopenthread_posix_a_SOURCES             = \
     misc.c                                  \
     logging.c                               \
     platform.c                              \
-    link-raw.cpp                            \
+    otc.cpp                                 \
     radio.c                                 \
     random.c                                \
     uart-posix.c                            \

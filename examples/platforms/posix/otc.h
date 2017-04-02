@@ -1,5 +1,5 @@
-#ifndef LINK_RAW_H_
-#define LINK_RAW_H_
+#ifndef OTC_H_
+#define OTC_H_
 
 #include <ncp/spinel.h>
 #include "openthread/platform/radio.h"
@@ -36,4 +36,4 @@ try_spinel_datatype_unpack(
 }  // extern "C"
 #endif
 
-#endif // LINK_RAW_H_
+#endif // OTC_H_
