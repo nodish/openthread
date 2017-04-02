@@ -10,7 +10,7 @@
 #include <ncp/hdlc.hpp>
 #include <ncp/ncp_uart.hpp>
 #include <openthread/platform/alarm.h>
-#include "link-raw.h"
+#include "otc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,14 +54,12 @@ private:
 
 uint8_t sOutBuf[128];
 void                               *sContext;
-Thread::Hdlc::Encoder   sFrameEncoder;
-MacFrameHandler         sMacFrameHandler;
+Thread::Hdlc::Encoder               sFrameEncoder;
+MacFrameHandler                     sMacFrameHandler;
 
 UartTxBuffer sTxBuffer;
 
 int sCmdResetReason;
-
-typedef void (*SpinelCmdHandler)( otInstance *aInstance, void* Context, uint32_t command, spinel_prop_key_t key, const uint8_t* data, spinel_size_t dataLength);
 
 typedef struct SpinelCmdHandlerEntry
 {
@@ -82,11 +80,8 @@ typedef struct _SpinelSetPropContext
 typedef struct _SpinelGetPropContext
 {
     uint32_t                Expire;
-    spinel_prop_key_t   key;
-    void              *dataBuffer;
-    const char*         Format;
-    va_list             Args;
-    ThreadError            Status;
+    spinel_prop_key_t       key;
+    ThreadError             Status;
 } SpinelGetPropContext;
 
 SpinelSetPropContext sSetPropContext;
@@ -98,6 +93,23 @@ uint16_t                        sCmdTIDsInUse;
 
 void handleHdlcFrame(void *aContext, uint8_t *aFrame, uint16_t aFrameLength);
 
+int sprint_hex(char *out, const uint8_t* buf, uint16_t len)
+{
+    static const char hex_str[]= "0123456789abcdef";
+    unsigned int  i;
+
+    out[len * 2] = '\0';
+
+    if (!len) return 0;
+
+    for (i = 0; i < len; i++)
+    {
+        out[i * 2 + 0] = hex_str[(buf[i] >> 4) & 0x0F];
+        out[i * 2 + 1] = hex_str[(buf[i]     ) & 0x0F];
+    }
+
+    return len * 2;
+}
 void handleError(void *aContext, ThreadError aError, uint8_t *aFrame, uint16_t aFrameLength)
 {
     (void)aContext;
@@ -158,6 +170,7 @@ open_system_socket_forkpty(const char* command)
 		execl(getenv("SHELL"),getenv("SHELL"),"-c",command,NULL);
 
 
+        perror("failed");
 		_exit(errno);
 	}
 
@@ -188,6 +201,7 @@ cleanup_and_fail:
 int otcOpen(MacFrameHandler aMacFrameHandler)
 {
     char *ncpFile = getenv("NCP_FILE");
+    printf("command line is %s\n", ncpFile);
     sSockFd = open_system_socket_forkpty(ncpFile);
     sMacFrameHandler = aMacFrameHandler;
     return sSockFd;
@@ -202,7 +216,7 @@ void otcReceive(otInstance *aInstance)
         perror("read");
         exit(EXIT_FAILURE);
     }
-
+    //new(&sDecoder) Thread::Hdlc::Decoder(sOutBuf, sizeof(sOutBuf), handleHdlcFrame, handleError, aInstance);
     sContext = aInstance;
     sDecoder.Decode(buf, (uint16_t)rval);
 }
@@ -298,6 +312,7 @@ otcEncodeAndSendAsync(
     ThreadError status = kThreadError_None;
     uint8_t buffer[256];
 
+    //printf("encode and send\n");
     (void)MaxDataLength;
     // Pack the header, command and key
     spinel_ssize_t packedLength =
@@ -338,8 +353,13 @@ otcEncodeAndSendAsync(
     {
         sFrameEncoder.Encode(buffer[i], sTxBuffer);
     }
+    sFrameEncoder.Finalize(sTxBuffer);
 
+    //char data[256];
+    //sprint_hex(data, sTxBuffer.GetBuffer(), sTxBuffer.GetLength());
+    //printf("spinel sending %u %s\n", sTxBuffer.GetLength(), data);
     write(sSockFd, sTxBuffer.GetBuffer(), sTxBuffer.GetLength());
+    sTxBuffer.Clear();
 
     (void)aInstance;
     return status;
@@ -396,8 +416,6 @@ otcSendAsyncV(
     }
 
 exit:
-
-    if (pEntry) delete pEntry;
 
     return status;
 }
@@ -574,11 +592,11 @@ void handleHdlcFrame(
     uint8_t header;
     uint32_t command;
 
-    // Make sure the context are set
-    if (aContext == NULL)
-    {
-        return;
-    }
+    //char hex[256];
+    //sprint_hex(hex, buffer, bufferLength);
+    //printf("frame received %u %s\n", bufferLength, hex);
+
+    (void)aContext;
 
     // Unpack the header from the buffer
     if (spinel_datatype_unpack(buffer, bufferLength, "Ci", &header, &command) <= 0)
@@ -599,7 +617,7 @@ void handleHdlcFrame(
     }
 
     // Process the received command
-    otcProcess((otInstance*)aContext, command, buffer, bufferLength);
+    otcProcess((otInstance*)sContext, command, buffer, bufferLength);
 }
 
 
@@ -759,6 +777,7 @@ otcSetPropHandler(
     }
 
     cmdContext->Expire = 0;
+    printf("set status is %d", cmdContext->Status);
     (void) aInstance;
 }
 
@@ -878,6 +897,8 @@ otcGetPropHandler(
 {
     ThreadError error;
 
+    (void)aInstance;
+
     if (data == NULL)
     {
         error = kThreadError_Abort;
@@ -899,8 +920,9 @@ otcGetPropHandler(
             error = SpinelStatusToThreadError(spinel_status);
         }
     }
-    else if (key == cmdContext->key)
+    else if (key == sGetPropContext.key)
     {
+        va_list args;
         va_start(args, aFormat);
         spinel_ssize_t packed_len = spinel_datatype_vunpack(data, dataLength, aFormat, args);
         if (packed_len < 0 || (uint32_t)packed_len > dataLength)
@@ -930,6 +952,13 @@ otcGetProp(
     ThreadError status;
     spinel_tid_t tid;
 
+    // Create the context structure
+    uint32_t now = otPlatAlarmGetNow();
+    if (now < sGetPropContext.Expire)
+    {
+        return kThreadError_Busy;
+    }
+
     // Send the request transaction
     status = otcSendAsyncV(
             aInstance,
@@ -941,6 +970,9 @@ otcGetProp(
             0,
             NULL,
             NULL);
+
+    sGetPropContext.key = key;
+    sGetPropContext.Expire = now + 1000;
 
     return status;
 }

@@ -29,7 +29,7 @@
 #include <stdarg.h>
 
 #include "platform-posix.h"
-#include "link-raw.h"
+#include "otc.h"
 
 #include "openthread/platform/diag.h"
 #include "openthread/platform/radio.h"
@@ -79,7 +79,6 @@ enum
 OT_TOOL_PACKED_BEGIN
 struct RadioMessage
 {
-    uint8_t mChannel;
     uint8_t mPsdu[kMaxPHYPacketSize];
 } OT_TOOL_PACKED_END;
 
@@ -250,17 +249,26 @@ static inline void getExtAddress(const uint8_t *frame, otExtAddress *address)
 
 uint8_t sFactoryAddress[8] = {0};
 
+void handleGetPropHwAddr(otInstance *aInstance,
+        void* aContext,
+        uint32_t command,
+        spinel_prop_key_t key,
+        const uint8_t *data,
+        spinel_size_t dataLength)
+{
+    (void)aContext;
+    uint8_t *hwaddr = NULL;
+    otcGetPropHandler(aInstance, command, key, data, dataLength, SPINEL_DATATYPE_EUI64_S, &hwaddr);
+    if (hwaddr)
+    {
+        memcpy(sFactoryAddress, hwaddr, sizeof(sFactoryAddress));
+    }
+}
+
 void otPlatRadioGetIeeeEui64(otInstance *aInstance, uint8_t *aIeeeEui64)
 {
-    (void)aInstance;
-    aIeeeEui64[0] = 0x18;
-    aIeeeEui64[1] = 0xb4;
-    aIeeeEui64[2] = 0x30;
-    aIeeeEui64[3] = 0x00;
-    aIeeeEui64[4] = (NODE_ID >> 24) & 0xff;
-    aIeeeEui64[5] = (NODE_ID >> 16) & 0xff;
-    aIeeeEui64[6] = (NODE_ID >> 8) & 0xff;
-    aIeeeEui64[7] = NODE_ID & 0xff;
+    otcGetProp(aInstance, SPINEL_PROP_HWADDR, handleGetPropHwAddr, NULL);
+    memcpy(aIeeeEui64, sFactoryAddress, sizeof(sFactoryAddress));
 }
 
 void otPlatRadioSetPanId(otInstance *aInstance, uint16_t panid)
@@ -308,20 +316,11 @@ void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
             );
 }
 
-void handleGetPropHwAddr(otInstance *aInstance,
-        void* aContext,
-        uint32_t command,
-        spinel_prop_key_t key,
-        const uint8_t *data,
-        spinel_size_t dataLength)
-{
-    otcGetPropHandler(aInstance, command, key, data, dataLength, SPINEL_DATATYPE_EUI64_S, sFactoryAddress);
-}
-
 void platformRadioInit(void)
 {
     sSockFd = otcOpen(handleMacFrame);
     otcGetProp(NULL, SPINEL_PROP_HWADDR, handleGetPropHwAddr, NULL);
+
     sReceiveFrame.mPsdu = sReceiveMessage.mPsdu;
     sTransmitFrame.mPsdu = sTransmitMessage.mPsdu;
     sAckFrame.mPsdu = sAckMessage.mPsdu;
@@ -339,6 +338,7 @@ ThreadError otPlatRadioEnable(otInstance *aInstance)
     {
         sState = kStateSleep;
     }
+
     otcSetProp(
             aInstance,
             SPINEL_PROP_PHY_ENABLED,
@@ -459,7 +459,6 @@ bool otPlatRadioGetPromiscuous(otInstance *aInstance)
 void radioReceiveFrame(otInstance *aInstance)
 {
     if (sAckWait &&
-        sTransmitFrame.mChannel == sReceiveMessage.mChannel &&
         isFrameTypeAck(sReceiveFrame.mPsdu) &&
         getDsn(sReceiveFrame.mPsdu) == getDsn(sTransmitFrame.mPsdu))
     {
@@ -478,8 +477,7 @@ void radioReceiveFrame(otInstance *aInstance)
             otPlatRadioTransmitDone(aInstance, &sTransmitFrame, isFramePending(sReceiveFrame.mPsdu), kThreadError_None);
         }
     }
-    else if ((sState == kStateReceive || sState == kStateTransmit) &&
-             (sReceiveFrame.mChannel == sReceiveMessage.mChannel))
+    else if ((sState == kStateReceive || sState == kStateTransmit))
     {
         radioProcessFrame(aInstance);
     }
@@ -536,8 +534,7 @@ void radioReceive(otInstance *aInstance)
 
 void radioSendMessage(otInstance *aInstance)
 {
-    sTransmitMessage.mChannel = sTransmitFrame.mChannel;
-
+    printf("sending ........channel %u length %u\n", sTransmitFrame.mChannel, sTransmitFrame.mLength);
     radioTransmit(&sTransmitMessage, &sTransmitFrame);
 
     sAckWait = isAckRequested(sTransmitFrame.mPsdu);
@@ -617,8 +614,6 @@ void radioSendAck(void)
 
     sAckMessage.mPsdu[1] = 0;
     sAckMessage.mPsdu[2] = getDsn(sReceiveFrame.mPsdu);
-
-    sAckMessage.mChannel = sReceiveFrame.mChannel;
 
     radioTransmit(&sAckMessage, &sAckFrame);
 }
