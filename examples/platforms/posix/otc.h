@@ -8,31 +8,60 @@
 extern "C" {
 #endif
 
-typedef void (*MacFrameHandler)(void *aContext, const uint8_t *aFrame, uint16_t aFrameLength);
-typedef void (*MacFrameDoneHandler)(otInstance *aInstance);
-typedef void (*SpinelCmdHandler)( otInstance *aInstance, void* Context, uint32_t command, spinel_prop_key_t key, const uint8_t* data, spinel_size_t dataLength);
-
-int otcOpen(MacFrameHandler aMacFrameHandler, MacFrameDoneHandler aMacFrameDoneHandler);
 
 /**
- * read bytes
+ * Initialize OpenThread Controller and return the handle.
+ */
+int otcOpen();
+
+/**
+ * Try to receive a data. Must be called when \p sSockFd data available.
  */
 void otcReceive(otInstance *aInstance);
 
-ThreadError otcGetProp(otInstance *aInstance, spinel_prop_key_t key, const char* aFormat, ...);
+/**
+ * Get property
+ */
+ThreadError otcGetProp(otInstance *aInstance, spinel_prop_key_t aKey, const char* aFormat, ...);
+
+/**
+ * Set property
+ */
 ThreadError otcSetProp(otInstance *aInstance, spinel_prop_key_t aKey, const char* aFormat, ...);
+
+/**
+ * Insert property
+ */
 ThreadError otcInsertProp(otInstance *aInstance, spinel_prop_key_t aKey, const char* aFormat, ...);
+
+/**
+ * Remove property
+ */
 ThreadError otcRemoveProp(otInstance *aInstance, spinel_prop_key_t aKey, const char* aFormat, ...);
 
-ThreadError otcSendPacket(otInstance *aInstance, const struct RadioPacket *pkt, bool wait);
+/**
+ * Send a packet.
+ *
+ * If the packet request ack, block until ack is received or timeout. Otherwise, return once data
+ * is delivered to OpenThread Controller.
+ *
+ * @param aPacket packet to send
+ *
+ */
+ThreadError otcSendPacket(otInstance *aInstance, const struct RadioPacket *pkt);
 
-bool
-try_spinel_datatype_unpack(
-    const uint8_t *data_in,
-    spinel_size_t data_len,
-    const char *pack_format,
-    ...
-    );
+// radio callbacks
+
+/**
+ * called when a mac frame is received.
+ */
+void radioReceiveFrame(otInstance *aInstance);
+
+/**
+ * called when transmit done
+ */
+void radioTransmitDone(otInstance *aInstance);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

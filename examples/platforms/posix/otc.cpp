@@ -64,6 +64,12 @@ int sCmdResetReason;
 extern bool sLastTransmitFramePending;
 extern bool sLastTransmitError;
 
+bool try_spinel_datatype_unpack(
+    const uint8_t *data_in,
+    spinel_size_t data_len,
+    const char *pack_format,
+    ...
+    );
 typedef struct SpinelCmdHandlerEntry
 {
     SpinelCmdHandlerEntry  *mNext;
@@ -536,6 +542,51 @@ otcSendAsync(
     return status;
 }
 
+void handleStreamRaw(otInstance* aInstance, const uint8_t *aBuf, uint16_t aLength)
+{
+    uint16_t packetLength = 0;
+
+    if (!(try_spinel_datatype_unpack(
+                    aBuf,
+                    aLength,
+                    SPINEL_DATATYPE_UINT16_S,
+                    &packetLength) &&
+                packetLength <= sizeof(sReceiveMessage.mPsdu) &&
+                aLength > sizeof(uint16_t) + packetLength))
+    {
+        printf("Invalid mac frame packet\n");
+        return;
+    }
+
+    sReceiveFrame.mLength = (uint8_t)packetLength;
+
+    uint8_t offset = 2; // spinel header
+    uint8_t length = (uint8_t)(aLength - 2);
+
+    if (packetLength != 0)
+    {
+        memcpy(sReceiveMessage.mPsdu, aBuf + offset, packetLength);
+        offset += sReceiveFrame.mLength;
+        length -= sReceiveFrame.mLength;
+    }
+
+    uint16_t flags = 0;
+    int8_t noiseFloor = -128;
+    if (try_spinel_datatype_unpack(
+                aBuf + offset,
+                length,
+                SPINEL_DATATYPE_INT8_S
+                SPINEL_DATATYPE_INT8_S
+                SPINEL_DATATYPE_UINT16_S,
+                &sReceiveFrame.mPower,
+                &noiseFloor,
+                &flags))
+    {
+        radioReceiveFrame(aInstance);
+    }
+
+}
+
 void
 otcValueIs(
     otInstance *aInstance,
@@ -566,7 +617,7 @@ otcValueIs(
     {
         if (value_data_len < 256)
         {
-            sMacFrameHandler(
+            handleStreamRaw(
                 aInstance,
                 value_data_ptr,
                 (uint8_t)value_data_len);
@@ -894,8 +945,9 @@ try_spinel_datatype_unpack(
 }
 
 ThreadError
-otcSendPacket(otInstance *aInstance, const struct RadioPacket *pkt, bool wait)
+otcSendPacket(otInstance *aInstance, const struct RadioPacket *aPacket)
 {
+    bool wait = (aPacket->mPsdu[0] & IEEE802154_ACK_REQUEST);
     printf("%s wait=%d\r\n", __func__, wait);
     char hex[512];
     sprint_hex(hex, pkt->mPsdu, pkt->mLength);
@@ -1032,6 +1084,7 @@ otcGetProp(
     va_end(sArgs);
     return status;
 }
+
 
 #ifdef __cplusplus
 }  // extern "C"
