@@ -76,21 +76,6 @@ enum
     IEEE802154_MACCMD_DATA_REQ    = 4,
 };
 
-//void saveHwAddr(otInstance *aInstance,
-//        spinel_prop_key_t key,
-//        const uint8_t *data,
-//        spinel_size_t dataLength);
-
-//typedef struct PropertyHandlerEntry
-//{
-//    spinel_prop_key_t mPropKey;
-//    PropertyHandler   mHandler;
-//} PropertyHandlerEntry;
-//
-//const PropertyHandlerEntry PropertyHandlerTable[] = {
-//    {SPINEL_PROP_HWADDR, saveHwAddr},
-//};
-//
 OT_TOOL_PACKED_BEGIN
 struct RadioMessage
 {
