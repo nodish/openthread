@@ -23,8 +23,7 @@ static int sSockFd;
 #endif
 
 enum {
-        kUartTxBufferSize = OPENTHREAD_CONFIG_NCP_UART_TX_CHUNK_SIZE,  // Uart tx buffer size.
-        kRxBufferSize = OPENTHREAD_CONFIG_NCP_UART_RX_BUFFER_SIZE,     // Rx buffer size (should be large enough to fit
+        kUartTxBufferSize = 256,  // Uart tx buffer size.
 };
                                                                        // one whole (decoded) received frame).
 class UartTxBuffer : public Thread::Hdlc::Encoder::BufferWriteIterator
@@ -52,7 +51,7 @@ private:
     uint8_t        mBuffer[kUartTxBufferSize];
 };
 
-uint8_t sOutBuf[128];
+uint8_t sOutBuf[512];
 void                               *sContext;
 Thread::Hdlc::Encoder               sFrameEncoder;
 MacFrameHandler                     sMacFrameHandler;
@@ -88,13 +87,20 @@ typedef struct _SpinelGetPropContext
     ThreadError             Status;
 } SpinelGetPropContext;
 
-SpinelCmdHandlerEntry sCmdHandlerEntry;
-SpinelSetPropContext sSetPropContext;
-SpinelGetPropContext sGetPropContext;
+//SpinelCmdHandlerEntry sCmdHandlerEntry;
+//SpinelSetPropContext sSetPropContext;
+//SpinelGetPropContext sGetPropContext;
 
 SpinelCmdHandlerEntry          *sCmdHandlers = NULL;
 spinel_tid_t                    sCmdNextTID;
 uint16_t                        sCmdTIDsInUse;
+
+spinel_tid_t                    sWaitingTID;
+spinel_prop_key_t               sWaitingKey;
+uint32_t                        sExpectedResultCommand;
+const char*                     sFormat;
+va_list                         sArgs;
+ThreadError                     sLastError;
 
 void handleHdlcFrame(void *aContext, uint8_t *aFrame, uint16_t aFrameLength);
 
@@ -212,17 +218,21 @@ int otcOpen(MacFrameHandler aMacFrameHandler, MacFrameDoneHandler aMacFrameDoneH
     return sSockFd;
 }
 
-ThreadError otcWaitReply(otInstance *aInstance)
+ThreadError otcWaitReply(otInstance *aInstance, spinel_prop_key_t key, spinel_tid_t tid)
 {
-    while (sCmdHandlers != NULL)
+    sWaitingTID = tid;
+    sWaitingKey = key;
+    uint32_t now = otPlatAlarmGetNow();
+    uint32_t expire = now + 10000;
+    while (now < expire && sWaitingTID > 0)
     {
-        printf("Waiting reply\r\n");
+        printf("Waiting reply of key %d tid %d\r\n", key, sWaitingTID);
         fd_set read_fds;
         FD_ZERO(&read_fds);
         FD_SET(sSockFd, &read_fds);
         struct timeval timeout;
-        timeout.tv_sec = 1;
-        timeout.tv_usec = 0;
+        timeout.tv_sec = (expire - now) / 1000;
+        timeout.tv_usec = (int)(((expire - now) % 1000) * 1000);
         int rval = select(sSockFd + 1, &read_fds, NULL, NULL, &timeout);
         if (rval > 0)
         {
@@ -233,12 +243,13 @@ ThreadError otcWaitReply(otInstance *aInstance)
             printf("Timeout reply\r\n");
             return kThreadError_NoFrameReceived;
         }
-        else if ((rval < 0) && (errno != EINTR))
+        else if (errno != EINTR)
         {
             printf("Error reply\r\n");
             perror("select");
             exit(EXIT_FAILURE);
         }
+        now = otPlatAlarmGetNow();
     }
 
     printf("Good reply\r\n");
@@ -247,14 +258,16 @@ ThreadError otcWaitReply(otInstance *aInstance)
 
 void otcReceive(otInstance *aInstance)
 {
-    uint8_t buf[255];
+    uint8_t buf[512];
     ssize_t rval = read(sSockFd, buf, sizeof(buf));
     if (rval < 0)
     {
         perror("read");
         exit(EXIT_FAILURE);
     }
-    //new(&sDecoder) Thread::Hdlc::Decoder(sOutBuf, sizeof(sOutBuf), handleHdlcFrame, handleError, aInstance);
+    char hex[512];
+    sprint_hex(hex, buf, (uint16_t)rval);
+    printf("data received length=%ld\r\n[%s]\r\n", rval, hex);
     sContext = aInstance;
     sDecoder.Decode(buf, (uint16_t)rval);
 }
@@ -366,8 +379,6 @@ otcAddCmdHandler(
 
     // Get the next transaction ID. This call will block if there are
     // none currently available.
-    pEntry->TransactionId = otcGetNextTID();
-
     // Add to the handlers list
     pEntry->mNext = sCmdHandlers;
 
@@ -424,9 +435,8 @@ otcEncodeAndSendAsync(
     )
 {
     ThreadError status = kThreadError_None;
-    uint8_t buffer[256];
+    uint8_t buffer[512];
 
-    //printf("encode and send\n");
     // Pack the header, command and key
     spinel_ssize_t packedLength =
         spinel_datatype_pack(
@@ -471,12 +481,13 @@ otcEncodeAndSendAsync(
     //char data[256];
     //sprint_hex(data, sTxBuffer.GetBuffer(), sTxBuffer.GetLength());
     //printf("spinel sending %u %s\n", sTxBuffer.GetLength(), data);
-    write(sSockFd, sTxBuffer.GetBuffer(), sTxBuffer.GetLength());
+    ssize_t rval = write(sSockFd, sTxBuffer.GetBuffer(), sTxBuffer.GetLength());
+    printf("%s written rval=%ld command=%d key=%d tid=%d\r\n", __func__, rval, command, key, tid);
     sTxBuffer.Clear();
 
-    if (tid > 0)
+    if (tid && rval > 0)
     {
-        status = otcWaitReply(aInstance);
+        status = otcWaitReply(aInstance, key, tid);
     }
 
     return status;
@@ -485,8 +496,6 @@ otcEncodeAndSendAsync(
 ThreadError
 otcSendAsyncV(
     otInstance *aInstance,
-    SpinelCmdHandler Handler,
-    void* HandlerContext,
     spinel_tid_t *pTid,
     uint32_t command,
     spinel_prop_key_t key,
@@ -495,43 +504,17 @@ otcSendAsyncV(
     )
 {
     ThreadError status = kThreadError_None;
-    SpinelCmdHandlerEntry *pEntry = NULL;
 
-    if (pTid) *pTid = 0;
+    if (pTid) *pTid = otcGetNextTID();
 
-    // Create the handler entry and add it to the list
-    if (Handler)
-    {
-        pEntry = new SpinelCmdHandlerEntry;
-        if (pEntry == NULL)
-        {
-            status = kThreadError_NoBufs;
-            goto exit;
-        }
-
-        pEntry->Handler = Handler;
-        pEntry->Context = HandlerContext;
-
-        otcAddCmdHandler(pEntry);
-
-        if (pTid) *pTid = pEntry->TransactionId;
-    }
-
-    status = otcEncodeAndSendAsync(aInstance, command, key, pEntry ? pEntry->TransactionId : 0, pack_format, args);
+    status = otcEncodeAndSendAsync(aInstance, command, key, pTid ? (*pTid) : 0, pack_format, args);
 
     // Remove the handler entry from the list
-    if (status != kThreadError_None && pEntry)
+    if (status != kThreadError_None)
     {
-        if (sCmdHandlers == pEntry)
-        {
-            sCmdHandlers = sCmdHandlers->mNext;
-        }
-        delete pEntry;
         // Remove the transaction ID from the 'in use' bit field
-        sCmdTIDsInUse &= ~(1 << pEntry->TransactionId);
+        sCmdTIDsInUse &= ~(1 << *pTid);
     }
-
-exit:
 
     return status;
 }
@@ -539,8 +522,6 @@ exit:
 ThreadError
 otcSendAsync(
     otInstance *aInstance,
-    SpinelCmdHandler Handler,
-    void* HandlerContext,
     spinel_tid_t *pTid,
     uint32_t command,
     spinel_prop_key_t key,
@@ -550,7 +531,7 @@ otcSendAsync(
 {
     va_list args;
     va_start(args, pack_format);
-    ThreadError status = otcSendAsyncV(aInstance, Handler, HandlerContext, pTid, command, key, pack_format, args);
+    ThreadError status = otcSendAsyncV(aInstance, pTid, command, key, pack_format, args);
     va_end(args);
     return status;
 }
@@ -634,6 +615,146 @@ otcValueInserted(
 }
 
 void
+cmdSendMacFrameComplete(
+    otInstance *aInstance,
+    uint32_t Command,
+    spinel_prop_key_t Key,
+    const uint8_t* Data,
+    spinel_size_t DataLength
+    )
+{
+    sLastTransmitError = kThreadError_Abort;
+
+    if (Data && Command == SPINEL_CMD_PROP_VALUE_IS)
+    {
+        if (Key == SPINEL_PROP_LAST_STATUS)
+        {
+            spinel_status_t spinel_status = SPINEL_STATUS_OK;
+            spinel_ssize_t packed_len = spinel_datatype_unpack(Data, DataLength, "i", &spinel_status);
+            if (packed_len > 0)
+            {
+                if (spinel_status == SPINEL_STATUS_OK)
+                {
+                    sLastTransmitError = kThreadError_None;
+                    (void)spinel_datatype_unpack(
+                        Data + packed_len,
+                        DataLength - (spinel_size_t)packed_len,
+                        "b",
+                        &sLastTransmitFramePending);
+                }
+                else
+                {
+                    printf("status is not ok %d\r\n", spinel_status);
+                    sLastTransmitError = SpinelStatusToThreadError(spinel_status);
+                }
+            }
+        }
+    }
+
+    sMacFrameDoneHandler(aInstance);
+}
+
+
+void
+cmdSetPropHandler(
+    otInstance *aInstance,
+    uint32_t command,
+    spinel_prop_key_t key,
+    const uint8_t* data,
+    spinel_size_t dataLength
+    )
+{
+    if (data == NULL)
+    {
+        sLastError = kThreadError_Abort;
+    }
+    else if (command == SPINEL_CMD_PROP_VALUE_IS && key == SPINEL_PROP_LAST_STATUS)
+    {
+        spinel_status_t spinel_status = SPINEL_STATUS_OK;
+        spinel_ssize_t packed_len = spinel_datatype_unpack(data, dataLength, "i", &spinel_status);
+        if (packed_len < 0 || (uint32_t)packed_len > dataLength)
+        {
+            sLastError = kThreadError_NoBufs;
+        }
+        else
+        {
+            ThreadError errorCode = SpinelStatusToThreadError(spinel_status);
+            sLastError = errorCode;
+        }
+    }
+    else if (command != sExpectedResultCommand)
+    {
+        sLastError = kThreadError_InvalidArgs;
+    }
+    else if (key == sWaitingKey)
+    {
+        sLastError = kThreadError_None;
+    }
+    else
+    {
+        sLastError = kThreadError_InvalidArgs;
+    }
+
+    (void) aInstance;
+}
+
+
+void
+cmdGetPropHandler(
+    otInstance *aInstance,
+    uint32_t command,
+    spinel_prop_key_t key,
+    const uint8_t* data,
+    spinel_size_t dataLength,
+    const char* aFormat,
+    va_list aArgs
+    )
+{
+    ThreadError error;
+
+    (void)aInstance;
+
+    if (data == NULL)
+    {
+        error = kThreadError_Abort;
+    }
+    else if (command != SPINEL_CMD_PROP_VALUE_IS)
+    {
+        error = kThreadError_InvalidArgs;
+    }
+    else if (key == SPINEL_PROP_LAST_STATUS)
+    {
+        spinel_status_t spinel_status = SPINEL_STATUS_OK;
+        spinel_ssize_t packed_len = spinel_datatype_unpack(data, dataLength, "i", &spinel_status);
+        if (packed_len < 0 || (uint32_t)packed_len > dataLength)
+        {
+            error = kThreadError_NoBufs;
+        }
+        else
+        {
+            error = SpinelStatusToThreadError(spinel_status);
+        }
+    }
+    else if (key == sWaitingKey)
+    {
+        spinel_ssize_t packed_len = spinel_datatype_vunpack(data, dataLength, aFormat, aArgs);
+        if (packed_len < 0 || (uint32_t)packed_len > dataLength)
+        {
+            error = kThreadError_NoBufs;
+        }
+        else
+        {
+            error = kThreadError_None;
+        }
+
+    } else {
+        error = kThreadError_InvalidArgs;
+    }
+
+    sLastError = error;
+}
+
+void
 otcProcess(
     otInstance *aInstance,
     uint32_t command,
@@ -641,6 +762,7 @@ otcProcess(
     spinel_size_t cmd_data_len
     )
 {
+    printf("%s processing\r\n", __func__);
     uint8_t header;
     spinel_prop_key_t key;
     uint8_t* value_data_ptr = NULL;
@@ -649,18 +771,21 @@ otcProcess(
     // Make sure it's an expected command
     if (command < SPINEL_CMD_PROP_VALUE_IS || command > SPINEL_CMD_PROP_VALUE_REMOVED)
     {
+        printf("%s processing command=%d\r\n", __func__, command);
         return;
     }
 
     // Decode the key and data
     if (spinel_datatype_unpack(cmd_data_ptr, cmd_data_len, "CiiD", &header, NULL, &key, &value_data_ptr, &value_data_len) == -1)
     {
+        printf("%s processing parse failed\r\n", __func__);
         return;
     }
 
     // Get the transaction ID
     if (SPINEL_HEADER_GET_TID(header) == 0)
     {
+        printf("%s processing notification command=%d key=%d\r\n", __func__, command, key);
         // Handle out of band last status locally
         if (command == SPINEL_CMD_PROP_VALUE_IS && key == SPINEL_PROP_LAST_STATUS)
         {
@@ -690,12 +815,28 @@ otcProcess(
     // If there was a transaction ID, then look for the corresponding command handler
     else
     {
-        SpinelCmdHandlerEntry* pEntry = otcRemoveCmdHandler(SPINEL_HEADER_GET_TID(header), false);
-        if (pEntry)
+        printf("%s processing tid=%d\r\n", __func__, SPINEL_HEADER_GET_TID(header));
+        if (sWaitingTID == SPINEL_HEADER_GET_TID(header))
         {
-            // Call the handler function
-            pEntry->Handler(aInstance, pEntry->Context, command, key, value_data_ptr, value_data_len);
+            if (sWaitingKey == SPINEL_PROP_STREAM_RAW)
+            {
+                cmdSendMacFrameComplete(aInstance, command, key, value_data_ptr, value_data_len);
+            }
+            else if (sExpectedResultCommand > 0)
+            {
+                cmdSetPropHandler(aInstance, command, key, value_data_ptr, value_data_len);
+            }
+            else
+            {
+                cmdGetPropHandler(aInstance, command, key, value_data_ptr, value_data_len, sFormat, sArgs);
+            }
         }
+        else
+        {
+            printf("missing tid %d\r\n", sWaitingTID);
+        }
+
+        sWaitingTID = 0;
     }
 }
 
@@ -752,56 +893,17 @@ try_spinel_datatype_unpack(
     return !(packed_len < 0 || (spinel_size_t)packed_len > data_len);
 }
 
-void
-cmdSendMacFrameComplete(
-    otInstance *aInstance,
-    void* Context,
-    uint32_t Command,
-    spinel_prop_key_t Key,
-    const uint8_t* Data,
-    spinel_size_t DataLength
-    )
-{
-    (void)Context;
-    sLastTransmitError = kThreadError_Abort;
-
-    if (Data && Command == SPINEL_CMD_PROP_VALUE_IS)
-    {
-        if (Key == SPINEL_PROP_LAST_STATUS)
-        {
-            spinel_status_t spinel_status = SPINEL_STATUS_OK;
-            spinel_ssize_t packed_len = spinel_datatype_unpack(Data, DataLength, "i", &spinel_status);
-            if (packed_len > 0)
-            {
-                if (spinel_status == SPINEL_STATUS_OK)
-                {
-                    sLastTransmitError = kThreadError_None;
-                    (void)spinel_datatype_unpack(
-                        Data + packed_len,
-                        DataLength - (spinel_size_t)packed_len,
-                        "b",
-                        &sLastTransmitFramePending);
-                }
-                else
-                {
-                    printf("status is not ok %d\r\n", spinel_status);
-                    sLastTransmitError = SpinelStatusToThreadError(spinel_status);
-                }
-            }
-        }
-    }
-
-    sMacFrameDoneHandler(aInstance);
-}
-
 ThreadError
-otcSendPacket(otInstance *aInstance, const struct RadioPacket *pkt)
+otcSendPacket(otInstance *aInstance, const struct RadioPacket *pkt, bool wait)
 {
+    printf("%s wait=%d\r\n", __func__, wait);
+    char hex[512];
+    sprint_hex(hex, pkt->mPsdu, pkt->mLength);
+    printf("%s length=%u packet=[%s]\r\n", __func__, pkt->mLength, hex);
+    spinel_tid_t tid;
     ThreadError error = otcSendAsync(
             aInstance,
-            cmdSendMacFrameComplete,
-            NULL,
-            NULL,
+            (wait ? &tid : NULL),
             SPINEL_CMD_PROP_VALUE_SET,
             SPINEL_PROP_STREAM_RAW,
             SPINEL_DATATYPE_DATA_WLEN_S
@@ -813,53 +915,6 @@ otcSendPacket(otInstance *aInstance, const struct RadioPacket *pkt)
             pkt->mPower);
 
     return error;
-}
-
-void
-otcSetPropHandler(
-    otInstance *aInstance,
-    void* Context,
-    uint32_t command,
-    spinel_prop_key_t key,
-    const uint8_t* data,
-    spinel_size_t dataLength
-    )
-{
-    SpinelSetPropContext* cmdContext = (SpinelSetPropContext*)Context;
-
-    if (data == NULL)
-    {
-        cmdContext->Status = kThreadError_Abort;
-    }
-    else if (command == SPINEL_CMD_PROP_VALUE_IS && key == SPINEL_PROP_LAST_STATUS)
-    {
-        spinel_status_t spinel_status = SPINEL_STATUS_OK;
-        spinel_ssize_t packed_len = spinel_datatype_unpack(data, dataLength, "i", &spinel_status);
-        if (packed_len < 0 || (uint32_t)packed_len > dataLength)
-        {
-            cmdContext->Status = kThreadError_NoBufs;
-        }
-        else
-        {
-            ThreadError errorCode = SpinelStatusToThreadError(spinel_status);
-            cmdContext->Status = errorCode;
-        }
-    }
-    else if (command != cmdContext->ExpectedResultCommand)
-    {
-        cmdContext->Status = kThreadError_InvalidArgs;
-    }
-    else if (key == cmdContext->key)
-    {
-        cmdContext->Status = kThreadError_None;
-    }
-    else
-    {
-        cmdContext->Status = kThreadError_InvalidArgs;
-    }
-
-    cmdContext->Expire = 0;
-    (void) aInstance;
 }
 
 
@@ -875,28 +930,17 @@ otcSetPropV(
     ThreadError status;
     spinel_tid_t tid;
 
-    // Create the context structure
-    uint32_t now = otPlatAlarmGetNow();
-    if (now < sSetPropContext.Expire)
-    {
-        return kThreadError_Busy;
-    }
-
-    sSetPropContext.key = key;
-    sSetPropContext.Status = kThreadError_None;
-    sSetPropContext.Expire = now + 1000;
-
     if (command == SPINEL_CMD_PROP_VALUE_SET)
     {
-        sSetPropContext.ExpectedResultCommand = SPINEL_CMD_PROP_VALUE_IS;
+        sExpectedResultCommand = SPINEL_CMD_PROP_VALUE_IS;
     }
     else if (command == SPINEL_CMD_PROP_VALUE_INSERT)
     {
-        sSetPropContext.ExpectedResultCommand = SPINEL_CMD_PROP_VALUE_INSERTED;
+        sExpectedResultCommand = SPINEL_CMD_PROP_VALUE_INSERTED;
     }
     else if (command == SPINEL_CMD_PROP_VALUE_REMOVE)
     {
-        sSetPropContext.ExpectedResultCommand = SPINEL_CMD_PROP_VALUE_REMOVED;
+        sExpectedResultCommand = SPINEL_CMD_PROP_VALUE_REMOVED;
     }
     else
     {
@@ -906,14 +950,13 @@ otcSetPropV(
     // Send the request transaction
     status = otcSendAsyncV(
             aInstance,
-            otcSetPropHandler,
-            &sSetPropContext,
             &tid,
             command,
             key,
             pack_format,
             args);
 
+    sExpectedResultCommand = SPINEL_CMD_NOOP;
 exit:
 
     return status;
@@ -964,94 +1007,29 @@ otcRemoveProp(
     return status;
 }
 
-ThreadError
-otcGetPropHandler(
-    otInstance *aInstance,
-    uint32_t command,
-    spinel_prop_key_t key,
-    const uint8_t* data,
-    spinel_size_t dataLength,
-    const char* aFormat,
-    ...
-    )
-{
-    ThreadError error;
-
-    (void)aInstance;
-
-    if (data == NULL)
-    {
-        error = kThreadError_Abort;
-    }
-    else if (command != SPINEL_CMD_PROP_VALUE_IS)
-    {
-        error = kThreadError_InvalidArgs;
-    }
-    else if (key == SPINEL_PROP_LAST_STATUS)
-    {
-        spinel_status_t spinel_status = SPINEL_STATUS_OK;
-        spinel_ssize_t packed_len = spinel_datatype_unpack(data, dataLength, "i", &spinel_status);
-        if (packed_len < 0 || (uint32_t)packed_len > dataLength)
-        {
-            error = kThreadError_NoBufs;
-        }
-        else
-        {
-            error = SpinelStatusToThreadError(spinel_status);
-        }
-    }
-    else if (key == sGetPropContext.key)
-    {
-        va_list args;
-        va_start(args, aFormat);
-        spinel_ssize_t packed_len = spinel_datatype_vunpack(data, dataLength, aFormat, args);
-        if (packed_len < 0 || (uint32_t)packed_len > dataLength)
-        {
-            error = kThreadError_NoBufs;
-        }
-        else
-        {
-            error = kThreadError_None;
-        }
-        va_end(args);
-
-    } else {
-        error = kThreadError_InvalidArgs;
-    }
-
-    return error;
-}
 
 ThreadError
 otcGetProp(
     otInstance *aInstance,
     spinel_prop_key_t key,
-    SpinelCmdHandler aHandler,
-    void *aContext)
+    const char* aFormat,
+    ...
+    )
 {
     ThreadError status;
     spinel_tid_t tid;
-
-    // Create the context structure
-    uint32_t now = otPlatAlarmGetNow();
-    if (now < sGetPropContext.Expire)
-    {
-        return kThreadError_Busy;
-    }
-
+    va_start(sArgs, aFormat);
+    sFormat = aFormat;
     // Send the request transaction
     status = otcSendAsyncV(
             aInstance,
-            aHandler,
-            aContext,
             &tid,
             SPINEL_CMD_PROP_VALUE_GET,
             key,
             NULL,
             NULL);
 
-    sGetPropContext.key = key;
-    sGetPropContext.Expire = now + 1000;
+    va_end(sArgs);
     return status;
 }
 

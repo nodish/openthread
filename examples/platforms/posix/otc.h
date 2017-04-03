@@ -19,13 +19,12 @@ int otcOpen(MacFrameHandler aMacFrameHandler, MacFrameDoneHandler aMacFrameDoneH
  */
 void otcReceive(otInstance *aInstance);
 
-ThreadError otcGetPropHandler(otInstance *aInstance, uint32_t command, spinel_prop_key_t key, const uint8_t* data, spinel_size_t dataLength, const char* aFormat, ...);
-ThreadError otcGetProp(otInstance *aInstance, spinel_prop_key_t key, SpinelCmdHandler aHandler, void *aContext);
+ThreadError otcGetProp(otInstance *aInstance, spinel_prop_key_t key, const char* aFormat, ...);
 ThreadError otcSetProp(otInstance *aInstance, spinel_prop_key_t aKey, const char* aFormat, ...);
 ThreadError otcInsertProp(otInstance *aInstance, spinel_prop_key_t aKey, const char* aFormat, ...);
 ThreadError otcRemoveProp(otInstance *aInstance, spinel_prop_key_t aKey, const char* aFormat, ...);
 
-ThreadError otcSendPacket(otInstance *aInstance, const struct RadioPacket *pkt);
+ThreadError otcSendPacket(otInstance *aInstance, const struct RadioPacket *pkt, bool wait);
 
 bool
 try_spinel_datatype_unpack(

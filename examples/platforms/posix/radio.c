@@ -76,13 +76,28 @@ enum
     IEEE802154_MACCMD_DATA_REQ    = 4,
 };
 
+//void saveHwAddr(otInstance *aInstance,
+//        spinel_prop_key_t key,
+//        const uint8_t *data,
+//        spinel_size_t dataLength);
+
+//typedef struct PropertyHandlerEntry
+//{
+//    spinel_prop_key_t mPropKey;
+//    PropertyHandler   mHandler;
+//} PropertyHandlerEntry;
+//
+//const PropertyHandlerEntry PropertyHandlerTable[] = {
+//    {SPINEL_PROP_HWADDR, saveHwAddr},
+//};
+//
 OT_TOOL_PACKED_BEGIN
 struct RadioMessage
 {
     uint8_t mPsdu[kMaxPHYPacketSize];
 } OT_TOOL_PACKED_END;
 
-static void radioTransmit(otInstance *aInstance, const struct RadioPacket *pkt);
+static ThreadError radioTransmit(otInstance *aInstance, const struct RadioPacket *pkt);
 static void radioTransmitDone(otInstance *aInstance);
 static void radioSendMessage(otInstance *aInstance);
 static void radioSendAck(otInstance *aInstance);
@@ -254,30 +269,31 @@ static inline void getExtAddress(const uint8_t *frame, otExtAddress *address)
 
 uint8_t sFactoryAddress[8] = {0};
 
-void handleGetPropHwAddr(otInstance *aInstance,
-        void* aContext,
-        uint32_t command,
-        spinel_prop_key_t key,
-        const uint8_t *data,
-        spinel_size_t dataLength)
-{
-    (void)aContext;
-    uint8_t *hwaddr = NULL;
-    otcGetPropHandler(aInstance, command, key, data, dataLength, SPINEL_DATATYPE_EUI64_S, &hwaddr);
-    if (hwaddr)
-    {
-        memcpy(sFactoryAddress, hwaddr, sizeof(sFactoryAddress));
-    }
-}
+//void handleGetPropHwAddr(otInstance *aInstance,
+//        void* aContext,
+//        uint32_t command,
+//        spinel_prop_key_t key,
+//        const uint8_t *data,
+//        spinel_size_t dataLength)
+//{
+//    (void)aContext;
+//    uint8_t *hwaddr = NULL;
+//    otcGetPropHandler(aInstance, command, key, data, dataLength, SPINEL_DATATYPE_EUI64_S, &hwaddr);
+//    if (hwaddr)
+//    {
+//        memcpy(sFactoryAddress, hwaddr, sizeof(sFactoryAddress));
+//    }
+//}
 
 void otPlatRadioGetIeeeEui64(otInstance *aInstance, uint8_t *aIeeeEui64)
 {
-    otcGetProp(aInstance, SPINEL_PROP_HWADDR, handleGetPropHwAddr, NULL);
-    memcpy(aIeeeEui64, sFactoryAddress, sizeof(sFactoryAddress));
+    printf("calling %s\r\n", __func__);
+    otcGetProp(aInstance, SPINEL_PROP_HWADDR, SPINEL_DATATYPE_EUI64_S, &aIeeeEui64);
 }
 
 void otPlatRadioSetPanId(otInstance *aInstance, uint16_t panid)
 {
+    printf("calling %s\r\n", __func__);
     sPanid = panid;
     otcSetProp(
             aInstance,
@@ -288,6 +304,7 @@ void otPlatRadioSetPanId(otInstance *aInstance, uint16_t panid)
 
 void otPlatRadioSetExtendedAddress(otInstance *aInstance, uint8_t *address)
 {
+    printf("calling %s\r\n", __func__);
     for (size_t i = 0; i < sizeof(sExtendedAddress); i++)
     {
         sExtendedAddress[i] = address[sizeof(sExtendedAddress) - 1 - i];
@@ -301,6 +318,7 @@ void otPlatRadioSetExtendedAddress(otInstance *aInstance, uint8_t *address)
 
 void otPlatRadioSetShortAddress(otInstance *aInstance, uint16_t address)
 {
+    printf("calling %s\r\n", __func__);
     sShortAddress = address;
     otcSetProp(
             aInstance,
@@ -312,6 +330,7 @@ void otPlatRadioSetShortAddress(otInstance *aInstance, uint16_t address)
 
 void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
 {
+    printf("calling %s\r\n", __func__);
     sPromiscuous = aEnable;
     otcSetProp(
             aInstance,
@@ -323,8 +342,8 @@ void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
 
 void platformRadioInit(void)
 {
+    printf("calling %s\r\n", __func__);
     sSockFd = otcOpen(handleMacFrame, radioTransmitDone);
-    otcGetProp(NULL, SPINEL_PROP_HWADDR, handleGetPropHwAddr, NULL);
 
     sReceiveFrame.mPsdu = sReceiveMessage.mPsdu;
     sTransmitFrame.mPsdu = sTransmitMessage.mPsdu;
@@ -333,13 +352,14 @@ void platformRadioInit(void)
 
 bool otPlatRadioIsEnabled(otInstance *aInstance)
 {
+    printf("calling %s\r\n", __func__);
     (void)aInstance;
     return (sState != kStateDisabled) ? true : false;
 }
 
 ThreadError otPlatRadioEnable(otInstance *aInstance)
 {
-    printf("enable radio\r\n");
+    printf("calling %s\r\n", __func__);
     if (!otPlatRadioIsEnabled(aInstance))
     {
         sState = kStateSleep;
@@ -357,6 +377,7 @@ ThreadError otPlatRadioEnable(otInstance *aInstance)
 
 ThreadError otPlatRadioDisable(otInstance *aInstance)
 {
+    printf("calling %s\r\n", __func__);
     if (otPlatRadioIsEnabled(aInstance))
     {
         sState = kStateDisabled;
@@ -373,6 +394,7 @@ ThreadError otPlatRadioDisable(otInstance *aInstance)
 
 ThreadError otPlatRadioSleep(otInstance *aInstance)
 {
+    printf("calling %s\r\n", __func__);
     ThreadError error = kThreadError_InvalidState;
 
     if (sState == kStateSleep || sState == kStateReceive)
@@ -391,6 +413,7 @@ ThreadError otPlatRadioSleep(otInstance *aInstance)
 
 ThreadError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel)
 {
+    printf("%s\r\n", __func__);
     ThreadError error = kThreadError_InvalidState;
 
     printf("%s called sState %d\r\n", __func__, sState);
@@ -407,19 +430,20 @@ ThreadError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel)
                 SPINEL_PROP_PHY_CHAN,
                 SPINEL_DATATYPE_UINT8_S,
                 aChannel);
-        printf("error setting channel %d\r\n", error);
         sReceiveFrame.mChannel = aChannel;
     }
 
-    if (sState == kStateSleep)
+    if (error == kThreadError_None)
     {
+        if (sState == kStateSleep)
+        {
+            error = otcSetProp(
+                    aInstance,
+                    SPINEL_PROP_MAC_RAW_STREAM_ENABLED,
+                    SPINEL_DATATYPE_BOOL_S,
+                    true);
+        }
         sState = kStateReceive;
-        error = otcSetProp(
-                aInstance,
-                SPINEL_PROP_MAC_RAW_STREAM_ENABLED,
-                SPINEL_DATATYPE_BOOL_S,
-                true);
-        printf("error setting raw stream %d\r\n", error);
     }
 
 exit:
@@ -427,9 +451,15 @@ exit:
     return error;
 }
 
+int sprint_hex(char *out, const uint8_t* buf, uint16_t len);
+
 ThreadError otPlatRadioTransmit(otInstance *aInstance, RadioPacket *aPacket)
 {
-    printf("%s called sState %d\r\n", __func__, sState);
+    printf("%s called state=%d ack=%d\r\n", __func__, sState, sAckWait);
+    char hex[512];
+    sprint_hex(hex, aPacket->mPsdu, aPacket->mLength);
+    printf("%s packet=[%s]\r\n", __func__, hex);
+
     ThreadError error = kThreadError_InvalidState;
     (void)aInstance;
     (void)aPacket;
@@ -446,35 +476,42 @@ ThreadError otPlatRadioTransmit(otInstance *aInstance, RadioPacket *aPacket)
 
 RadioPacket *otPlatRadioGetTransmitBuffer(otInstance *aInstance)
 {
+    printf("calling %s\r\n", __func__);
     (void)aInstance;
     return &sTransmitFrame;
 }
 
 int8_t otPlatRadioGetRssi(otInstance *aInstance)
 {
+    printf("calling %s\r\n", __func__);
     (void)aInstance;
     return 0;
 }
 
 otRadioCaps otPlatRadioGetCaps(otInstance *aInstance)
 {
+    printf("calling %s\r\n", __func__);
     (void)aInstance;
     return kRadioCapsNone;
 }
 
 bool otPlatRadioGetPromiscuous(otInstance *aInstance)
 {
+    printf("calling %s\r\n", __func__);
     (void)aInstance;
     return sPromiscuous;
 }
 
 void radioReceiveFrame(otInstance *aInstance)
 {
+    char hex[512];
+    sprint_hex(hex, sReceiveFrame.mPsdu, sReceiveFrame.mLength);
+    printf("%s length=%u packet=[%s]\r\n", __func__, sReceiveFrame.mLength, hex);
+
     if (sAckWait &&
         isFrameTypeAck(sReceiveFrame.mPsdu) &&
         getDsn(sReceiveFrame.mPsdu) == getDsn(sTransmitFrame.mPsdu))
     {
-        printf("AAAAAAAAAAAAAACCCCCCCCCCCCCCCCCCCCCCKKKKKKKKKKKKKKKKK\r\n");
         sState = kStateReceive;
         sAckWait = false;
 
@@ -547,12 +584,15 @@ void radioReceive(otInstance *aInstance)
 
 void radioSendMessage(otInstance *aInstance)
 {
-    radioTransmit(aInstance, &sTransmitFrame);
+    printf("%s\r\n", __func__);
 
-#if 0
-    sAckWait = isAckRequested(sTransmitFrame.mPsdu);
+    bool ackWait = isAckRequested(sTransmitFrame.mPsdu);
+    sAckWait = ackWait;
+    printf("%s sAckWait=%d\r\n", __func__, sAckWait);
 
-    if (!sAckWait)
+    ThreadError error = radioTransmit(aInstance, &sTransmitFrame);
+
+    if (!ackWait || kThreadError_None != error)
     {
         sState = kStateReceive;
 
@@ -560,15 +600,14 @@ void radioSendMessage(otInstance *aInstance)
 
         if (otPlatDiagModeGet())
         {
-            otPlatDiagRadioTransmitDone(aInstance, &sTransmitFrame, false, kThreadError_None);
+            otPlatDiagRadioTransmitDone(aInstance, &sTransmitFrame, false, error);
         }
         else
 #endif
         {
-            otPlatRadioTransmitDone(aInstance, &sTransmitFrame, false, kThreadError_None);
+            otPlatRadioTransmitDone(aInstance, &sTransmitFrame, false, error);
         }
     }
-#endif
 }
 
 void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd)
@@ -606,34 +645,35 @@ void platformRadioProcess(otInstance *aInstance)
 
     if (sState == kStateTransmit && !sAckWait)
     {
+        printf("%s\r\n", __func__);
         radioSendMessage(aInstance);
     }
 }
 
 void radioTransmitDone(otInstance *aInstance)
 {
-    printf("%s begin\r\n", __func__);
+    printf("%s begin sAckWait=%d\r\n", __func__, sAckWait);
     if (sState == kStateTransmit)
     {
         printf("%s in %d %d\r\n", __func__, sLastTransmitFramePending, sLastTransmitError);
         sState = kStateReceive;
+        sAckWait = false;
         otPlatRadioTransmitDone(aInstance, sLastTransmitPacket, sLastTransmitFramePending, sLastTransmitError);
     }
-    printf("%s done\r\n", __func__);
+    printf("%s done sAckWait=%d\r\n", __func__, sAckWait);
 }
 
-void radioTransmit(otInstance *aInstance, const struct RadioPacket *pkt)
+ThreadError radioTransmit(otInstance *aInstance, const struct RadioPacket *pkt)
 {
-    ThreadError error = otcSendPacket(aInstance, pkt);
-    if (kThreadError_None != error)
-    {
-        printf("!!!!!!!!!!!!!error %d\r\n", error);
-        radioTransmitDone(aInstance);
-    }
+    printf("%s\r\n", __func__);
+    sLastTransmitFramePending = false;
+    sLastTransmitError = kThreadError_None;
+    return otcSendPacket(aInstance, pkt, isAckRequested(pkt->mPsdu));
 }
 
 void radioSendAck(otInstance *aInstance)
 {
+    printf("%s\r\n", __func__);
     sAckFrame.mLength = IEEE802154_ACK_LENGTH;
     sAckMessage.mPsdu[0] = IEEE802154_FRAME_TYPE_ACK;
 
@@ -650,6 +690,7 @@ void radioSendAck(otInstance *aInstance)
 
 void radioProcessFrame(otInstance *aInstance)
 {
+    printf("%s\r\n", __func__);
     ThreadError error = kThreadError_None;
     otPanId dstpan;
     otShortAddress short_address;
@@ -707,6 +748,7 @@ exit:
 
 void otPlatRadioEnableSrcMatch(otInstance *aInstance, bool aEnable)
 {
+    printf("calling %s\r\n", __func__);
     (void)aInstance;
     (void)aEnable;
     otcSetProp(
@@ -718,6 +760,7 @@ void otPlatRadioEnableSrcMatch(otInstance *aInstance, bool aEnable)
 
 ThreadError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, const uint16_t aShortAddress)
 {
+    printf("calling %s\r\n", __func__);
     otcInsertProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_SHORT_ADDRESSES,
@@ -729,6 +772,7 @@ ThreadError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, const uint16
 
 ThreadError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const uint8_t *aExtAddress)
 {
+    printf("calling %s\r\n", __func__);
     otcInsertProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_EXTENDED_ADDRESSES,
@@ -740,6 +784,7 @@ ThreadError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const uint8_t 
 
 ThreadError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, const uint16_t aShortAddress)
 {
+    printf("calling %s\r\n", __func__);
     otcRemoveProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_SHORT_ADDRESSES,
@@ -751,6 +796,7 @@ ThreadError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, const uint
 
 ThreadError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const uint8_t *aExtAddress)
 {
+    printf("calling %s\r\n", __func__);
     otcRemoveProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_EXTENDED_ADDRESSES,
@@ -762,6 +808,7 @@ ThreadError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const uint8_
 
 void otPlatRadioClearSrcMatchShortEntries(otInstance *aInstance)
 {
+    printf("calling %s\r\n", __func__);
     otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_SHORT_ADDRESSES,
@@ -771,6 +818,7 @@ void otPlatRadioClearSrcMatchShortEntries(otInstance *aInstance)
 
 void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance)
 {
+    printf("calling %s\r\n", __func__);
     otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_SRC_MATCH_EXTENDED_ADDRESSES,
@@ -780,6 +828,7 @@ void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance)
 
 ThreadError otPlatRadioEnergyScan(otInstance *aInstance, uint8_t aScanChannel, uint16_t aScanDuration)
 {
+    printf("calling %s\r\n", __func__);
     otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_SCAN_MASK,
@@ -803,6 +852,7 @@ ThreadError otPlatRadioEnergyScan(otInstance *aInstance, uint8_t aScanChannel, u
 
 void otPlatRadioSetDefaultTxPower(otInstance *aInstance, int8_t aPower)
 {
+    printf("calling %s\r\n", __func__);
     otcSetProp(
             aInstance,
             SPINEL_PROP_PHY_TX_POWER,
