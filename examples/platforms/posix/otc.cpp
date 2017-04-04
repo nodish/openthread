@@ -54,8 +54,6 @@ private:
 uint8_t sOutBuf[512];
 void                               *sContext;
 Thread::Hdlc::Encoder               sFrameEncoder;
-MacFrameHandler                     sMacFrameHandler;
-MacFrameDoneHandler                 sMacFrameDoneHandler;
 
 UartTxBuffer sTxBuffer;
 
@@ -70,43 +68,18 @@ bool try_spinel_datatype_unpack(
     const char *pack_format,
     ...
     );
-typedef struct SpinelCmdHandlerEntry
-{
-    SpinelCmdHandlerEntry  *mNext;
-    SpinelCmdHandler        Handler;
-    void*                   Context;
-    spinel_tid_t            TransactionId;
-} SpinelCmdHandlerEntry;
 
-typedef struct _SpinelSetPropContext
-{
-    uint32_t                Expire;
-    uint32_t                ExpectedResultCommand;
-    spinel_prop_key_t       key;
-    ThreadError             Status;
-} SpinelSetPropContext;
-
-typedef struct _SpinelGetPropContext
-{
-    uint32_t                Expire;
-    spinel_prop_key_t       key;
-    ThreadError             Status;
-} SpinelGetPropContext;
-
-//SpinelCmdHandlerEntry sCmdHandlerEntry;
-//SpinelSetPropContext sSetPropContext;
-//SpinelGetPropContext sGetPropContext;
-
-SpinelCmdHandlerEntry          *sCmdHandlers = NULL;
 spinel_tid_t                    sCmdNextTID;
 uint16_t                        sCmdTIDsInUse;
 
+spinel_tid_t                    sStreamTID;
 spinel_tid_t                    sWaitingTID;
 spinel_prop_key_t               sWaitingKey;
 uint32_t                        sExpectedResultCommand;
 const char*                     sFormat;
 va_list                         sArgs;
 ThreadError                     sLastError;
+static RadioPacket* sReceiveFrame;
 
 void handleHdlcFrame(void *aContext, uint8_t *aFrame, uint16_t aFrameLength);
 
@@ -215,19 +188,24 @@ cleanup_and_fail:
 	return -1;
 }
 
-int otcOpen(MacFrameHandler aMacFrameHandler, MacFrameDoneHandler aMacFrameDoneHandler)
+int otcOpen()
 {
     char *ncpFile = getenv("NCP_FILE");
     sSockFd = open_system_socket_forkpty(ncpFile);
-    sMacFrameHandler = aMacFrameHandler;
-    sMacFrameDoneHandler = aMacFrameDoneHandler;
     return sSockFd;
 }
 
 ThreadError otcWaitReply(otInstance *aInstance, spinel_prop_key_t key, spinel_tid_t tid)
 {
-    sWaitingTID = tid;
     sWaitingKey = key;
+    if (key == SPINEL_PROP_STREAM_RAW)
+    {
+        sStreamTID = tid;
+        return kThreadError_None;
+    }
+
+    sWaitingTID = tid;
+
     uint32_t now = otPlatAlarmGetNow();
     uint32_t expire = now + 10000;
     while (now < expire && sWaitingTID > 0)
@@ -242,7 +220,7 @@ ThreadError otcWaitReply(otInstance *aInstance, spinel_prop_key_t key, spinel_ti
         int rval = select(sSockFd + 1, &read_fds, NULL, NULL, &timeout);
         if (rval > 0)
         {
-            otcReceive(aInstance);
+            otcReceive(aInstance, sReceiveFrame);
         }
         else if (rval == 0)
         {
@@ -262,7 +240,7 @@ ThreadError otcWaitReply(otInstance *aInstance, spinel_prop_key_t key, spinel_ti
     return kThreadError_None;
 }
 
-void otcReceive(otInstance *aInstance)
+void otcReceive(otInstance *aInstance, RadioPacket *aPacket)
 {
     uint8_t buf[512];
     ssize_t rval = read(sSockFd, buf, sizeof(buf));
@@ -275,6 +253,7 @@ void otcReceive(otInstance *aInstance)
     sprint_hex(hex, buf, (uint16_t)rval);
     printf("data received length=%ld\r\n[%s]\r\n", rval, hex);
     sContext = aInstance;
+    sReceiveFrame = aPacket;
     sDecoder.Decode(buf, (uint16_t)rval);
 }
 
@@ -375,61 +354,6 @@ SpinelStatusToThreadError(
     return ret;
 }
 
-
-void
-otcAddCmdHandler(
-    SpinelCmdHandlerEntry *pEntry
-    )
-{
-    // TODO cancel expired
-
-    // Get the next transaction ID. This call will block if there are
-    // none currently available.
-    // Add to the handlers list
-    pEntry->mNext = sCmdHandlers;
-
-    sCmdHandlers = pEntry;
-}
-
-SpinelCmdHandlerEntry* otcRemoveCmdHandler(spinel_tid_t tid, bool error)
-{
-    SpinelCmdHandlerEntry* pEntry = sCmdHandlers;
-    SpinelCmdHandlerEntry* Prev = NULL;
-
-    while (pEntry != NULL)
-    {
-        if (tid == pEntry->TransactionId)
-        {
-            // Remove the transaction ID from the 'in use' bit field
-            sCmdTIDsInUse &= ~(1 << pEntry->TransactionId);
-
-            break;
-        }
-        Prev = pEntry;
-        pEntry = pEntry->mNext;
-    }
-
-    if (pEntry)
-    {
-        // Call the handler function
-        if (error)
-        {
-            pEntry->Handler(NULL, pEntry->Context, 0, (spinel_prop_key_t)0, NULL, 0);
-        }
-
-        if (Prev)
-        {
-            Prev->mNext = pEntry->mNext;
-        }
-        else
-        {
-            sCmdHandlers = pEntry->mNext;
-        }
-    }
-
-    return pEntry;
-}
-
 ThreadError
 otcEncodeAndSendAsync(
     otInstance *aInstance,
@@ -499,6 +423,11 @@ otcEncodeAndSendAsync(
     return status;
 }
 
+void otcFreeTid(spinel_tid_t tid)
+{
+    sCmdTIDsInUse &= ~(1 << tid);
+}
+
 ThreadError
 otcSendAsyncV(
     otInstance *aInstance,
@@ -519,7 +448,7 @@ otcSendAsyncV(
     if (status != kThreadError_None)
     {
         // Remove the transaction ID from the 'in use' bit field
-        sCmdTIDsInUse &= ~(1 << *pTid);
+        if (pTid) otcFreeTid(*pTid);
     }
 
     return status;
@@ -551,23 +480,23 @@ void handleStreamRaw(otInstance* aInstance, const uint8_t *aBuf, uint16_t aLengt
                     aLength,
                     SPINEL_DATATYPE_UINT16_S,
                     &packetLength) &&
-                packetLength <= sizeof(sReceiveMessage.mPsdu) &&
+                packetLength <= kMaxPHYPacketSize &&
                 aLength > sizeof(uint16_t) + packetLength))
     {
         printf("Invalid mac frame packet\n");
         return;
     }
 
-    sReceiveFrame.mLength = (uint8_t)packetLength;
+    sReceiveFrame->mLength = (uint8_t)packetLength;
 
     uint8_t offset = 2; // spinel header
     uint8_t length = (uint8_t)(aLength - 2);
 
     if (packetLength != 0)
     {
-        memcpy(sReceiveMessage.mPsdu, aBuf + offset, packetLength);
-        offset += sReceiveFrame.mLength;
-        length -= sReceiveFrame.mLength;
+        memcpy(sReceiveFrame->mPsdu, aBuf + offset, packetLength);
+        offset += sReceiveFrame->mLength;
+        length -= sReceiveFrame->mLength;
     }
 
     uint16_t flags = 0;
@@ -578,7 +507,7 @@ void handleStreamRaw(otInstance* aInstance, const uint8_t *aBuf, uint16_t aLengt
                 SPINEL_DATATYPE_INT8_S
                 SPINEL_DATATYPE_INT8_S
                 SPINEL_DATATYPE_UINT16_S,
-                &sReceiveFrame.mPower,
+                &sReceiveFrame->mPower,
                 &noiseFloor,
                 &flags))
     {
@@ -702,7 +631,7 @@ cmdSendMacFrameComplete(
         }
     }
 
-    sMacFrameDoneHandler(aInstance);
+    radioTransmitDone(aInstance);
 }
 
 
@@ -869,11 +798,7 @@ otcProcess(
         printf("%s processing tid=%d\r\n", __func__, SPINEL_HEADER_GET_TID(header));
         if (sWaitingTID == SPINEL_HEADER_GET_TID(header))
         {
-            if (sWaitingKey == SPINEL_PROP_STREAM_RAW)
-            {
-                cmdSendMacFrameComplete(aInstance, command, key, value_data_ptr, value_data_len);
-            }
-            else if (sExpectedResultCommand > 0)
+            if (sExpectedResultCommand > 0)
             {
                 cmdSetPropHandler(aInstance, command, key, value_data_ptr, value_data_len);
             }
@@ -881,13 +806,21 @@ otcProcess(
             {
                 cmdGetPropHandler(aInstance, command, key, value_data_ptr, value_data_len, sFormat, sArgs);
             }
+            otcFreeTid(sWaitingTID);
+            sWaitingTID = 0;
+        }
+        else if (sStreamTID == SPINEL_HEADER_GET_TID(header))
+        {
+            cmdSendMacFrameComplete(aInstance, command, key, value_data_ptr, value_data_len);
+            otcFreeTid(sStreamTID);
+            sStreamTID = 0;
         }
         else
         {
+            otcFreeTid(sWaitingTID);
+            sWaitingTID = 0;
             printf("missing tid %d\r\n", sWaitingTID);
         }
-
-        sWaitingTID = 0;
     }
 }
 
@@ -947,11 +880,12 @@ try_spinel_datatype_unpack(
 ThreadError
 otcSendPacket(otInstance *aInstance, const struct RadioPacket *aPacket)
 {
+    const int IEEE802154_ACK_REQUEST = (1 << 5);
     bool wait = (aPacket->mPsdu[0] & IEEE802154_ACK_REQUEST);
     printf("%s wait=%d\r\n", __func__, wait);
     char hex[512];
-    sprint_hex(hex, pkt->mPsdu, pkt->mLength);
-    printf("%s length=%u packet=[%s]\r\n", __func__, pkt->mLength, hex);
+    sprint_hex(hex, aPacket->mPsdu, aPacket->mLength);
+    printf("%s length=%u packet=[%s]\r\n", __func__, aPacket->mLength, hex);
     spinel_tid_t tid;
     ThreadError error = otcSendAsync(
             aInstance,
@@ -961,10 +895,10 @@ otcSendPacket(otInstance *aInstance, const struct RadioPacket *aPacket)
             SPINEL_DATATYPE_DATA_WLEN_S
             SPINEL_DATATYPE_UINT8_S
             SPINEL_DATATYPE_INT8_S,
-            pkt->mPsdu,
-            (uint32_t)pkt->mLength,
-            pkt->mChannel,
-            pkt->mPower);
+            aPacket->mPsdu,
+            (uint32_t)aPacket->mLength,
+            aPacket->mChannel,
+            aPacket->mPower);
 
     return error;
 }

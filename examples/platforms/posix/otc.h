@@ -17,7 +17,7 @@ int otcOpen();
 /**
  * Try to receive a data. Must be called when \p sSockFd data available.
  */
-void otcReceive(otInstance *aInstance);
+void otcReceive(otInstance *aInstance, struct RadioPacket *aPacket);
 
 /**
  * Get property

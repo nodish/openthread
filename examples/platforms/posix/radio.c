@@ -428,7 +428,7 @@ bool otPlatRadioGetPromiscuous(otInstance *aInstance)
 
 void radioReceive(otInstance *aInstance)
 {
-    otcReceive(aInstance);
+    otcReceive(aInstance, &sReceiveFrame);
 }
 
 void radioReceiveFrame(otInstance *aInstance)
@@ -462,13 +462,10 @@ void radioSendMessage(otInstance *aInstance)
 {
     printf("%s\r\n", __func__);
 
+    ThreadError error = radioTransmit(aInstance, &sTransmitFrame);
     sAckWait = isAckRequested(sTransmitFrame.mPsdu);
 
-    // radioTransmit() may change the value of sAckWait.
-    bool ackWait = ackWait;
-    ThreadError error = radioTransmit(aInstance, &sTransmitFrame);
-
-    if (!ackWait || kThreadError_None != error)
+    if (!sAckWait || kThreadError_None != error)
     {
         sState = kStateReceive;
 
@@ -530,7 +527,7 @@ ThreadError radioTransmit(otInstance *aInstance, const struct RadioPacket *pkt)
     printf("%s\r\n", __func__);
     sLastTransmitFramePending = false;
     sLastTransmitError = kThreadError_None;
-    return otcSendPacket(aInstance, pkt, isAckRequested(pkt->mPsdu));
+    return otcSendPacket(aInstance, pkt);
 }
 
 void radioTransmitDone(otInstance *aInstance)
@@ -699,12 +696,12 @@ ThreadError otPlatRadioEnergyScan(otInstance *aInstance, uint8_t aScanChannel, u
             aInstance,
             SPINEL_PROP_MAC_SCAN_MASK,
             SPINEL_DATATYPE_UINT8_S,
-            aScanChannel) ||
+            aScanChannel)) ||
     (error = otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_SCAN_PERIOD,
             SPINEL_DATATYPE_UINT16_S,
-            aScanDuration) ||
+            aScanDuration)) ||
     (error = otcSetProp(
             aInstance,
             SPINEL_PROP_MAC_SCAN_STATE,
