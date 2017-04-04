@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -117,7 +117,7 @@ ThreadError CopyPayload(Message &srcMessage, Message *destMessage)
         uint16_t length = srcMessage.GetLength() - srcMessage.GetOffset();
         uint8_t tmp[16];
 
-        if (length >= sizeof(tmp))
+        if (length > sizeof(tmp))
         {
             length = sizeof(tmp);
         }
