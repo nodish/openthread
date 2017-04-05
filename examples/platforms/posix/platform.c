@@ -93,6 +93,7 @@ void PlatformProcessDrivers(otInstance *aInstance)
     FD_ZERO(&write_fds);
     FD_ZERO(&error_fds);
 
+    platformUdpUpdateFdSet(&read_fds, &write_fds, &error_fds, &max_fd);
     platformUartUpdateFdSet(&read_fds, &write_fds, &error_fds, &max_fd);
     platformRadioUpdateFdSet(&read_fds, &write_fds, &max_fd);
     platformAlarmUpdateTimeout(&timeout);
@@ -108,6 +109,7 @@ void PlatformProcessDrivers(otInstance *aInstance)
         }
     }
 
+    platformUdpProcess();
     platformUartProcess();
     platformRadioProcess(aInstance);
     platformAlarmProcess(aInstance);
