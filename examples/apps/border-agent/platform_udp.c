@@ -52,6 +52,7 @@ ThreadError platform_udp_close(otUdpSocket *aUdpSocket)
 
     close(fd);
 
+    printf("closing fd %d\n", fd);
     FD_CLR(fd, &sSocketFdSet);
 
     if (fd == sMaxFd)
@@ -110,13 +111,20 @@ ThreadError platform_udp_bind_ip6(otUdpSocket *aUdpSocket)
 
     int fd = (int)(long)aUdpSocket->mHandle;
     bind(fd, (struct sockaddr *)&sin6, sizeof(sin6));
+    if (aUdpSocket->mSockName.mPort == 0)
+    {
+        socklen_t len = sizeof(sin6);
+        getsockname(fd, (struct sockaddr *)&sin6, &len);
+        aUdpSocket->mSockName.mPort = ntohs(sin6.sin6_port);
+    }
+    printf("binding fd %d ip %s and port %d\n", fd, dump_ip(&aUdpSocket->mSockName.mAddress), aUdpSocket->mSockName.mPort);
 
-    int flags = 1;
-#ifdef __APPLE__
-    setsockopt(fd, IPPROTO_IPV6, IP_RECVDSTADDR, &flags, sizeof(flags));
-#else
-    setsockopt(fd, IPPROTO_IPV6, IP_RECVORIGDSTADDR, &flags, sizeof(flags));
-#endif
+//    int flags = 1;
+//#ifdef __APPLE__
+//    setsockopt(fd, IPPROTO_IPV6, IP_RECVDSTADDR, &flags, sizeof(flags));
+//#else
+//    setsockopt(fd, IPPROTO_IPV6, IP_RECVORIGDSTADDR, &flags, sizeof(flags));
+//#endif
     return kThreadError_None;
 }
 ThreadError platform_udp_bind(otUdpSocket *aUdpSocket)
@@ -194,9 +202,10 @@ void udp_process(otInstance *aInstance)
     fd_set socketFdSet = sSocketFdSet;
     struct timeval tv = {0, 0};
     while (select(sMaxFd + 1, &socketFdSet, NULL, NULL, &tv) > 0) {
+        printf("sMaxFd is %d\n", sMaxFd);
         for (int i = 0; i < sMaxFd + 1; i++) {
             if (FD_ISSET(i, &socketFdSet)) {
-                //printf("Processing from sock %d\n", i);
+                printf("Processing from sock %d\n", i);
                 otUdpSocket *udpSocket = otUdpFindSocketByHandle(aInstance, (void*)(long)i);
                 if (udpSocket == NULL) continue;
                 if (isIp4Address(&udpSocket->mSockName.mAddress))
@@ -204,7 +213,7 @@ void udp_process(otInstance *aInstance)
                     struct sockaddr_in sin;
                     socklen_t socklen = sizeof(sin);
                     ssize_t len = recvfrom(i, payload, sizeof(payload), 0, (struct sockaddr*)&sin, &socklen);
-                    //printf("Processing from socklen %d\n", socklen);
+                    printf("Processing from socklen %d\n", socklen);
                     otMessage* message = otMessageNew(aInstance, 0);
                     otMessageAppend(message, payload, (uint16_t)len);
                     otMessageInfo messageInfo;
@@ -221,7 +230,7 @@ void udp_process(otInstance *aInstance)
                     struct sockaddr_in6 sin6;
                     socklen_t socklen = sizeof(sin6);
                     ssize_t len = recvfrom(i, payload, sizeof(payload), 0, (struct sockaddr*)&sin6, &socklen);
-                    //printf("Processing from socklen %d\n", socklen);
+                    printf("Processing from socklen %d\n", socklen);
                     otMessage* message = otMessageNew(aInstance, 0);
                     otMessageAppend(message, payload, (uint16_t)len);
                     otMessageInfo messageInfo;

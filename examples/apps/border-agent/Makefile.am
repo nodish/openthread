@@ -41,26 +41,26 @@ LDFLAGS_COMMON                                                         = \
     $(NULL)
 
 SOURCES_COMMON                                                         = \
-    @top_srcdir@/src/core/coap/coap_base.cpp                \
-    @top_srcdir@/src/core/coap/coap_server.cpp              \
-    @top_srcdir@/src/core/coap/coap_client.cpp              \
-    @top_srcdir@/src/core/coap/coap_header.cpp              \
-    @top_srcdir@/src/core/coap/secure_coap_server.cpp              \
-    @top_srcdir@/src/core/coap/secure_coap_client.cpp              \
-    @top_srcdir@/src/core/common/logging.cpp                \
-    @top_srcdir@/src/core/common/message.cpp                \
-    @top_srcdir@/src/core/common/tasklet.cpp                  \
-    @top_srcdir@/src/core/common/timer.cpp                  \
-    @top_srcdir@/src/core/common/tlvs.cpp                  \
-    @top_srcdir@/src/core/crypto/mbedtls.cpp                  \
-    @top_srcdir@/src/core/crypto/sha256.cpp                  \
-    @top_srcdir@/src/core/meshcop/dtls.cpp                 \
-    @top_srcdir@/src/core/meshcop/border_agent.cpp                 \
-    @top_srcdir@/src/core/net/udp6.cpp                  \
-    @top_srcdir@/src/core/net/ip6_address.cpp                  \
-    @top_srcdir@/examples/platforms/posix/alarm.c                  \
-    @top_srcdir@/examples/platforms/posix/random.c                  \
-    @top_srcdir@/examples/platforms/posix/logging.c                  \
+    @top_builddir@/src/core/coap/coap_base.cpp                \
+    @top_builddir@/src/core/coap/coap_server.cpp              \
+    @top_builddir@/src/core/coap/coap_client.cpp              \
+    @top_builddir@/src/core/coap/coap_header.cpp              \
+    @top_builddir@/src/core/coap/secure_coap_server.cpp              \
+    @top_builddir@/src/core/coap/secure_coap_client.cpp              \
+    @top_builddir@/src/core/common/logging.cpp                \
+    @top_builddir@/src/core/common/message.cpp                \
+    @top_builddir@/src/core/common/tasklet.cpp                  \
+    @top_builddir@/src/core/common/timer.cpp                  \
+    @top_builddir@/src/core/common/tlvs.cpp                  \
+    @top_builddir@/src/core/crypto/mbedtls.cpp                  \
+    @top_builddir@/src/core/crypto/sha256.cpp                  \
+    @top_builddir@/src/core/meshcop/dtls.cpp                 \
+    @top_builddir@/src/core/meshcop/border_agent.cpp                 \
+    @top_builddir@/src/core/net/udp6.cpp                  \
+    @top_builddir@/src/core/net/ip6_address.cpp                  \
+    @top_builddir@/examples/platforms/posix/alarm.c                  \
+    @top_builddir@/examples/platforms/posix/random.c                  \
+    @top_builddir@/examples/platforms/posix/logging.c                  \
     platform_udp.c                                                \
     main.cpp                                                \
     api.cpp                                                 \

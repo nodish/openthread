@@ -75,6 +75,10 @@ ThreadError UdpSocket::Bind(const SockAddr &aSockAddr)
 #if PLATFORM_UDP
     return platform_udp_bind(this);
 #else
+    if (aSockAddr.mPort == 0)
+    {
+        mSockName.mPort = static_cast<Ip6::Udp *>(mSocket.mTransport)->GetEphemeralPort();
+    }
     return kThreadError_None;
 #endif
 }

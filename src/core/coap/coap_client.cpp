@@ -55,7 +55,7 @@ ThreadError Client::Start(Ip6::Address aAddress)
 {
     Ip6::SockAddr addr;
     addr.mAddress = aAddress;
-    addr.mPort = static_cast<Ip6::Udp *>(mSocket.mTransport)->GetEphemeralPort();
+    addr.mPort = 0;
 
     return CoapBase::Start(addr);
 }
