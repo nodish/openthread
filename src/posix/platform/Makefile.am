@@ -66,6 +66,12 @@ nodist_libopenthread_posix_a_SOURCES      = \
 inc_%: ../../ncp/%
 	echo '#include "$<"' > $@
 
+if OPENTHREAD_ENABLE_PLATFORM_UDP
+libopenthread_posix_a_SOURCES            += \
+    udp.cpp                                 \
+    $(NULL)
+endif
+
 noinst_HEADERS                            = \
     flash.h                                 \
     frame_queue.hpp                         \
