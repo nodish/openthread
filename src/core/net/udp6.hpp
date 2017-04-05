@@ -193,6 +193,7 @@ private:
         mHandler(mContext, &aMessage, &aMessageInfo);
     }
 
+    bool IsToThread(const MessageInfo &aMessageInfo) const;
     Udp &GetUdp(void);
 };
 
@@ -316,6 +317,10 @@ public:
      *
      */
     otError UpdateChecksum(Message &aMessage, uint16_t aPseudoHeaderChecksum);
+
+#if OPENTHREAD_ENABLE_UDP_PROXY
+    otUdpSocket *GetUdpSockets(void) const { return mSockets; }
+#endif
 
 #if OPENTHREAD_ENABLE_UDP_PROXY
     /**

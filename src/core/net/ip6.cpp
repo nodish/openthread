@@ -644,6 +644,7 @@ otError Ip6::ProcessReceiveCallback(const Message &    aMessage,
 
                 break;
 
+#if OPENTHREAD_ENABLE_PLATFORM_UDP == 0
             case kCoapUdpPort:
 
                 // do not pass TMF messages
@@ -653,8 +654,13 @@ otError Ip6::ProcessReceiveCallback(const Message &    aMessage,
                 }
 
                 break;
+#endif // OPENTHREAD_ENABLE_PLATFORM_UDP
 
             default:
+                if (udp.GetDestinationPort() == 1000)
+                {
+                    ExitNow(error = OT_ERROR_NO_ROUTE);
+                }
                 break;
             }
 
