@@ -9,6 +9,8 @@
 extern "C" {
 #endif
 
+//void otSetKek(otInstance *aInstance, uint8_t *aKek);
+
 void otUdpHandleMessage(otInstance *aInstance, otMessage *aMessage, otMessageInfo *aMessageInfo);
 
 otMessage *otMessageNew(otInstance *aInstance, uint16_t aReserved);
@@ -21,6 +23,7 @@ const char* otGetMeshLocal16();
 const char* otGetMeshLocal64();
 
 void ncp_ip6_send(otMessage *aMessage);
+
 
 #ifdef __cplusplus
 }  // extern "C"

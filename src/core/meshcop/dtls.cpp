@@ -360,8 +360,6 @@ int Dtls::HandleMbedtlsExportKeys(const unsigned char *aMasterSecret, const unsi
     sha256.Update(aKeyBlock, 2 * static_cast<uint16_t>(aMacLength + aKeyLength + aIvLength));
     sha256.Finish(kek);
 
-    //mInstance.GetKeyManager().SetKek(kek);
-
     otLogInfoMeshCoP(GetInstance(), "Generated KEK");
 
     (void)aMasterSecret;
