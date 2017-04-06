@@ -116,6 +116,11 @@ void SecureServer::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
 
     if (!mDtls.IsStarted())
     {
+        Ip6::SockAddr sockAddr;
+        sockAddr.mAddress = aMessageInfo.GetPeerAddr();
+        sockAddr.mPort = aMessageInfo.GetPeerPort();
+        mSocket.Connect(sockAddr);
+
         mPeerAddress.SetPeerAddr(aMessageInfo.GetPeerAddr());
         mPeerAddress.SetPeerPort(aMessageInfo.GetPeerPort());
         if (!aMessageInfo.GetSockAddr().IsMulticast())
@@ -123,8 +128,8 @@ void SecureServer::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
             mPeerAddress.SetSockAddr(aMessageInfo.GetSockAddr());
         }
         mPeerAddress.SetSockPort(aMessageInfo.GetSockPort());
-
         mDtls.Start(false, HandleDtlsConnected, HandleDtlsReceive, HandleDtlsSend, this);
+
     }
     else
     {
@@ -198,10 +203,10 @@ ThreadError SecureServer::HandleDtlsSend(const uint8_t *aBuf, uint16_t aLength, 
     {
         VerifyOrExit((mTransmitMessage = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
         mTransmitMessage->SetSubType(aMessageSubType);
-#ifdef OPENTHREAD_ENABLE_BORDER_AGENT
-        mTransmitMessage->SetLinkSecurityEnabled(true);
-#else
+#ifdef OPENTHREAD_ENABLE_JOINER
         mTransmitMessage->SetLinkSecurityEnabled(false);
+#else
+        mTransmitMessage->SetLinkSecurityEnabled(true);
 #endif
     }
 

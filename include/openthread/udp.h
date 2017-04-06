@@ -100,6 +100,7 @@ otMessage *otUdpNewMessage(otInstance *aInstance, bool aLinkSecurityEnabled);
  * @sa otUdpNewMessage
  * @sa otUdpClose
  * @sa otUdpBind
+ * @sa otUdpConnect
  * @sa otUdpSend
  *
  */
@@ -115,6 +116,7 @@ ThreadError otUdpOpen(otInstance *aInstance, otUdpSocket *aSocket, otUdpReceive 
  * @sa otUdpNewMessage
  * @sa otUdpOpen
  * @sa otUdpBind
+ * @sa otUdpConnect
  * @sa otUdpSend
  *
  */
@@ -130,11 +132,29 @@ ThreadError otUdpClose(otUdpSocket *aSocket);
  *
  * @sa otUdpNewMessage
  * @sa otUdpOpen
+ * @sa otUdpConnect
  * @sa otUdpClose
  * @sa otUdpSend
  *
  */
 ThreadError otUdpBind(otUdpSocket *aSocket, otSockAddr *aSockName);
+
+/**
+ * Connect a UDP/IPv6 socket.
+ *
+ * @param[in]  aSocket    A pointer to a UDP socket structure.
+ * @param[in]  aSockName  A pointer to an IPv6 socket address structure.
+ *
+ * @retval kThreadErrorNone  Connect operation was successful.
+ *
+ * @sa otUdpNewMessage
+ * @sa otUdpOpen
+ * @sa otUdpBind
+ * @sa otUdpClose
+ * @sa otUdpSend
+ *
+ */
+ThreadError otUdpConnect(otUdpSocket *aSocket, otSockAddr *aSockName);
 
 /**
  * Send a UDP/IPv6 message.
@@ -147,6 +167,7 @@ ThreadError otUdpBind(otUdpSocket *aSocket, otSockAddr *aSockName);
  * @sa otUdpOpen
  * @sa otUdpClose
  * @sa otUdpBind
+ * @sa otUdpConnect
  * @sa otUdpSend
  *
  */

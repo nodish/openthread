@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -50,21 +50,21 @@ extern "C" {
  */
 
 /**
- * This function enables the Thread Commissioner role.
+ * This function enables the Thread Border Agent role.
  *
  * @param[in]  aInstance         A pointer to an OpenThread instance.
  *
- * @retval kThreadError_None     Successfully started the Commissioner role.
+ * @retval kThreadError_None     Successfully started the Border Agent role.
  *
  */
 OTAPI ThreadError OTCALL otBorderAgentStart(otInstance *aInstance);
 
 /**
- * This function disables the Thread Commissioner role.
+ * This function disables the Thread Border Agent role.
  *
  * @param[in]  aInstance         A pointer to an OpenThread instance.
  *
- * @retval kThreadError_None     Successfully started the Commissioner role.
+ * @retval kThreadError_None     Successfully started the Border Agent role.
  *
  */
 OTAPI ThreadError OTCALL otBorderAgentStop(otInstance *aInstance);
@@ -79,4 +79,4 @@ OTAPI ThreadError OTCALL otBorderAgentStop(otInstance *aInstance);
 }  // end of extern "C"
 #endif
 
-#endif  // OPENTHREAD_COMMISSIONER_H_
+#endif  // OPENTHREAD_BORDER_AGENT_H_

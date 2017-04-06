@@ -83,6 +83,12 @@ ThreadError UdpSocket::Bind(const SockAddr &aSockAddr)
 #endif
 }
 
+ThreadError UdpSocket::Connect(const SockAddr &aSockAddr)
+{
+    mPeerName = aSockAddr;
+    return kThreadError_None;
+}
+
 ThreadError UdpSocket::Close(void)
 {
     ThreadError error = kThreadError_None;

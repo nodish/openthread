@@ -73,7 +73,7 @@ Dtls::Dtls(otInstance &aInstance):
     mProvisioningUrl.Init();
 }
 
-otInstance *Dtls::GetInstance()
+otInstance *Dtls::GetInstance(void)
 {
     return &mInstance;
 }

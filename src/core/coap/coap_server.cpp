@@ -174,7 +174,7 @@ void Server::ProcessReceivedMessage(Message &aMessage, const Ip6::MessageInfo &a
         break;
     }
 
-    coapOption = header.GetCurrentOption();
+    coapOption = header.GetFirstOption();
 
     while (coapOption != NULL)
     {
@@ -192,15 +192,8 @@ void Server::ProcessReceivedMessage(Message &aMessage, const Ip6::MessageInfo &a
             curUriPath += coapOption->mLength;
             break;
 
-        case kCoapOptionAccept:
-        case kCoapOptionContentFormat:
-            break;
-
-        case kCoapOptionUriPort:
-            break;
-
         default:
-            ExitNow();
+            break;
         }
 
         coapOption = header.GetNextOption();

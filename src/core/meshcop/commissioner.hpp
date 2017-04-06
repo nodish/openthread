@@ -72,7 +72,7 @@ public:
      * @returns The pointer to the parent otInstance structure.
      *
      */
-    otInstance *GetInstance();
+    otInstance *GetInstance(void);
 
     /**
      * This method starts the Commissioner service.
@@ -113,12 +113,13 @@ public:
      * This method removes a Joiner entry.
      *
      * @param[in]  aExtAddress        A pointer to the Joiner's extended address or NULL for any Joiner.
+     * @param[in]  aDelay             The delay to remove Joiner (in seconds).
      *
      * @retval kThreadError_None      Successfully added the Joiner.
      * @retval kThreadError_NotFound  The Joiner specified by @p aExtAddress was not found.
      *
      */
-    ThreadError RemoveJoiner(const Mac::ExtAddress *aExtAddress);
+    ThreadError RemoveJoiner(const Mac::ExtAddress *aExtAddress, uint32_t aDelay);
 
     /**
      * This method sets the Provisioning URL.
@@ -140,23 +141,16 @@ public:
     uint16_t GetSessionId(void) const;
 
     /**
-    * Commissioner State.
-    *
-    */
-    enum
-    {
-        kStateDisabled = 0,
-        kStatePetition = 1,
-        kStateActive = 2,
-    };
-
-    /**
-     * This method returns the Commissioner State.
+     * This function returns the Commissioner State.
      *
-     * @returns The Commissioner State.
+     * @param[in]  aInstance  A pointer to an OpenThread instance.
+     *
+     * @retval kCommissionerStateDisabled    Commissioner disabled.
+     * @retval kCommissionerStatePetition    Becoming the commissioner.
+     * @retval kCommissionerStateActive      Commissioner enabled.
      *
      */
-    uint8_t GetState(void) const;
+    otCommissionerState GetState(void) const;
 
     /**
      * This method sends MGMT_COMMISSIONER_GET.
@@ -212,6 +206,7 @@ private:
         kPetitionRetryCount   = 2,      ///< COMM_PET_RETRY_COUNT
         kPetitionRetryDelay   = 1,      ///< COMM_PET_RETRY_DELAY (seconds)
         kKeepAliveTimeout     = 50,     ///< TIMEOUT_COMM_PET (seconds)
+        kRemoveJoinerDelay    = 20,     ///< Delay to remove successfully joined joiner
     };
 
     static void HandleTimer(void *aContext);
@@ -260,7 +255,7 @@ private:
     ThreadError SendPetition(void);
     ThreadError SendKeepAlive(void);
 
-    uint8_t mState;
+    otCommissionerState mState;
 
     struct Joiner
     {

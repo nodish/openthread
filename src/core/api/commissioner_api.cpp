@@ -62,7 +62,7 @@ ThreadError otCommissionerAddJoiner(otInstance *aInstance, const otExtAddress *a
 
 ThreadError otCommissionerRemoveJoiner(otInstance *aInstance, const otExtAddress *aExtAddress)
 {
-    return aInstance->mThreadNetif.GetCommissioner().RemoveJoiner(static_cast<const Mac::ExtAddress *>(aExtAddress));
+    return aInstance->mThreadNetif.GetCommissioner().RemoveJoiner(static_cast<const Mac::ExtAddress *>(aExtAddress), 0);
 }
 
 ThreadError otCommissionerSetProvisioningUrl(otInstance *aInstance, const char *aProvisioningUrl)
@@ -108,6 +108,11 @@ ThreadError otCommissionerSendMgmtSet(otInstance *aInstance, const otCommissioni
 uint16_t otCommissionerGetSessionId(otInstance *aInstance)
 {
     return aInstance->mThreadNetif.GetCommissioner().GetSessionId();
+}
+
+otCommissionerState otCommissionerGetState(otInstance *aInstance)
+{
+    return aInstance->mThreadNetif.GetCommissioner().GetState();
 }
 
 ThreadError otCommissionerGeneratePSKc(otInstance *aInstance, const char *aPassPhrase, const char *aNetworkName,

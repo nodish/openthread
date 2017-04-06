@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -92,7 +92,6 @@ ThreadError BorderAgent::Stop(void)
     otLogFuncEntry();
 
     SuccessOrExit(error = mInstance.GetSecureCoapServer().Stop());
-
 exit:
     otLogFuncExitErr(error);
     return error;
@@ -370,7 +369,6 @@ void BorderAgent::HandleRelayTransmit(Coap::Header &aHeader, Message &aMessage,
     VerifyOrExit((message = mInstance.GetCoapServer().NewMeshCoPMessage(header)) != NULL, error = kThreadError_NoBufs);
     SuccessOrExit(error = CopyPayload(aMessage, message));
 
-    // TODO why sock and peer use the same addr
     messageInfo.SetSockAddr(mInstance.GetMeshLocal16());
     messageInfo.SetPeerAddr(mInstance.GetMeshLocal16());
     messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(joinerRloc.GetJoinerRouterLocator());
