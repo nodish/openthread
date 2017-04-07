@@ -347,7 +347,7 @@ void Mac::HandleEnergyScanSampleRssi(void)
 {
     int8_t rssi;
 
-    VerifyOrExit(mState == kStateEnergyScan, ;);
+    VerifyOrExit(mState == kStateEnergyScan);
 
     rssi = otPlatRadioGetRssi(GetInstance());
 
@@ -858,14 +858,17 @@ void Mac::TransmitDoneTask(RadioPacket *aPacket, bool aRxPending, ThreadError aE
         mCounters.mTxErrAbort++;
     }
 
+    if (aError == kThreadError_ChannelAccessFailure)
+    {
+        mCounters.mTxErrCca++;
+    }
+
     if (!RadioSupportsCsmaBackoff() &&
         aError == kThreadError_ChannelAccessFailure &&
         mCsmaAttempts < kMaxCSMABackoffs)
     {
         mCsmaAttempts++;
         StartCsmaBackoff();
-
-        mCounters.mTxErrCca++;
 
         ExitNow();
     }
@@ -1280,7 +1283,7 @@ void Mac::ReceiveDoneTask(Frame *aFrame, ThreadError aError)
 
     mCounters.mRxTotal++;
 
-    VerifyOrExit(error == kThreadError_None, ;);
+    VerifyOrExit(error == kThreadError_None);
     VerifyOrExit(aFrame != NULL, error = kThreadError_NoFrameReceived);
 
     aFrame->SetSecurityValid(false);

@@ -138,7 +138,7 @@ void SecureClient::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     otLogFuncEntry();
 
     VerifyOrExit((mPeerAddress.GetPeerAddr() == aMessageInfo.GetPeerAddr()) &&
-                 (mPeerAddress.GetPeerPort() == aMessageInfo.GetPeerPort()), ;);
+                 (mPeerAddress.GetPeerPort() == aMessageInfo.GetPeerPort()));
 
     mDtls.Receive(aMessage, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
 

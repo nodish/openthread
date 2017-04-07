@@ -54,6 +54,24 @@
 #include <thread/thread_tlvs.hpp>
 #include <thread/thread_uris.hpp>
 
+static int sprint_hex(char *out, uint8_t* buf, uint16_t len)
+{
+    static const char hex_str[]= "0123456789abcdef";
+    unsigned int  i;
+
+    out[len * 2] = '\0';
+
+    if (!len) return 0;
+
+    for (i = 0; i < len; i++)
+    {
+        out[i * 2 + 0] = hex_str[(buf[i] >> 4) & 0x0F];
+        out[i * 2 + 1] = hex_str[(buf[i]     ) & 0x0F];
+    }
+
+    return len * 2;
+}
+
 namespace Thread {
 namespace MeshCoP {
 
@@ -101,6 +119,7 @@ ThreadError CopyPayload(Message &srcMessage, Message *destMessage)
 {
     ThreadError error = kThreadError_None;
 
+    printf("Copying..");
     while (srcMessage.GetOffset() < srcMessage.GetLength())
     {
         uint16_t length = srcMessage.GetLength() - srcMessage.GetOffset();
@@ -112,10 +131,14 @@ ThreadError CopyPayload(Message &srcMessage, Message *destMessage)
         }
 
         srcMessage.Read(srcMessage.GetOffset(), length, tmp);
+        char hex[33];
+        sprint_hex(hex, tmp, length);
+        printf("%s", hex);
         srcMessage.MoveOffset(length);
 
         SuccessOrExit(error = destMessage->Append(tmp, length));
     }
+    printf("\n");
 exit:
     return error;
 }
@@ -140,7 +163,7 @@ void BorderAgent::HandleCommissionerPetition(Coap::Header &aHeader, Message &aMe
     otLogFuncEntry();
     otLogCritMeshCoP(GetInstance(), "received petition from commissioner");
 
-    mInstance.GetSecureCoapServer().SendEmptyAck(aHeader, aMessageInfo);
+    mInstance.GetSecureCoapServer().SendAck(aHeader, aMessageInfo);
 
     mCommissionerAddr = aMessageInfo.GetPeerAddr();
     mCommissionerUdpPort = aMessageInfo.GetPeerPort();
@@ -206,7 +229,7 @@ void BorderAgent::HandleLeaderPetitionResponse(Coap::Header &aHeader, Message &a
     printf("received petition response from leader\n");
     otLogCritMeshCoP(GetInstance(), "received petition response from leader");
 
-    responseHeader.Init(kCoapTypeAcknowledgment, kCoapResponseChanged);
+    responseHeader.Init(kCoapTypeConfirmable, kCoapResponseChanged);
     responseHeader.SetToken(aHeader.GetToken(), aHeader.GetTokenLength());
     responseHeader.AppendUriPathOptions(OPENTHREAD_URI_COMMISSIONER_PETITION);
     responseHeader.SetPayloadMarker();
@@ -248,8 +271,11 @@ void BorderAgent::HandleCommisionerKeepAlive(Coap::Header &aHeader, Message &aMe
     Message *message = NULL;
     Ip6::MessageInfo messageInfo;
 
+    printf("received keep alive from commissioner\r\n");
     otLogFuncEntry();
     otLogCritMeshCoP(GetInstance(), "received keep alive from commissioner");
+
+    mInstance.GetSecureCoapServer().SendAck(aHeader, aMessageInfo);
 
     header.Init(kCoapTypeConfirmable, kCoapRequestPost);
     header.SetToken(aHeader.GetToken(), aHeader.GetTokenLength());
@@ -312,7 +338,7 @@ void BorderAgent::HandleLeaderKeepAliveResponse(Coap::Header &aHeader, Message &
     VerifyOrExit(aResult == kThreadError_None && aHeader.GetCode() == kCoapResponseChanged, ;);
     otLogCritMeshCoP(GetInstance(), "received keep alive response from leader");
 
-    responseHeader.Init(kCoapTypeAcknowledgment, kCoapResponseChanged);
+    responseHeader.Init(kCoapTypeConfirmable, kCoapResponseChanged);
     responseHeader.SetToken(aHeader.GetToken(), aHeader.GetTokenLength());
     responseHeader.AppendUriPathOptions(OPENTHREAD_URI_COMMISSIONER_KEEP_ALIVE);
     responseHeader.SetPayloadMarker();
@@ -410,6 +436,8 @@ void BorderAgent::HandleMgmtCommissionerSet(Coap::Header &aHeader, Message &aMes
     otLogCritMeshCoP(GetInstance(), "received MGMT_COMMISSIONER_SET request from Commissioner");
     otLogCritMeshCoP(GetInstance(), "send MGMT_COMMISSIONER_SET request to Leader");
 
+    mInstance.GetSecureCoapServer().SendAck(aHeader, aMessageInfo);
+
     header.Init(kCoapTypeConfirmable, kCoapRequestPost);
     header.SetToken(aHeader.GetToken(), aHeader.GetTokenLength());
     header.AppendUriPathOptions(OPENTHREAD_URI_COMMISSIONER_SET);
@@ -453,7 +481,7 @@ exit:
 void BorderAgent::HandleLeaderMgmtCommissionerSetResponse(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                                           const otMessageInfo *aMessageInfo, ThreadError aResult)
 {
-    static_cast<BorderAgent *>(aContext)->HandleLeaderPetitionResponse(
+    static_cast<BorderAgent *>(aContext)->HandleLeaderMgmtCommissionerSetResponse(
         *static_cast<Coap::Header *>(aHeader), *static_cast<Message *>(aMessage),
         *static_cast<const Ip6::MessageInfo *>(aMessageInfo), aResult);
 
@@ -473,7 +501,7 @@ void BorderAgent::HandleLeaderMgmtCommissionerSetResponse(Coap::Header &aHeader,
     printf("received commissioner set response from leader\n");
     otLogCritMeshCoP(GetInstance(), "received MGMT_COMMISSIONER_SET response from leader");
 
-    responseHeader.Init(kCoapTypeAcknowledgment, kCoapResponseChanged);
+    responseHeader.Init(kCoapTypeConfirmable, kCoapResponseChanged);
     responseHeader.SetToken(aHeader.GetToken(), aHeader.GetTokenLength());
     responseHeader.AppendUriPathOptions(OPENTHREAD_URI_COMMISSIONER_SET);
     responseHeader.SetPayloadMarker();
@@ -514,7 +542,7 @@ void BorderAgent::HandleRelayReceive(Coap::Header &aHeader, Message &aMessage,
     Message *message = NULL;
     Ip6::MessageInfo messageInfo;
 
-    printf("%s received joiner packet\n", __func__);
+    printf("%s received joiner packet!!!!!!!!!!!!!!!!!!!!!!\n", __func__);
     otLogFuncEntry();
     otLogCritMeshCoP(GetInstance(), "received Relay Recevie from Joiner Router");
 

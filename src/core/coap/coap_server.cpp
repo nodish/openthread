@@ -109,7 +109,7 @@ Message *Server::NewMeshCoPMessage(uint16_t aReserved)
 {
     Message *message = NULL;
 
-    VerifyOrExit((message = NewMessage(aReserved)) != NULL, ;);
+    VerifyOrExit((message = NewMessage(aReserved)) != NULL);
 
     message->SetPriority(kMeshCoPMessagePriority);
 
@@ -186,7 +186,7 @@ void Server::ProcessReceivedMessage(Message &aMessage, const Ip6::MessageInfo &a
                 *curUriPath++ = '/';
             }
 
-            VerifyOrExit(coapOption->mLength < sizeof(uriPath) - static_cast<size_t>(curUriPath + 1 - uriPath), ;);
+            VerifyOrExit(coapOption->mLength < sizeof(uriPath) - static_cast<size_t>(curUriPath + 1 - uriPath));
 
             memcpy(curUriPath, coapOption->mValue, coapOption->mLength);
             curUriPath += coapOption->mLength;
@@ -299,7 +299,7 @@ void ResponsesQueue::EnqueueResponse(Message &aMessage, const Ip6::MessageInfo &
 
     SuccessOrExit(header.FromMessage(aMessage, 0));
     VerifyOrExit(header.GetType() == kCoapTypeAcknowledgment ||
-                 header.GetType() == kCoapTypeReset,);
+                 header.GetType() == kCoapTypeReset);
 
     switch (GetMatchedResponseCopy(aMessage, aMessageInfo, &copy))
     {
@@ -324,7 +324,7 @@ void ResponsesQueue::EnqueueResponse(Message &aMessage, const Ip6::MessageInfo &
     }
 
     copy = aMessage.Clone();
-    VerifyOrExit(copy != NULL,);
+    VerifyOrExit(copy != NULL);
 
     enqueuedResponseHeader.AppendTo(*copy);
     mQueue.Enqueue(*copy);
@@ -342,7 +342,7 @@ void ResponsesQueue::DequeueOldestResponse(void)
 {
     Message *message;
 
-    VerifyOrExit((message = mQueue.GetHead()) != NULL,);
+    VerifyOrExit((message = mQueue.GetHead()) != NULL);
     DequeueResponse(*message);
 
 exit:

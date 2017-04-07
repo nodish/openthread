@@ -511,6 +511,22 @@ exit:
     return error;
 }
 
+ThreadError otThreadGetParentLastRssi(otInstance *aInstance, int8_t *aLastRssi)
+{
+    ThreadError error = kThreadError_None;
+    Router *parent;
+
+    VerifyOrExit(aLastRssi != NULL, error = kThreadError_InvalidArgs);
+
+    parent = aInstance->mThreadNetif.GetMle().GetParent();
+    *aLastRssi = parent->mLinkInfo.GetLastRss();
+
+    VerifyOrExit(*aLastRssi != LinkQualityInfo::kUnknownRss, error = kThreadError_Failed);
+
+exit:
+    return error;
+}
+
 const char *otGetVersionString(void)
 {
     /**
@@ -636,11 +652,10 @@ bool otThreadIsSingleton(otInstance *aInstance)
     return aInstance->mThreadNetif.GetMle().IsSingleton();
 }
 
-ThreadError otThreadDiscover(otInstance *aInstance, uint32_t aScanChannels, uint16_t aScanDuration, uint16_t aPanId,
+ThreadError otThreadDiscover(otInstance *aInstance, uint32_t aScanChannels, uint16_t aPanId,
                              otHandleActiveScanResult aCallback, void *aCallbackContext)
 {
-    return aInstance->mThreadNetif.GetMle().Discover(aScanChannels, aScanDuration, aPanId, false,
-                                                     aCallback, aCallbackContext);
+    return aInstance->mThreadNetif.GetMle().Discover(aScanChannels, aPanId, false, aCallback, aCallbackContext);
 }
 
 bool otThreadIsDiscoverInProgress(otInstance *aInstance)

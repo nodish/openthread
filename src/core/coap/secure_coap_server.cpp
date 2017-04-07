@@ -135,7 +135,7 @@ void SecureServer::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     {
         // Once DTLS session is started, communicate only with a peer.
         VerifyOrExit((mPeerAddress.GetPeerAddr() == aMessageInfo.GetPeerAddr()) &&
-                     (mPeerAddress.GetPeerPort() == aMessageInfo.GetPeerPort()), ;);
+                     (mPeerAddress.GetPeerPort() == aMessageInfo.GetPeerPort()));
     }
 
     mDtls.SetClientId(mPeerAddress.GetPeerAddr().mFields.m8,

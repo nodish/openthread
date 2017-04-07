@@ -26,23 +26,49 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Configure the Customer Configuration Area.
+/**
+ * @file
+ *   This file includes macros for validating runtime conditions.
  */
 
-// enable bootloader backdoor
-#define SET_CCFG_BL_CONFIG_BOOTLOADER_ENABLE            0xC5       // Enable ROM boot loader
+#ifndef CODE_UTILS_H
+#define CODE_UTILS_H
 
-#define SET_CCFG_BL_CONFIG_BL_LEVEL                     0x0        // Active low to open boot loader backdoor
-
-#define SET_CCFG_BL_CONFIG_BL_PIN_NUMBER                0x0D       // DIO13 (BTN-1 button) on CC2650 LaunchPad Board for boot loader backdoor
-// #define SET_CCFG_BL_CONFIG_BL_PIN_NUMBER             0x0B       // DIO11 (SELECT button) on CC2650DK (QFN48/7*7) for boot loader backdoor
-
-#define SET_CCFG_BL_CONFIG_BL_ENABLE                    0xC5       // Enabled boot loader backdoor
-
-#define SET_CCFG_IMAGE_VALID_CONF_IMAGE_VALID           0x00000000 // Flash image is valid
-
-/*
- * Include the default ccfg struct and configuration code.
+/**
+ *  This checks for the specified condition, which is expected to
+ *  commonly be true, and branches to the local label 'exit' if the
+ *  condition is false.
+ *
+ *  @param[in]  aCondition  A Boolean expression to be evaluated.
+ *
  */
-#include <startup_files/ccfg.c>
+#define otEXPECT(aCondition)                    \
+    do                                          \
+    {                                           \
+        if (!(aCondition))                      \
+        {                                       \
+            goto exit;                          \
+        }                                       \
+    } while (0)
+
+/**
+ *  This checks for the specified condition, which is expected to
+ *  commonly be true, and both executes @p anAction and branches to
+ *  the local label 'exit' if the condition is false.
+ *
+ *  @param[in]  aCondition  A Boolean expression to be evaluated.
+ *  @param[in]  aAction     An expression or block to execute when the
+ *                          assertion fails.
+ *
+ */
+#define otEXPECT_ACTION(aCondition, aAction)    \
+    do                                          \
+    {                                           \
+        if (!(aCondition))                      \
+        {                                       \
+            aAction;                            \
+            goto exit;                          \
+        }                                       \
+    } while (0)
+
+#endif  // CODE_UTILS_H

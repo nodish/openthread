@@ -114,7 +114,6 @@ OTAPI bool OTCALL otThreadIsSingleton(otInstance *aInstance);
  *
  * @param[in]  aInstance         A pointer to an OpenThread instance.
  * @param[in]  aScanChannels     A bit vector indicating which channels to scan (e.g. OT_CHANNEL_11_MASK).
- * @param[in]  aScanDuration     The time in milliseconds to spend scanning each channel.
  * @param[in]  aPanId            The PAN ID filter (set to Broadcast PAN to disable filter).
  * @param[in]  aCallback         A pointer to a function called on receiving an MLE Discovery Response or scan completes.
  * @param[in]  aCallbackContext  A pointer to application-specific context.
@@ -123,8 +122,7 @@ OTAPI bool OTCALL otThreadIsSingleton(otInstance *aInstance);
  * @retval kThreadError_Busy  Already performing an Thread Discovery.
  *
  */
-OTAPI ThreadError OTCALL otThreadDiscover(otInstance *aInstance, uint32_t aScanChannels, uint16_t aScanDuration,
-                                          uint16_t aPanid,
+OTAPI ThreadError OTCALL otThreadDiscover(otInstance *aInstance, uint32_t aScanChannels, uint16_t aPanid,
                                           otHandleActiveScanResult aCallback, void *aCallbackContext);
 
 /**
@@ -834,10 +832,22 @@ OTAPI ThreadError OTCALL otThreadGetParentInfo(otInstance *aInstance, otRouterIn
  * The function retrieves the average RSSI for the Thread Parent.
  *
  * @param[in]   aInstance    A pointer to an OpenThread instance.
- * @param[out]  aParentInfo  A pointer to where the parent rssi should be placed.
+ * @param[out]  aParentRssi  A pointer to where the parent rssi should be placed.
  *
  */
 OTAPI ThreadError OTCALL otThreadGetParentAverageRssi(otInstance *aInstance, int8_t *aParentRssi);
+
+/**
+ * The function retrieves the RSSI of the last packet from the Thread Parent.
+ *
+ * @param[in]   aInstance    A pointer to an OpenThread instance.
+ * @param[out]  aLastRssi    A pointer to where the last rssi should be placed.
+ *
+ * @retval kThreadError_None         Successfully retrieved the RSSI data.
+ * @retval kThreadError_Failed       Unable to get RSSI data.
+ * @retval kThreadError_InvalidArgs  @p aLastRssi is NULL.
+ */
+OTAPI ThreadError OTCALL otThreadGetParentLastRssi(otInstance *aInstance, int8_t *aLastRssi);
 
 /**
  * This function pointer is called when Network Diagnostic Get response is received.

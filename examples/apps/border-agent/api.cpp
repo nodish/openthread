@@ -103,6 +103,7 @@ const char* shell(const char* cmd)
 {
     static char buf[128] = {0};
 
+    //printf("%s cmd=%s\n", __func__, cmd);
     FILE* fp = popen(cmd, "r");
     fgets(buf, sizeof(buf) - 1, fp);
     pclose(fp);

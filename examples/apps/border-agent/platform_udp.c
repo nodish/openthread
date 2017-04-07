@@ -202,7 +202,7 @@ void udp_process(otInstance *aInstance)
     fd_set socketFdSet = sSocketFdSet;
     struct timeval tv = {0, 0};
     while (select(sMaxFd + 1, &socketFdSet, NULL, NULL, &tv) > 0) {
-        printf("sMaxFd is %d\n", sMaxFd);
+        //printf("sMaxFd is %d\n", sMaxFd);
         for (int i = 0; i < sMaxFd + 1; i++) {
             if (FD_ISSET(i, &socketFdSet)) {
                 printf("Processing from sock %d\n", i);

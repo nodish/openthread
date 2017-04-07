@@ -400,6 +400,11 @@ public:
     ThreadError SendEmptyAck(const Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo);
 
     /**
+     *
+     */
+    ThreadError SendEmptyMessage(const Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo);
+
+    /**
      * This method sets CoAP server's port number.
      *
      * @param[in]  aPort  A port number to set.
