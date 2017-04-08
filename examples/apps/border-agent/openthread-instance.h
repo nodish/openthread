@@ -11,8 +11,8 @@
 namespace Thread {
 namespace Coap {
 class Server;
-class SecureServer;
 class Client;
+class SecureServer;
 };
 };
 
@@ -28,18 +28,12 @@ public:
   Coap::Client *mCoapClient;
   Coap::SecureServer *mSecureCoapServer;
   Ip6::Address mMeshLocal16;
-  Ip6::Address mMeshLocal64;
   MessagePool mMessagePool;
 
 
   Ip6::Address &GetMeshLocal16()
   {
       return mMeshLocal16;
-  }
-
-  Ip6::Address &GetMeshLocal64()
-  {
-      return mMeshLocal64;
   }
 
   Coap::Client &GetCoapClient()
@@ -75,18 +69,15 @@ public:
   {
       static uint8_t aThreadPSKc[] =
       {
-/*
-          0xc3, 0xf5, 0x93, 0x68, 0x44, 0x5a, 0x1b, 0x61,
-          0x06, 0xbe, 0x42, 0x0a, 0x70, 0x6d, 0x4c, 0xc9,
-*/
+          /* PSKC for Network "OpenThread" and extpanid "dead00beef00cafe" */
           0xb7, 0x83, 0x81, 0x27, 0x89, 0x91, 0x1e, 0xb4,
           0xea, 0x76, 0x59, 0x6c, 0x9c, 0xed, 0x2a, 0x69
       };
       return aThreadPSKc;
   }
-  otInstance(Ip6::Address &aMeshLocal16, Ip6::Address &aMeshLocal64):
+
+  otInstance(Ip6::Address &aMeshLocal16):
     mMeshLocal16(aMeshLocal16),
-    mMeshLocal64(aMeshLocal64),
     mMessagePool(this) {}
 
 } otInstance;

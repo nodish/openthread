@@ -104,9 +104,6 @@ exit:
 ThreadError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo)
 {
     Address &meshLocal16 = otInstanceFromUdp(static_cast<Udp *>(mTransport))->GetMeshLocal16();
-    //char ip[100];
-    //printf("Sending to ip6 %s\n", aMessageInfo.GetPeerAddr().ToString(ip, 100));
-    //printf("Sending from ip6 %s\n", aMessageInfo.GetSockAddr().ToString(ip, 100));
 
     if (memcmp(&meshLocal16, &aMessageInfo.GetPeerAddr(), 8))
     {
@@ -273,24 +270,6 @@ uint16_t ComputePseudoheaderChecksum(const Address &src, const Address &dst, uin
     return checksum;
 }
 
-static int sprint_hex(char *out, uint8_t* buf, uint16_t len)
-{
-    static const char hex_str[]= "0123456789abcdef";
-    unsigned int  i;
-
-    out[len * 2] = '\0';
-
-    if (!len) return 0;
-
-    for (i = 0; i < len; i++)
-    {
-        out[i * 2 + 0] = hex_str[(buf[i] >> 4) & 0x0F];
-        out[i * 2 + 1] = hex_str[(buf[i]     ) & 0x0F];
-    }
-
-    return len * 2;
-}
-
 ThreadError Udp::SendDatagram(Message &aMessage, MessageInfo &aMessageInfo, IpProto aIpProto)
 {
     ThreadError error = kThreadError_None;
@@ -330,21 +309,11 @@ ThreadError Udp::SendDatagram(Message &aMessage, MessageInfo &aMessageInfo, IpPr
 
     SuccessOrExit(error = UpdateChecksum(aMessage, checksum));
 
-    {
-        char hex[3000];
-        uint8_t buf[1300];
-        uint16_t len = aMessage.GetLength();
-        aMessage.Read(0, len, buf);
-        sprint_hex(hex, buf, len);
-        printf("%s: Sending to thread. msg=%p len=%u hex=%s\n", __func__, &aMessage, len, hex);
-    }
-
 exit:
 
     if (error == kThreadError_None)
     {
         aMessage.SetInterfaceId(aMessageInfo.GetInterfaceId());
-        printf("%s sport=%u\n", __func__, aMessageInfo.GetPeerPort());
         ncp_ip6_send(&aMessage);
     }
 
