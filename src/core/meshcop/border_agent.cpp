@@ -161,7 +161,7 @@ void BorderAgent::HandleCommissionerPetition(Coap::Header &aHeader, Message &aMe
 
     printf("received petition from commissioner\r\n");
     otLogFuncEntry();
-    otLogCritMeshCoP(GetInstance(), "received petition from commissioner");
+    otLogInfoMeshCoP(GetInstance(), "received petition from commissioner");
 
     mInstance.GetSecureCoapServer().SendAck(aHeader, aMessageInfo);
 
@@ -182,7 +182,7 @@ void BorderAgent::HandleCommissionerPetition(Coap::Header &aHeader, Message &aMe
     messageInfo.SetPeerPort(kCoapUdpPort);
     SendLeaderPetition(*message, messageInfo);
 
-    otLogCritMeshCoP(GetInstance(), "send petition to leader");
+    otLogInfoMeshCoP(GetInstance(), "send petition to leader");
 
 exit:
     if (error != kThreadError_None && message != NULL)
@@ -200,7 +200,7 @@ ThreadError BorderAgent::SendLeaderPetition(Message &aMessage, const Ip6::Messag
     SuccessOrExit(error = mInstance.GetCoapClient().SendMessage(aMessage, aMessageInfo,
                                                              BorderAgent::HandleLeaderPetitionResponse, this));
 
-    otLogCritMeshCoP(GetInstance(), "sent petition to leader");
+    otLogInfoMeshCoP(GetInstance(), "sent petition to leader");
 
 exit:
     otLogFuncExitErr(error);
@@ -227,7 +227,7 @@ void BorderAgent::HandleLeaderPetitionResponse(Coap::Header &aHeader, Message &a
     otLogFuncEntry();
     VerifyOrExit(aResult == kThreadError_None && aHeader.GetCode() == kCoapResponseChanged, ;);
     printf("received petition response from leader\n");
-    otLogCritMeshCoP(GetInstance(), "received petition response from leader");
+    otLogInfoMeshCoP(GetInstance(), "received petition response from leader");
 
     responseHeader.Init(kCoapTypeConfirmable, kCoapResponseChanged);
     responseHeader.SetToken(aHeader.GetToken(), aHeader.GetTokenLength());
@@ -244,7 +244,7 @@ void BorderAgent::HandleLeaderPetitionResponse(Coap::Header &aHeader, Message &a
 
     SuccessOrExit(error = mInstance.GetSecureCoapServer().SendMessage(*message, messageInfo));
 
-    otLogCritMeshCoP(GetInstance(), "sent Petition response to commissioner");
+    otLogInfoMeshCoP(GetInstance(), "sent Petition response to commissioner");
 
 exit:
     (void)aMessageInfo;
@@ -273,7 +273,7 @@ void BorderAgent::HandleCommisionerKeepAlive(Coap::Header &aHeader, Message &aMe
 
     printf("received keep alive from commissioner\r\n");
     otLogFuncEntry();
-    otLogCritMeshCoP(GetInstance(), "received keep alive from commissioner");
+    otLogInfoMeshCoP(GetInstance(), "received keep alive from commissioner");
 
     mInstance.GetSecureCoapServer().SendAck(aHeader, aMessageInfo);
 
@@ -290,7 +290,7 @@ void BorderAgent::HandleCommisionerKeepAlive(Coap::Header &aHeader, Message &aMe
     messageInfo.SetPeerPort(kCoapUdpPort);
     SendLeaderKeepAlive(*message, messageInfo);
 
-    otLogCritMeshCoP(GetInstance(), "send keep alive to leader");
+    otLogInfoMeshCoP(GetInstance(), "send keep alive to leader");
 
 exit:
     (void)aMessageInfo;
@@ -310,7 +310,7 @@ ThreadError BorderAgent::SendLeaderKeepAlive(Message &aMessage, const Ip6::Messa
     SuccessOrExit(error = mInstance.GetCoapClient().SendMessage(aMessage, aMessageInfo,
                                                              BorderAgent::HandleLeaderKeepAliveResponse, this));
 
-    otLogCritMeshCoP(GetInstance(), "sent keep alive to leader");
+    otLogInfoMeshCoP(GetInstance(), "sent keep alive to leader");
 
 exit:
     (void)aMessageInfo;
@@ -336,7 +336,7 @@ void BorderAgent::HandleLeaderKeepAliveResponse(Coap::Header &aHeader, Message &
 
     otLogFuncEntry();
     VerifyOrExit(aResult == kThreadError_None && aHeader.GetCode() == kCoapResponseChanged, ;);
-    otLogCritMeshCoP(GetInstance(), "received keep alive response from leader");
+    otLogInfoMeshCoP(GetInstance(), "received keep alive response from leader");
 
     responseHeader.Init(kCoapTypeConfirmable, kCoapResponseChanged);
     responseHeader.SetToken(aHeader.GetToken(), aHeader.GetTokenLength());
@@ -353,7 +353,7 @@ void BorderAgent::HandleLeaderKeepAliveResponse(Coap::Header &aHeader, Message &
 
     SuccessOrExit(error = mInstance.GetSecureCoapServer().SendMessage(*message, messageInfo));
 
-    otLogCritMeshCoP(GetInstance(), "sent keep alive response to commissioner");
+    otLogInfoMeshCoP(GetInstance(), "sent keep alive response to commissioner");
 
 exit:
     (void)aMessageInfo;
@@ -377,34 +377,40 @@ void BorderAgent::HandleRelayTransmit(Coap::Header &aHeader, Message &aMessage,
                                       const Ip6::MessageInfo &aMessageInfo)
 {
     ThreadError error = kThreadError_None;
-    Coap::Header header;
     Message *message = NULL;
     Ip6::MessageInfo messageInfo;
     JoinerRouterLocatorTlv joinerRloc;
 
     otLogFuncEntry();
-    otLogCritMeshCoP(GetInstance(), "received relay transmit from commissioner");
+    printf("received relay transmit from commissioner\n");
+    otLogInfoMeshCoP(GetInstance(), "received relay transmit from commissioner");
 
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kJoinerRouterLocator, sizeof(joinerRloc), joinerRloc));
     VerifyOrExit(joinerRloc.IsValid(), error = kThreadError_Parse);
 
-    (void) aHeader;
-    header.Init(kCoapTypeNonConfirmable, kCoapRequestPost);
-    header.AppendUriPathOptions(OPENTHREAD_URI_RELAY_TX);
-    header.SetPayloadMarker();
-    VerifyOrExit((message = mInstance.GetCoapServer().NewMeshCoPMessage(header)) != NULL, error = kThreadError_NoBufs);
-    SuccessOrExit(error = CopyPayload(aMessage, message));
+    VerifyOrExit((message = aMessage.Clone()) != NULL, error = kThreadError_NoBufs);
+    message->RemoveHeader(aMessage.GetOffset() - aHeader.GetLength());
+    message->SetOffset(0);
 
     messageInfo.SetSockAddr(mInstance.GetMeshLocal16());
     messageInfo.SetPeerAddr(mInstance.GetMeshLocal16());
     messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(joinerRloc.GetJoinerRouterLocator());
     messageInfo.SetPeerPort(kCoapUdpPort);
+    {
+        char hex[3000];
+        uint8_t buf[1300];
+        uint16_t len = message->GetLength();
+        message->Read(0, len, buf);
+        sprint_hex(hex, buf, len);
+        printf("%s relay transmit to joiner router. hex=%s\n", __func__, hex);
+    }
+    printf("received relay transmit from commissioner message=%p rloc=%x len=%u\n", message, joinerRloc.GetJoinerRouterLocator(), message->GetLength());
 
-    otLogCritMeshCoP(GetInstance(), "send relay transmit to joiner router");
+    otLogInfoMeshCoP(GetInstance(), "send relay transmit to joiner router");
 
-    SuccessOrExit(error = mInstance.GetCoapServer().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = mInstance.GetCoapClient().SendMessage(*message, messageInfo));
 
-    otLogCritMeshCoP(GetInstance(), "sent relay transmit to joiner router %d", error);
+    otLogInfoMeshCoP(GetInstance(), "sent relay transmit to joiner router %d", error);
 
 exit:
     (void) aMessageInfo;
@@ -412,6 +418,7 @@ exit:
     {
         message->Free();
     }
+    printf("sent relay transmit to joiner router error=%d\n", error);
     otLogFuncExit();
 }
 
@@ -433,8 +440,8 @@ void BorderAgent::HandleMgmtCommissionerSet(Coap::Header &aHeader, Message &aMes
 
     printf("received commissioner set from commissioner\n");
     otLogFuncEntry();
-    otLogCritMeshCoP(GetInstance(), "received MGMT_COMMISSIONER_SET request from Commissioner");
-    otLogCritMeshCoP(GetInstance(), "send MGMT_COMMISSIONER_SET request to Leader");
+    otLogInfoMeshCoP(GetInstance(), "received MGMT_COMMISSIONER_SET request from Commissioner");
+    otLogInfoMeshCoP(GetInstance(), "send MGMT_COMMISSIONER_SET request to Leader");
 
     mInstance.GetSecureCoapServer().SendAck(aHeader, aMessageInfo);
 
@@ -470,7 +477,7 @@ ThreadError BorderAgent::SendLeaderMgmtCommissionerSet(Message &aMessage, const 
     SuccessOrExit(error = mInstance.GetCoapClient().SendMessage(aMessage, aMessageInfo,
                                                              BorderAgent::HandleLeaderMgmtCommissionerSetResponse, this));
 
-    otLogCritMeshCoP(GetInstance(), "sent MGMT_COMMISSIONER_SET to leader");
+    otLogInfoMeshCoP(GetInstance(), "sent MGMT_COMMISSIONER_SET to leader");
 
 exit:
     (void) aMessageInfo;
@@ -499,7 +506,7 @@ void BorderAgent::HandleLeaderMgmtCommissionerSetResponse(Coap::Header &aHeader,
 
     VerifyOrExit(aResult == kThreadError_None && aHeader.GetCode() == kCoapResponseChanged, ;);
     printf("received commissioner set response from leader\n");
-    otLogCritMeshCoP(GetInstance(), "received MGMT_COMMISSIONER_SET response from leader");
+    otLogInfoMeshCoP(GetInstance(), "received MGMT_COMMISSIONER_SET response from leader");
 
     responseHeader.Init(kCoapTypeConfirmable, kCoapResponseChanged);
     responseHeader.SetToken(aHeader.GetToken(), aHeader.GetTokenLength());
@@ -515,7 +522,7 @@ void BorderAgent::HandleLeaderMgmtCommissionerSetResponse(Coap::Header &aHeader,
 
     SuccessOrExit(error = mInstance.GetSecureCoapServer().SendMessage(*message, messageInfo));
 
-    otLogCritMeshCoP(GetInstance(), "sent MGMT_COMMISSIONER_SET response to commissioner");
+    otLogInfoMeshCoP(GetInstance(), "sent MGMT_COMMISSIONER_SET response to commissioner");
 
 exit:
     (void) aMessageInfo;
@@ -538,28 +545,35 @@ void BorderAgent::HandleRelayReceive(Coap::Header &aHeader, Message &aMessage,
                                      const Ip6::MessageInfo &aMessageInfo)
 {
     ThreadError error = kThreadError_None;
-    Coap::Header header;
+    //Coap::Header header;
     Message *message = NULL;
     Ip6::MessageInfo messageInfo;
 
-    printf("%s received joiner packet!!!!!!!!!!!!!!!!!!!!!!\n", __func__);
+    uint16_t len = (aMessage.GetLength() - aMessage.GetOffset());
+    printf("%s received Relay Recevie from Joiner Router. len=%u\n", __func__, len);
     otLogFuncEntry();
-    otLogCritMeshCoP(GetInstance(), "received Relay Recevie from Joiner Router");
+    otLogInfoMeshCoP(GetInstance(), "received Relay Recevie from Joiner Router");
 
-    header.Init(kCoapTypeConfirmable, kCoapRequestPost);
-    header.SetToken(aHeader.GetToken(), aHeader.GetTokenLength());
-    header.AppendUriPathOptions(OPENTHREAD_URI_RELAY_RX);
-    header.SetPayloadMarker();
+    {
+        char hex[3000];
+        uint8_t buf[1300];
+        aMessage.Read(aMessage.GetOffset(), len, buf);
+        sprint_hex(hex, buf, len);
+        printf("%s relay rx. hex=%s\n", __func__, hex);
+    }
+    //header.Init(kCoapTypeConfirmable, kCoapRequestPost);
+    //header.SetToken(aHeader.GetToken(), aHeader.GetTokenLength());
+    //header.AppendUriPathOptions(OPENTHREAD_URI_RELAY_RX);
+    //header.SetPayloadMarker();
 
-    VerifyOrExit((message = mInstance.GetSecureCoapServer().NewMeshCoPMessage(header)) != NULL, error = kThreadError_NoBufs);
+    VerifyOrExit((message = aMessage.Clone()) != NULL, error = kThreadError_NoBufs);
 
-    SuccessOrExit(error = CopyPayload(aMessage, message));
+    //messageInfo.SetPeerAddr(mCommissionerAddr);
+    message->RemoveHeader(aMessage.GetOffset() - aHeader.GetLength());
 
-    messageInfo.SetPeerAddr(mCommissionerAddr);
+    otLogInfoMeshCoP(GetInstance(), "send Relay Receive to Commissioner");
 
-    otLogCritMeshCoP(GetInstance(), "send Relay Receive to Commissioner");
-
-    SendCommissionerRelayReceive(*message, messageInfo);
+    SuccessOrExit(error = SendCommissionerRelayReceive(*message, messageInfo));
 
 
 exit:
@@ -568,6 +582,7 @@ exit:
     {
         message->Free();
     }
+    printf("exit Realy Receive. error=%d\n", error);
     otLogFuncExit();
 }
 
@@ -578,13 +593,21 @@ ThreadError BorderAgent::SendCommissionerRelayReceive(Message &aMessage, const I
 
     otLogFuncEntry();
 
+    {
+        char hex[3000];
+        uint8_t buf[1300];
+        aMessage.Read(0, aMessage.GetLength(), buf);
+        sprint_hex(hex, buf, aMessage.GetLength());
+        printf("%s sending relay rx. hex=%s\n", __func__, hex);
+    }
     SuccessOrExit(error = mInstance.GetSecureCoapServer().SendMessage(aMessage, aMessageInfo));
 
-    otLogCritMeshCoP(GetInstance(), "sent Realy Receive to Commissioner");
+    otLogInfoMeshCoP(GetInstance(), "sent Realy Receive to Commissioner");
 
 exit:
     (void) aMessageInfo;
     otLogFuncExitErr(error);
+    printf("sent Realy Receive to Commissioner. error=%d\n", error);
     return error;
 }
 

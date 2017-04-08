@@ -215,6 +215,7 @@ ThreadError Dtls::Send(Message &aMessage, uint16_t aLength)
     aMessage.Free();
 
 exit:
+    printf("--------%s error=%d\n", __func__, error);
     return error;
 }
 
