@@ -153,7 +153,6 @@ ThreadError SecureServer::SetPsk(const uint8_t *aPsk, uint8_t aPskLength)
 
 void SecureServer::HandleDtlsConnected(void *aContext, bool aConnected)
 {
-    printf("%s connected=%d\r\n", __func__, aConnected);
     return static_cast<SecureServer *>(aContext)->HandleDtlsConnected(aConnected);
 }
 

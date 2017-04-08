@@ -52,7 +52,7 @@ ThreadError platform_udp_close(otUdpSocket *aUdpSocket)
 
     close(fd);
 
-    printf("closing fd %d\n", fd);
+    //printf("closing fd %d\n", fd);
     FD_CLR(fd, &sSocketFdSet);
 
     if (fd == sMaxFd)
@@ -117,7 +117,7 @@ ThreadError platform_udp_bind_ip6(otUdpSocket *aUdpSocket)
         getsockname(fd, (struct sockaddr *)&sin6, &len);
         aUdpSocket->mSockName.mPort = ntohs(sin6.sin6_port);
     }
-    printf("binding fd %d ip %s and port %d\n", fd, dump_ip(&aUdpSocket->mSockName.mAddress), aUdpSocket->mSockName.mPort);
+    //printf("binding fd %d ip %s and port %d\n", fd, dump_ip(&aUdpSocket->mSockName.mAddress), aUdpSocket->mSockName.mPort);
 
 //    int flags = 1;
 //#ifdef __APPLE__
@@ -205,7 +205,7 @@ void udp_process(otInstance *aInstance)
         //printf("sMaxFd is %d\n", sMaxFd);
         for (int i = 0; i < sMaxFd + 1; i++) {
             if (FD_ISSET(i, &socketFdSet)) {
-                printf("Processing from sock %d\n", i);
+                //printf("Processing from sock %d\n", i);
                 otUdpSocket *udpSocket = otUdpFindSocketByHandle(aInstance, (void*)(long)i);
                 if (udpSocket == NULL) continue;
                 if (isIp4Address(&udpSocket->mSockName.mAddress))
@@ -213,7 +213,7 @@ void udp_process(otInstance *aInstance)
                     struct sockaddr_in sin;
                     socklen_t socklen = sizeof(sin);
                     ssize_t len = recvfrom(i, payload, sizeof(payload), 0, (struct sockaddr*)&sin, &socklen);
-                    printf("Processing from socklen %d\n", socklen);
+                    //printf("Processing from socklen %d\n", socklen);
                     otMessage* message = otMessageNew(aInstance, 0);
                     otMessageAppend(message, payload, (uint16_t)len);
                     otMessageInfo messageInfo;
@@ -230,7 +230,7 @@ void udp_process(otInstance *aInstance)
                     struct sockaddr_in6 sin6;
                     socklen_t socklen = sizeof(sin6);
                     ssize_t len = recvfrom(i, payload, sizeof(payload), 0, (struct sockaddr*)&sin6, &socklen);
-                    printf("Processing from socklen %d\n", socklen);
+                    //printf("Processing from socklen %d\n", socklen);
                     otMessage* message = otMessageNew(aInstance, 0);
                     otMessageAppend(message, payload, (uint16_t)len);
                     otMessageInfo messageInfo;
