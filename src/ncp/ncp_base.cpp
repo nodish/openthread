@@ -1999,7 +1999,7 @@ otError NcpBase::CommandHandler_PROP_VALUE_SET(uint8_t aHeader, unsigned int aCo
 {
     unsigned int propKey = 0;
     spinel_ssize_t parsedLength;
-    const uint8_t *valuePtr;
+    const uint8_t *valuePtr = NULL;
     unsigned int valueLen;
     otError error = OT_ERROR_NONE;
 
@@ -2036,7 +2036,7 @@ otError NcpBase::CommandHandler_PROP_VALUE_INSERT(uint8_t aHeader, unsigned int 
 {
     unsigned int propKey = 0;
     spinel_ssize_t parsedLength;
-    const uint8_t *valuePtr;
+    const uint8_t *valuePtr = NULL;
     unsigned int valueLen;
     otError error = OT_ERROR_NONE;
 
@@ -2073,8 +2073,8 @@ otError NcpBase::CommandHandler_PROP_VALUE_REMOVE(uint8_t aHeader, unsigned int 
 {
     unsigned int propKey = 0;
     spinel_ssize_t parsedLength;
-    const uint8_t *valuePtr;
-    unsigned int valueLen;
+    const uint8_t *valuePtr = NULL;;
+    unsigned int valueLen = 0;;
     otError error = OT_ERROR_NONE;
 
     parsedLength = spinel_datatype_unpack(
@@ -4992,7 +4992,7 @@ exit:
 otError NcpBase::SetPropertyHandler_MAC_15_4_LADDR(uint8_t aHeader, spinel_prop_key_t aKey, const uint8_t *aValuePtr,
                                                    uint16_t aValueLen)
 {
-    otExtAddress *extAddress;
+    otExtAddress *extAddress = NULL;
     spinel_ssize_t parsedLength;
     otError error = OT_ERROR_NONE;
 
@@ -5295,7 +5295,7 @@ otError NcpBase::SetPropertyHandler_NET_XPANID(uint8_t aHeader, spinel_prop_key_
                                                uint16_t aValueLen)
 {
     const uint8_t *ptr = NULL;
-    spinel_size_t len;
+    spinel_size_t len = 0;
     spinel_ssize_t parsedLength;
     otError error = OT_ERROR_NONE;
 
@@ -5319,7 +5319,7 @@ otError NcpBase::SetPropertyHandler_NET_MASTER_KEY(uint8_t aHeader, spinel_prop_
                                                    uint16_t aValueLen)
 {
     const uint8_t *ptr = NULL;
-    spinel_size_t len;
+    spinel_size_t len = 0;
     spinel_ssize_t parsedLength;
     otError error = OT_ERROR_NONE;
 
@@ -6311,7 +6311,7 @@ otError NcpBase::SetPropertyHandler_MAC_SRC_MATCH_EXTENDED_ADDRESSES(uint8_t aHe
     while (dataLen >= sizeof(otExtAddress))
     {
         spinel_ssize_t parsedLength;
-        uint8_t *extAddress;
+        uint8_t *extAddress = NULL;
 
         parsedLength = spinel_datatype_unpack(
                            data,
@@ -6851,7 +6851,7 @@ otError NcpBase::SetPropertyHandler_NEST_LEGACY_ULA_PREFIX(uint8_t aHeader, spin
                                                            const uint8_t *aValuePtr, uint16_t aValueLen)
 {
     const uint8_t *ptr = NULL;
-    spinel_size_t len;
+    spinel_size_t len = 0;
     spinel_ssize_t parsedLength;
     otError error = OT_ERROR_NONE;
 
@@ -7010,7 +7010,7 @@ otError NcpBase::InsertPropertyHandler_IPV6_ADDRESS_TABLE(uint8_t aHeader, spine
     otError error = OT_ERROR_NONE;
     spinel_status_t spinelError = SPINEL_STATUS_OK;
     otNetifAddress netifAddr;
-    otIp6Address *addrPtr;
+    otIp6Address *addrPtr = NULL;
     uint32_t preferredLifetime;
     uint32_t validLifetime;
     uint8_t  prefixLen;
@@ -7109,7 +7109,7 @@ otError NcpBase::InsertPropertyHandler_THREAD_OFF_MESH_ROUTES(uint8_t aHeader, s
     otError error = OT_ERROR_NONE;
     spinel_status_t spinelError = SPINEL_STATUS_OK;
     otExternalRouteConfig routeConfig;
-    otIp6Address *addrPtr;
+    otIp6Address *addrPtr = NULL;
     bool stable = false;
     uint8_t flags = 0;
 
@@ -7166,7 +7166,7 @@ otError NcpBase::InsertPropertyHandler_THREAD_ON_MESH_NETS(uint8_t aHeader, spin
     otError error = OT_ERROR_NONE;
     spinel_status_t spinelError = SPINEL_STATUS_OK;
     otBorderRouterConfig borderRouterConfig;
-    otIp6Address *addrPtr;
+    otIp6Address *addrPtr = NULL;
     bool stable = false;
     uint8_t flags = 0;
 
@@ -7569,7 +7569,7 @@ otError NcpBase::RemovePropertyHandler_MAC_SRC_MATCH_EXTENDED_ADDRESSES(uint8_t 
     spinel_ssize_t parsedLength;
     otError error = OT_ERROR_NONE;
     spinel_status_t spinelError = SPINEL_STATUS_OK;
-    uint8_t *extAddress;
+    uint8_t *extAddress = NULL;
 
     parsedLength = spinel_datatype_unpack(
                        aValuePtr,
@@ -7608,7 +7608,7 @@ otError NcpBase::RemovePropertyHandler_IPV6_ADDRESS_TABLE(uint8_t aHeader, spine
     spinel_ssize_t parsedLength;
     otError error = OT_ERROR_NONE;
     spinel_status_t spinelError = SPINEL_STATUS_OK;
-    otIp6Address *addrPtr;
+    otIp6Address *addrPtr = NULL;
 
     parsedLength = spinel_datatype_unpack(
                        aValuePtr,
@@ -7686,7 +7686,7 @@ otError NcpBase::RemovePropertyHandler_THREAD_OFF_MESH_ROUTES(uint8_t aHeader, s
     otError error = OT_ERROR_NONE;
     spinel_status_t spinelError = SPINEL_STATUS_OK;
     otIp6Prefix ip6Prefix;
-    otIp6Address *addrPtr;
+    otIp6Address *addrPtr = NULL;
 
     memset(&ip6Prefix, 0, sizeof(otIp6Prefix));
 
