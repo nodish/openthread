@@ -92,8 +92,22 @@ SOURCES_COMMON                      = \
     thread/network_data_leader.cpp    \
     thread/panid_query_server.cpp     \
     thread/network_diagnostic.cpp     \
+    thread/src_match_controller.cpp   \
     thread/thread_netif.cpp           \
     utils/slaac_address.cpp           \
+    $(NULL)
+
+SOURCES_FTD                         = \
+    meshcop/dataset_manager_ftd.cpp   \
+    meshcop/joiner_router.cpp         \
+    meshcop/leader.cpp                \
+    thread/address_resolver.cpp       \
+    thread/mle_router.cpp             \
+    thread/network_data_leader_ftd.cpp \
+    thread/network_data_local.cpp     \
+    $(NULL)
+
+SOURCES_MISSING                     = \
     $(NULL)
 
 if MISSING_STRLCPY
@@ -118,7 +132,7 @@ strlcpy.c: $(top_srcdir)/src/missing/strlcpy/strlcpy.c
 	$(AM_V_GEN)cp $< $@
 .INTERMEDIATE: strlcpy.c
 CPPFLAGS_COMMON += -I$(top_srcdir)/src/missing/strlcpy
-SOURCES_COMMON += strlcpy.c
+SOURCES_MISSING += strlcpy.c
 endif
 
 if MISSING_STRLCAT
@@ -127,7 +141,7 @@ strlcat.c: $(top_srcdir)/src/missing/strlcat/strlcat.c
 	$(AM_V_GEN)cp $< $@
 .INTERMEDIATE: strlcat.c
 CPPFLAGS_COMMON += -I$(top_srcdir)/src/missing/strlcat
-SOURCES_COMMON += strlcat.c
+SOURCES_MISSING += strlcat.c
 endif
 
 if OPENTHREAD_ENABLE_APPLICATION_COAP
@@ -222,13 +236,8 @@ libopenthread_ftd_a_CPPFLAGS        = \
 
 libopenthread_ftd_a_SOURCES         = \
     $(SOURCES_COMMON)                 \
-    meshcop/dataset_manager_ftd.cpp   \
-    meshcop/joiner_router.cpp         \
-    meshcop/leader.cpp                \
-    thread/address_resolver.cpp       \
-    thread/mle_router.cpp             \
-    thread/network_data_leader_ftd.cpp \
-    thread/network_data_local.cpp     \
+    $(SOURCES_FTD)                    \
+    $(SOURCES_MISSING)                \
     $(NULL)
 endif # OPENTHREAD_ENABLE_FTD
 
@@ -243,6 +252,7 @@ libopenthread_mtd_a_CPPFLAGS        = \
 
 libopenthread_mtd_a_SOURCES         = \
     $(SOURCES_COMMON)                 \
+    $(SOURCES_MISSING)                \
     $(NULL)
 
 noinst_HEADERS                      = \
@@ -343,12 +353,18 @@ noinst_HEADERS                      = \
     thread/panid_query_server.hpp     \
     thread/network_diagnostic.hpp     \
     thread/network_diagnostic_tlvs.hpp \
+    thread/src_match_controller.hpp   \
     thread/thread_netif.hpp           \
     thread/thread_tlvs.hpp            \
     thread/thread_uris.hpp            \
     thread/topology.hpp               \
     utils/slaac_address.hpp           \
     utils/jam_detector.hpp            \
+    $(NULL)
+
+PRETTY_FILES                        = \
+    $(SOURCES_COMMON)                 \
+    $(SOURCES_FTD)                    \
     $(NULL)
 
 if OPENTHREAD_BUILD_COVERAGE
