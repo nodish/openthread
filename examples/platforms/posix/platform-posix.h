@@ -168,7 +168,7 @@ void platformUartProcess(void);
  * This function performs udp driver processing.
  *
  */
-void platformUdpProcess(fd_set *aReadSet);
+void platformUdpProcess(otInstance *aInstance, fd_set *aReadSet);
 
 /**
  * This function updates the file descriptor sets with file descriptors used by the UDP driver.
@@ -186,5 +186,11 @@ void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMax
  * @param[inout]  aMaxFd       A pointer to the max file descriptor.
  */
 void platformUdpUpdateFdSet(fd_set *aReadFdSet, int *aMaxFd);
+
+/**
+ * This function initializes the udp service used by OpenThread.
+ *
+ */
+void platformUdpInit(otInstance *aInstance);
 
 #endif  // PLATFORM_POSIX_H_

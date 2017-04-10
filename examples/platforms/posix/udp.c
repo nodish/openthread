@@ -1,6 +1,8 @@
 #include "platform-posix.h"
 
+#include <arpa/inet.h>
 #include <sys/select.h>
+#include <net/if.h>
 #include <openthread/udp.h>
 #include <openthread/platform/udp.h>
 
@@ -8,7 +10,11 @@
 #define HANDLE_TO_FD(handle)    ((int)(long)(handle))
 #define INVALID_HANDLE          (FD_TO_HANDLE(-1))
 
-otUdpSocket *sSockets = NULL;
+static otUdpSocket *sSockets = NULL;
+static int sGroupSocket = -1;
+static const char *kAllRoutersMulticast = "ff02::2";
+static const char *sTunInterface = "utun1";
+static bool sInitialized = false;
 
 ThreadError otPlatUdpSocket(otUdpSocket *aUdpSocket)
 {
@@ -115,8 +121,51 @@ void platformUdpUpdateFdSet(fd_set *aReadFdSet, int *aMaxFd)
     }
 }
 
-void platformUdpProcess(fd_set *aReadFdSet)
+void platformStateChangedCallback(uint32_t aFlags, void *aContext)
 {
+    otInstance *instance = (otInstance *)aContext;
+
+    if (sGroupSocket == -1)
+    {
+        sGroupSocket = socket(AF_INET6, SOCK_DGRAM, 0);
+    }
+
+    if (aFlags & OT_NET_ROLE)
+    {
+        otDeviceRole role = otThreadGetDeviceRole(instance);
+
+        struct ipv6_mreq mreq;
+        inet_pton(AF_INET6, kAllRoutersMulticast, &mreq.ipv6mr_multiaddr);
+        mreq.ipv6mr_interface = if_nametoindex(sTunInterface);
+
+        switch (role)
+        {
+        case kDeviceRoleLeader:
+            break;
+
+        case kDeviceRoleRouter:
+            setsockopt(sGroupSocket, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mreq, sizeof(mreq));
+            break;
+
+        default:
+            setsockopt(sGroupSocket, IPPROTO_IPV6, IPV6_LEAVE_GROUP, &mreq, sizeof(mreq));
+            break;
+        }
+    }
+}
+
+void platformUdpInit(otInstance *aInstance)
+{
+    otSetStateChangedCallback(aInstance, platformStateChangedCallback, aInstance);
+}
+
+void platformUdpProcess(otInstance *aInstance, fd_set *aReadFdSet)
+{
+    if (!sInitialized)
+    {
+        platformUdpInit(aInstance);
+    }
+
     for (otUdpSocket *socket = sSockets; socket != NULL; socket = socket->mNext)
     {
         int fd = HANDLE_TO_FD(socket->mHandle);

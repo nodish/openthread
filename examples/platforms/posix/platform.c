@@ -112,7 +112,7 @@ void PlatformProcessDrivers(otInstance *aInstance)
     platformUartProcess();
     platformRadioProcess(aInstance);
     platformAlarmProcess(aInstance);
-#if PLATFORM_UDP
-    platformUdpProcess(&read_fds);
+#if OPENTHREAD_ENABLE_PLATFORM_UDP
+    platformUdpProcess(aInstance, &read_fds);
 #endif
 }
