@@ -740,7 +740,9 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
             ProcessReceiveCallback(message, messageInfo, nextHeader);
         }
 
+#if OPENTHREAD_ENABLE_PLATFORM_UDP
         SuccessOrExit(error = HandlePayload(message, messageInfo, nextHeader));
+#endif
     }
     else if (multicastPromiscuous)
     {
