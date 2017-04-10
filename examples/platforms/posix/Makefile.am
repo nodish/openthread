@@ -48,6 +48,12 @@ libopenthread_posix_a_SOURCES             = \
     flash.c                                 \
     $(NULL)
 
+if OPENTHREAD_ENABLE_PLATFORM_UDP
+libopenthread_posix_a_SOURCES            += \
+    udp.c                                   \
+    $(NULL)
+endif
+
 if OPENTHREAD_ENABLE_DIAG
 libopenthread_posix_a_SOURCES            += \
     diag.c                                  \

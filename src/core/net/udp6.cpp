@@ -37,6 +37,9 @@
 #include <common/encoding.hpp>
 #include <net/ip6.hpp>
 #include <net/udp6.hpp>
+#if OPENTHREAD_ENABLE_PLATFORM_UDP
+#include <openthread/platform/udp.h>
+#endif
 
 using Thread::Encoding::BigEndian::HostSwap16;
 
@@ -60,19 +63,26 @@ ThreadError UdpSocket::Open(otUdpReceive aHandler, void *aContext)
     mHandler = aHandler;
     mContext = aContext;
 
+#if OPENTHREAD_ENABLE_PLATFORM_UDP
+    return otPlatUdpSocket(this);
+#else
     return static_cast<Udp *>(mTransport)->AddSocket(*this);
+#endif
 }
 
 ThreadError UdpSocket::Bind(const SockAddr &aSockAddr)
 {
     mSockName = aSockAddr;
-
+#if OPENTHREAD_ENABLE_PLATFORM_UDP
+    return otPlatUdpBind(this);
+#else
     if (GetSockName().mPort == 0)
     {
         mSockName.mPort = static_cast<Udp *>(mTransport)->GetEphemeralPort();
     }
 
     return kThreadError_None;
+#endif
 }
 
 ThreadError UdpSocket::Connect(const SockAddr &aSockAddr)
@@ -85,7 +95,11 @@ ThreadError UdpSocket::Close(void)
 {
     ThreadError error = kThreadError_None;
 
+#if OPENTHREAD_ENABLE_PLATFORM_UDP
+    SuccessOrExit(error = otPlatUdpClose(this));
+#else
     SuccessOrExit(error = static_cast<Udp *>(mTransport)->RemoveSocket(*this));
+#endif
     memset(&mSockName, 0, sizeof(mSockName));
     memset(&mPeerName, 0, sizeof(mPeerName));
 
@@ -95,6 +109,9 @@ exit:
 
 ThreadError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo)
 {
+#if OPENTHREAD_ENABLE_PLATFORM_UDP
+    return otPlatUdpSend(this, &aMessage, &aMessageInfo);
+#else
     ThreadError error = kThreadError_None;
     MessageInfo messageInfoLocal;
     UdpHeader udpHeader;
@@ -122,6 +139,7 @@ ThreadError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo
 
 exit:
     return error;
+#endif
 }
 
 Udp::Udp(Ip6 &aIp6):
@@ -145,6 +163,7 @@ ThreadError Udp::AddSocket(UdpSocket &aSocket)
     mSockets = &aSocket;
 
 exit:
+
     return kThreadError_None;
 }
 

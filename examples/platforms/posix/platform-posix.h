@@ -168,7 +168,7 @@ void platformUartProcess(void);
  * This function performs udp driver processing.
  *
  */
-void platformUdpProcess();
+void platformUdpProcess(fd_set *aReadSet);
 
 /**
  * This function updates the file descriptor sets with file descriptors used by the UDP driver.
@@ -178,5 +178,13 @@ void platformUdpProcess();
  * @param[inout]  aMaxFd       A pointer to the max file descriptor.
  */
 void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd);
+
+/**
+ * This function updates the file descriptor sets with file descriptors used by the UDP driver.
+ *
+ * @param[inout]  aReadFdSet   A pointer to the read file descriptors.
+ * @param[inout]  aMaxFd       A pointer to the max file descriptor.
+ */
+void platformUdpUpdateFdSet(fd_set *aReadFdSet, int *aMaxFd);
 
 #endif  // PLATFORM_POSIX_H_

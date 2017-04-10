@@ -91,6 +91,7 @@ configure_OPTIONS               = \
     --with-examples=posix         \
     --with-platform-info=POSIX    \
     --enable-commissioner         \
+    --enable-platform-udp         \
     --enable-joiner
     $(NULL)
 

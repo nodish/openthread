@@ -70,6 +70,9 @@ typedef struct otUdpSocket
     void                *mContext;   ///< A pointer to application-specific context.
     void                *mTransport; ///< A pointer to the transport object (internal use only).
     struct otUdpSocket  *mNext;      ///< A pointer to the next UDP socket (internal use only).
+#if OPENTHREAD_ENABLE_PLATFORM_UDP
+    void                *mHandle;    ///< A handle to platform's udp
+#endif
 } otUdpSocket;
 
 /**
@@ -171,6 +174,24 @@ ThreadError otUdpConnect(otUdpSocket *aSocket, otSockAddr *aSockName);
  *
  */
 ThreadError otUdpSend(otUdpSocket *aSocket, otMessage *aMessage, const otMessageInfo *aMessageInfo);
+
+/**
+ * Receive a UDP/IPv6 message.
+ *
+ * @param[in]  aSocket       A pointer to a UDP socket structure.
+ * @param[in]  aBuffer       A pointer to a message buffer.
+ * @param[in]  aLength       Packet length
+ * @param[in]  aMessageInfo  A pointer to a message info structure.
+ *
+ * @sa otUdpNewMessage
+ * @sa otUdpOpen
+ * @sa otUdpClose
+ * @sa otUdpBind
+ * @sa otUdpConnect
+ * @sa otUdpSend
+ *
+ */
+void otUdpInput(otUdpSocket *aSocket, uint8_t *aBuffer, uint16_t aLength, const otMessageInfo *aMessageInfo);
 
 /**
  * @}

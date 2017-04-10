@@ -148,13 +148,19 @@ public:
      */
     SockAddr &GetPeerName(void) { return *static_cast<SockAddr *>(&mPeerName); }
 
-private:
-    UdpSocket *GetNext(void) { return static_cast<UdpSocket *>(mNext); }
-    void SetNext(UdpSocket *socket) { mNext = static_cast<otUdpSocket *>(socket); }
-
+    /**
+     * This method handles the data from Udp packets.
+     *
+     * @param[in]  aMessageInfo  The message info associated with @p aMessage.
+     *
+     */
     void HandleUdpReceive(Message &aMessage, const MessageInfo &aMessageInfo) {
         mHandler(mContext, &aMessage, &aMessageInfo);
     }
+
+private:
+    UdpSocket *GetNext(void) { return static_cast<UdpSocket *>(mNext); }
+    void SetNext(UdpSocket *socket) { mNext = static_cast<otUdpSocket *>(socket); }
 };
 
 /**

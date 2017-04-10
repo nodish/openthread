@@ -451,6 +451,37 @@ AC_MSG_RESULT(${enable_builtin_mbedtls})
 AM_CONDITIONAL([OPENTHREAD_ENABLE_BUILTIN_MBEDTLS], [test "${enable_builtin_mbedtls}" = "yes"])
 
 #
+# Platform UDP
+#
+
+AC_ARG_ENABLE(platform_udp,
+    [AS_HELP_STRING([--enable-platform-udp],[Enable platform udp support @<:@default=no@:>@.])],
+    [
+        case "${enableval}" in
+
+        no|yes)
+            enable_platform_udp=${enableval}
+            ;;
+
+        *)
+            AC_MSG_ERROR([Invalid value ${enable_platform_udp} for --enable-platform-udp])
+            ;;
+        esac
+    ],
+    [enable_platform_udp=no])
+
+if test "$enable_platform_udp" = "yes"; then
+    OPENTHREAD_ENABLE_PLATFORM_UDP=1
+else
+    OPENTHREAD_ENABLE_PLATFORM_UDP=0
+fi
+
+AC_MSG_RESULT(${enable_platform_udp})
+AC_SUBST(OPENTHREAD_ENABLE_PLATFORM_UDP)
+AM_CONDITIONAL([OPENTHREAD_ENABLE_PLATFORM_UDP], [test "${enable_platform_udp}" = "yes"])
+AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_PLATFORM_UDP],[${OPENTHREAD_ENABLE_PLATFORM_UDP}],[Define to 1 to enable the platform udp role.])
+
+#
 # Thread Commissioner
 #
 

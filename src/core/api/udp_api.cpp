@@ -104,6 +104,18 @@ ThreadError otUdpSend(otUdpSocket *aSocket, otMessage *aMessage, const otMessage
                           *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
+#if OPENTHREAD_ENABLE_PLATFORM_UDP
+void otUdpInput(otUdpSocket *aSocket, uint8_t *aBuffer, uint16_t aLength, const otMessageInfo *aMessageInfo)
+{
+    Ip6::UdpSocket *socket = static_cast<Ip6::UdpSocket *>(aSocket);
+    Message* message = socket->NewMessage(0);
+    message->Append(aBuffer, aLength);
+    socket->HandleUdpReceive(*static_cast<Message *>(message),
+                             *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
+    free(message);
+}
+#endif
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif
