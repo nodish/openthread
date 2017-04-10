@@ -46,8 +46,12 @@ ThreadError otPlatUdpClose(otUdpSocket *aUdpSocket)
     else
     {
         otUdpSocket *udpSocket = sSockets;
-        while (udpSocket && udpSocket->mNext != aUdpSocket);
-        udpSocket->mNext = aUdpSocket->mNext;
+        while (udpSocket && udpSocket->mNext != aUdpSocket) udpSocket = udpSocket->mNext;
+        if (udpSocket != NULL)
+        {
+            udpSocket->mNext = aUdpSocket->mNext;
+        }
+        aUdpSocket->mNext = NULL;
     }
 
     return kThreadError_None;
