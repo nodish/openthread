@@ -267,12 +267,19 @@ void NcpUart::HandleError(ThreadError aError, uint8_t *aBuf, uint16_t aBufLength
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include <fcntl.h>
+#include <unistd.h>
+static int sFd = -1;
 void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ...)
 {
     char logString[128];
     int charsWritten;
     va_list args;
 
+    if (sFd == -1)
+    {
+        sFd = open("/var/tmp/ncp.log", O_CREAT|O_WRONLY|O_TRUNC);
+    }
     va_start(args, aFormat);
     if ((charsWritten = vsnprintf(logString, sizeof(logString), aFormat, args)) > 0)
     {
@@ -281,7 +288,9 @@ void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat
             charsWritten = static_cast<int>(sizeof(logString) - 1);
         }
 
-        otNcpStreamWrite(0, reinterpret_cast<uint8_t*>(logString), charsWritten);
+        //otNcpStreamWrite(0, reinterpret_cast<uint8_t*>(logString), charsWritten);
+        write(sFd, logString, (size_t)charsWritten);
+        write(sFd, "\r\n", 2);
     }
     va_end(args);
 
