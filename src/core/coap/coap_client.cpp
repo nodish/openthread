@@ -363,8 +363,10 @@ void Client::ProcessReceivedMessage(Message &aMessage, const Ip6::MessageInfo &a
     Message *message = NULL;
     ThreadError error;
 
+    printf("processing response\n");
     SuccessOrExit(error = responseHeader.FromMessage(aMessage, 0));
     aMessage.MoveOffset(responseHeader.GetLength());
+    printf("try to find request\n");
 
     message = FindRelatedRequest(responseHeader, aMessageInfo, requestHeader, requestMetadata);
 
@@ -372,6 +374,7 @@ void Client::ProcessReceivedMessage(Message &aMessage, const Ip6::MessageInfo &a
     {
         ExitNow();
     }
+    printf("found request\n");
 
     switch (responseHeader.GetType())
     {
@@ -434,6 +437,7 @@ exit:
             SendReset(responseHeader, aMessageInfo);
         }
     }
+    printf("processed response. error=%d\n", error);
 }
 
 RequestMetadata::RequestMetadata(bool aConfirmable, const Ip6::MessageInfo &aMessageInfo,

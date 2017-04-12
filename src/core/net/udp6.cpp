@@ -111,33 +111,9 @@ ThreadError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo
     }
 
     // This is mesh local destination
-    ThreadError error = kThreadError_None;
-    MessageInfo messageInfoLocal;
-    UdpHeader udpHeader;
+    ncp_coap_send(&aMessage, &aMessageInfo);
 
-    messageInfoLocal = aMessageInfo;
-
-    if (messageInfoLocal.GetSockAddr().IsUnspecified())
-    {
-        messageInfoLocal.SetSockAddr(GetSockName().GetAddress());
-    }
-
-    if (GetSockName().mPort == 0)
-    {
-        GetSockName().mPort = static_cast<Udp *>(mTransport)->GetEphemeralPort();
-    }
-
-    udpHeader.SetSourcePort(GetSockName().mPort);
-    udpHeader.SetDestinationPort(messageInfoLocal.mPeerPort);
-    udpHeader.SetLength(sizeof(udpHeader) + aMessage.GetLength());
-    udpHeader.SetChecksum(0);
-
-    SuccessOrExit(error = aMessage.Prepend(&udpHeader, sizeof(udpHeader)));
-    aMessage.SetOffset(0);
-    SuccessOrExit(error = static_cast<Udp *>(mTransport)->SendDatagram(aMessage, messageInfoLocal, kProtoUdp));
-
-exit:
-    return error;
+    return kThreadError_None;
 }
 
 Udp::Udp():

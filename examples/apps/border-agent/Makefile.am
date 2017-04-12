@@ -63,6 +63,7 @@ SOURCES_COMMON                                                         = \
     @top_builddir@/examples/platforms/posix/logging.c                  \
     platform_udp.c                                                \
     main.cpp                                                \
+    bap.cpp                                                 \
     api.cpp                                                 \
     $(NULL)
 
@@ -83,6 +84,8 @@ bin_PROGRAMS                                                             = \
 
 border_agent_CPPFLAGS                                                    = \
     -DPLATFORM_UDP                                                      \
+    -I/Users/xyk/homebrew/Cellar/dbus/1.10.16/include/dbus-1.0 \
+    -I/Users/xyk/homebrew/Cellar/dbus/1.10.16/lib/dbus-1.0/include \
     $(CPPFLAGS_COMMON)                                                   \
     $(NULL)
 
@@ -91,6 +94,8 @@ border_agent_LDADD                                                       = \
     $(NULL)
 
 border_agent_LDFLAGS                                                     = \
+    -L/Users/xyk/homebrew/Cellar/dbus/1.10.16/lib  \
+    -ldbus-1 \
     $(LDFLAGS_COMMON)                                                    \
     $(NULL)
 

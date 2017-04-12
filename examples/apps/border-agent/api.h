@@ -24,6 +24,11 @@ const char* otGetMeshLocal64();
 
 void ncp_ip6_send(otMessage *aMessage);
 
+void ncp_enable_border_agent_proxy(void);
+
+void ncp_coap_send(otMessage *aMessage, const otMessageInfo *aMessageInfo);
+
+int sprint_hex(char *out, const uint8_t* buf, uint16_t len);
 
 #ifdef __cplusplus
 }  // extern "C"

@@ -103,6 +103,7 @@ const char* shell(const char* cmd)
 {
     static char buf[128] = {0};
 
+    printf("cmd=%s\n", cmd);
     FILE* fp = popen(cmd, "r");
     fgets(buf, sizeof(buf) - 1, fp);
     pclose(fp);
@@ -126,7 +127,7 @@ const char* otGetMeshLocal16()
     return buf;
 }
 
-int sprint_hex(char *out, uint8_t* buf, uint16_t len)
+int sprint_hex(char *out, const uint8_t* buf, uint16_t len)
 {
     static const char hex_str[]= "0123456789abcdef";
     unsigned int  i;
@@ -142,6 +143,29 @@ int sprint_hex(char *out, uint8_t* buf, uint16_t len)
     }
 
     return len * 2;
+}
+
+void ncp_enable_border_agent_proxy(void)
+{
+    shell(CMD_PREFIX "set 'BorderAgentProxy:Enable' 1");
+}
+
+void ncp_coap_send(otMessage *aMessage, const otMessageInfo *aMessageInfo)
+{
+    static uint8_t buf[1300];
+    static char cmd[100 + 2600 + 1];
+    int len;
+    len = otMessageRead(aMessage, 0, buf, otMessageGetLength(aMessage));
+
+    char* p = cmd;
+    p += sprintf(p, CMD_PREFIX "set 'BorderAgentProxy:Stream' -d ");
+    p += sprint_hex(p, buf, (uint16_t)len);
+    p += sprint_hex(p, (uint8_t*)&aMessageInfo->mPeerAddr, sizeof(aMessageInfo->mPeerAddr));
+    p += sprintf(p, "%04x", aMessageInfo->mPeerPort);
+
+    shell(cmd);
+
+    otMessageFree(aMessage);
 }
 
 void ncp_ip6_send(otMessage *aMessage)

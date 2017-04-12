@@ -416,7 +416,6 @@ public:
 
     const MessageQueue &GetCachedResponses(void) const { return mResponsesQueue.GetResponses(); }
 
-protected:
     void ProcessReceivedMessage(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
 private:

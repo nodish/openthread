@@ -227,7 +227,6 @@ public:
      */
     const MessageQueue &GetRequestMessages(void) const { return mPendingRequests; }
 
-protected:
     void ProcessReceivedMessage(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
 private:
