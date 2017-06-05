@@ -42,7 +42,7 @@ cd /tmp || die
     pip install --upgrade pip || die
 
     # Packages used by ncp tools.
-    pip install -r $TRAVIS_BUILD_DIR/tests/scripts/thread-cert/requirements.txt || die
+    pip install --user -r $TRAVIS_BUILD_DIR/tests/scripts/thread-cert/requirements.txt || die
 
     [ $BUILD_TARGET != pretty-check ] || {
         wget http://jaist.dl.sourceforge.net/project/astyle/astyle/astyle%202.05.1/astyle_2.05.1_linux.tar.gz || die
