@@ -1,3 +1,3 @@
 enum34==1.1.2
 pexpect==4.0.1
-git+https://github.com/openthread/pyspinel
+pycryptodome==3.4.3

@@ -29,6 +29,8 @@
 language: generic
 
 dist: trusty
+git:
+  depth: 3
 
 git:
   depth: 1
