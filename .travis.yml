@@ -30,7 +30,7 @@ language: generic
 
 dist: trusty
 git:
-  depth: 3
+  depth: 1
 
 before_install:
   - .travis/before_install.sh
