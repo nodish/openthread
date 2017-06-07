@@ -39,7 +39,7 @@ MKDIR_P                        := mkdir -p
 LN_S                           := ln -s
 RM_F                           := rm -f
 
-BuildJobs                      ?= 10
+BuildJobs                      ?= 50
 
 TopSourceDir                   := $(dir $(shell readlink $(firstword $(MAKEFILE_LIST))))..
 AbsTopSourceDir                := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))..
