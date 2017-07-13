@@ -80,7 +80,7 @@ class otCli:
         time.sleep(0.2)
         self.pexpect.expect('spinel-cli >')
         self.debug(int(os.getenv('DEBUG', '0')))
- 
+
     def __init_soc(self, nodeid):
         """ Initialize a System-on-a-chip node connected via UART. """
         import fdpexpect
@@ -133,7 +133,7 @@ class otCli:
     def thread_stop(self):
         self.send_command('thread stop')
         self.pexpect.expect('Done')
-            
+
     def commissioner_start(self):
         cmd = 'commissioner start'
         self.send_command(cmd)

@@ -35,9 +35,25 @@ if sys.platform != 'win32':
 else:
     import node_api
 import unittest
+import pexpect
 
 class Node:
     def __init__(self, nodeid):
+        tries = 5
+        while True:
+            try:
+                self.spawn(nodeid)
+            except pexpect.EOF:
+                print('Failed to spawn node %s!' % nodeid)
+                if tries:
+                    time.sleep(30)
+                    tries -= 1
+                else:
+                    raise
+            else:
+                break
+
+    def spawn(self, nodeid):
         if sys.platform != 'win32':
             self.interface = node_cli.otCli(nodeid)
         else:
@@ -67,7 +83,7 @@ class Node:
 
     def thread_stop(self):
         self.interface.thread_stop()
-            
+
     def commissioner_start(self):
         self.interface.commissioner_start()
 
