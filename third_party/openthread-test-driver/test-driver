@@ -139,11 +139,20 @@ case $tweaked_estatus:$expect_failure in
   *:*)   col=$red res=FAIL  recheck=yes gcopy=yes;;
 esac
 
+echo '================================================='
+echo '========== Number of Free memory ================'
+echo '================================================='
+free -m
+echo '================================================='
+echo '================================================='
+echo '================================================='
+
 # Report the test outcome and exit status in the logs, so that one can
 # know whether the test passed or failed simply by looking at the '.log'
 # file, without the need of also peaking into the corresponding '.trs'
 # file (automake bug#11814).
 echo "$res $test_name (exit status: $estatus)" >>$log_file
+echo "$res $test_name (memory: $(free -m))" >>$log_file
 
 # Report outcome to console.
 echo "${col}${res}${std}: $test_name"
