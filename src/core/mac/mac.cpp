@@ -308,14 +308,14 @@ void Mac::StartEnergyScan(void)
 
 extern "C" void otPlatRadioEnergyScanDone(otInstance *aInstance, int8_t aEnergyScanMaxRssi)
 {
-#if OPENTHREAD_ENABLE_RAW_LINK_API
+#if OPENTHREAD_ENABLE_RAW_LINK_API || OPENTHREAD_RAW
 
     if (aInstance->mLinkRaw.IsEnabled())
     {
         aInstance->mLinkRaw.InvokeEnergyScanDone(aEnergyScanMaxRssi);
     }
     else
-#endif // OPENTHREAD_ENABLE_RAW_LINK_API
+#endif // OPENTHREAD_ENABLE_RAW_LINK_API || OPENTHREAD_RAW
     {
         aInstance->mThreadNetif.GetMac().EnergyScanDone(aEnergyScanMaxRssi);
     }
@@ -876,14 +876,14 @@ extern "C" void otPlatRadioTransmitDone(otInstance *aInstance, otRadioFrame *aFr
 {
     otLogFuncEntryMsg("%!otError!, aRxPending=%u", aError, aRxPending ? 1 : 0);
 
-#if OPENTHREAD_ENABLE_RAW_LINK_API
+#if OPENTHREAD_ENABLE_RAW_LINK_API || OPENTHREAD_RAW
 
     if (aInstance->mLinkRaw.IsEnabled())
     {
         aInstance->mLinkRaw.InvokeTransmitDone(aFrame, aRxPending, aError);
     }
     else
-#endif // OPENTHREAD_ENABLE_RAW_LINK_API
+#endif // OPENTHREAD_ENABLE_RAW_LINK_API || OPENTHREAD_RAW
     {
         aInstance->mThreadNetif.GetMac().TransmitDoneTask(aFrame, aRxPending, aError);
     }
@@ -970,14 +970,14 @@ extern "C" void otPlatRadioTxDone(otInstance *aInstance, otRadioFrame *aFrame, o
 {
     otLogFuncEntryMsg("%!otError!", aError);
 
-#if OPENTHREAD_ENABLE_RAW_LINK_API
+#if OPENTHREAD_ENABLE_RAW_LINK_API || OPENTHREAD_RAW
 
     if (aInstance->mLinkRaw.IsEnabled())
     {
         aInstance->mLinkRaw.InvokeTransmitDone(aFrame, (static_cast<Frame *>(aAckFrame))->GetFramePending(), aError);
     }
     else
-#endif // OPENTHREAD_ENABLE_RAW_LINK_API
+#endif // OPENTHREAD_ENABLE_RAW_LINK_API || OPENTHREAD_RAW
     {
         aInstance->mThreadNetif.GetMac().TransmitDoneTask(aFrame, aAckFrame, aError);
     }
@@ -1462,14 +1462,14 @@ extern "C" void otPlatRadioReceiveDone(otInstance *aInstance, otRadioFrame *aFra
 {
     otLogFuncEntryMsg("%!otError!", aError);
 
-#if OPENTHREAD_ENABLE_RAW_LINK_API
+#if OPENTHREAD_ENABLE_RAW_LINK_API || OPENTHREAD_RAW
 
     if (aInstance->mLinkRaw.IsEnabled())
     {
         aInstance->mLinkRaw.InvokeReceiveDone(aFrame, aError);
     }
     else
-#endif // OPENTHREAD_ENABLE_RAW_LINK_API
+#endif // OPENTHREAD_ENABLE_RAW_LINK_API || OPENTHREAD_RAW
     {
         aInstance->mThreadNetif.GetMac().ReceiveDoneTask(static_cast<Frame *>(aFrame), aError);
     }

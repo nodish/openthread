@@ -191,6 +191,30 @@ ot_ncp_mtd_SOURCES                                                     = \
     $(SOURCES_COMMON)                                                    \
     $(NULL)
 
+if OPENTHREAD_ENABLE_NCP_RAW
+bin_PROGRAMS                                                          += \
+    ot-ncp-raw                                                           \
+    $(NULL)
+endif
+
+ot_ncp_raw_CPPFLAGS                                                    = \
+    $(CPPFLAGS_COMMON)                                                   \
+    $(NULL)
+
+ot_ncp_raw_LDADD                                                       = \
+    $(top_builddir)/src/ncp/libopenthread-ncp-raw.a                      \
+    $(top_builddir)/src/core/libopenthread-raw.a                         \
+    $(LDADD_COMMON)                                                      \
+    $(NULL)
+
+ot_ncp_raw_LDFLAGS                                                     = \
+    $(LDFLAGS_COMMON)                                                    \
+    $(NULL)
+
+ot_ncp_raw_SOURCES                                                     = \
+    $(SOURCES_COMMON)                                                    \
+    $(NULL)
+
 if OPENTHREAD_BUILD_COVERAGE
 CLEANFILES                                                             = $(wildcard *.gcda *.gcno)
 endif # OPENTHREAD_BUILD_COVERAGE

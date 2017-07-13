@@ -83,9 +83,9 @@ otInstance::otInstance(void) :
     mEnergyScanCallback(NULL),
     mEnergyScanCallbackContext(NULL),
     mThreadNetif(mIp6)
-#if OPENTHREAD_ENABLE_RAW_LINK_API
+#if OPENTHREAD_ENABLE_RAW_LINK_API || OPENTHREAD_RAW
     , mLinkRaw(*this)
-#endif // OPENTHREAD_ENABLE_RAW_LINK_API
+#endif // OPENTHREAD_ENABLE_RAW_LINK_API || OPENTHREAD_RAW
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
     , mApplicationCoap(mThreadNetif)
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP

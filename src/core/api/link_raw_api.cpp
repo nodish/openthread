@@ -39,7 +39,7 @@
 #include "common/debug.hpp"
 #include "common/logging.hpp"
 
-#if OPENTHREAD_ENABLE_RAW_LINK_API
+#if OPENTHREAD_ENABLE_RAW_LINK_API || OPENTHREAD_RAW
 
 otError otLinkRawSetEnable(otInstance *aInstance, bool aEnabled)
 {
@@ -615,4 +615,4 @@ LinkRaw &LinkRaw::GetOwner(const Context &aContext)
 
 } // namespace ot
 
-#endif // OPENTHREAD_ENABLE_RAW_LINK_API
+#endif // OPENTHREAD_ENABLE_RAW_LINK_API || OPENTHREAD_RAW

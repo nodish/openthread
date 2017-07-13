@@ -35,7 +35,11 @@
 
 #include <openthread/config.h>
 
+#if OPENTHREAD_FTD || OPENTHREAD_MTD
 #include <openthread/ip6.h>
+#else
+#include <openthread/platform/radio.h>
+#endif // OPENTHREAD_FTD || OPENTHREAD_MTD
 #include <openthread/message.h>
 #include <openthread/ncp.h>
 #include <openthread/types.h>
@@ -193,6 +197,7 @@ private:
     void HandleTmfProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort);
 #endif // OPENTHREAD_ENABLE_TMF_PROXY && OPENTHREAD_FTD
 
+#if OPENTHRAD_FTD || OPENTHREAD_MTD
     static void HandleFrameRemovedFromNcpBuffer(void *aContext, NcpFrameBuffer::FrameTag aFrameTag,
                                                 NcpFrameBuffer::Priority aPriority, NcpFrameBuffer *aNcpBuffer);
     void HandleFrameRemovedFromNcpBuffer(NcpFrameBuffer::FrameTag aFrameTag);
@@ -217,6 +222,8 @@ private:
 
     static void SendDoneTask(void *aContext);
     void SendDoneTask(void);
+
+#endif // OPENTHRAD_FTD || OPENTHREAD_MTD
 
 #if OPENTHREAD_ENABLE_RAW_LINK_API
 
@@ -611,7 +618,9 @@ private:
     bool mDiscoveryScanJoinerFlag;
     bool mDiscoveryScanEnableFiltering;
     uint16_t mDiscoveryScanPanId;
+#if OPENTHREAD_FTD || OPENTHREAD_MTD
     Tasklet mUpdateChangedPropsTask;
+#endif
     uint32_t mChangedFlags;
     bool mShouldSignalEndOfScan;
     spinel_host_power_state_t mHostPowerState;

@@ -402,11 +402,11 @@ AC_SUBST(OPENTHREAD_ENABLE_CLI_MTD)
 # NCP app
 #
 AC_ARG_ENABLE(ncp-app,
-    [AS_HELP_STRING([--enable-ncp-app],[Enable NCP support (no|mtd|ftd|all) @<:@default=no@:>@.])],
+    [AS_HELP_STRING([--enable-ncp-app],[Enable NCP support (no|mtd|ftd|raw|all) @<:@default=no@:>@.])],
     [
         # Map all & both to yes
         case "${enableval}" in
-        all|both)
+        all)
             enableval=yes
             ;;
 
@@ -421,18 +421,28 @@ AC_ARG_ENABLE(ncp-app,
             enable_ncp_app=${enableval}
             enable_ncp_app_mtd=${enableval}
             enable_ncp_app_ftd=${enableval}
+            enable_ncp_app_raw=${enableval}
             ;;
 
         mtd)
             enable_ncp_app=yes
             enable_ncp_app_mtd=yes
             enable_ncp_app_ftd=no
+            enable_ncp_app_raw=no
             ;;
 
         ftd)
             enable_ncp_app=yes
             enable_ncp_app_mtd=no
             enable_ncp_app_ftd=yes
+            enable_ncp_app_raw=no
+            ;;
+
+        raw)
+            enable_ncp_app=yes
+            enable_ncp_app_mtd=no
+            enable_ncp_app_ftd=no
+            enable_ncp_app_raw=yes
             ;;
 
         *)
@@ -444,6 +454,7 @@ AC_ARG_ENABLE(ncp-app,
      enable_ncp_app=no
      enable_ncp_app_ftd=no
      enable_ncp_app_mtd=no
+     enable_ncp_app_raw=no
     ]
     )
 
@@ -454,14 +465,18 @@ AC_MSG_CHECKING([should NCP support ftd])
 AC_MSG_RESULT(${enable_ncp_app_ftd})
 AC_MSG_CHECKING([should NCP support mtd])
 AC_MSG_RESULT(${enable_ncp_app_mtd})
+AC_MSG_CHECKING([should NCP support raw])
+AC_MSG_RESULT(${enable_ncp_app_raw})
 
 AC_SUBST(OPENTHREAD_ENABLE_NCP)
 AC_SUBST(OPENTHREAD_ENABLE_NCP_MTD)
 AC_SUBST(OPENTHREAD_ENABLE_NCP_FTD)
+AC_SUBST(OPENTHREAD_ENABLE_NCP_RAW)
 
 AM_CONDITIONAL([OPENTHREAD_ENABLE_NCP],      [test "${enable_ncp_app}" == "yes"])
 AM_CONDITIONAL([OPENTHREAD_ENABLE_NCP_MTD],  [test "${enable_ncp_app_mtd}" == "yes"])
 AM_CONDITIONAL([OPENTHREAD_ENABLE_NCP_FTD],  [test "${enable_ncp_app_ftd}" == "yes"])
+AM_CONDITIONAL([OPENTHREAD_ENABLE_NCP_RAW],  [test "${enable_ncp_app_raw}" == "yes"])
 
 #
 # NCP BUS - how does the NCP talk to the host?
