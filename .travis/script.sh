@@ -179,7 +179,7 @@ set -x
     sh -c '$CC --version' || die
     sh -c '$CXX --version' || die
     ./bootstrap || die
-    make -f examples/Makefile-posix || die
+    BuildJobs=30 make -f examples/Makefile-posix || die
 }
 
 [ $BUILD_TARGET != posix-distcheck ] || {
@@ -191,7 +191,7 @@ set -x
 
 [ $BUILD_TARGET != posix-32-bit ] || {
     ./bootstrap || die
-    COVERAGE=1 CFLAGS=-m32 CXXFLAGS=-m32 LDFLAGS=-m32 make -f examples/Makefile-posix check || die
+    COVERAGE=1 CFLAGS=-m32 CXXFLAGS=-m32 LDFLAGS=-m32 BuildJobs=30 make -f examples/Makefile-posix check || die
 }
 
 [ $BUILD_TARGET != posix-ncp-spi ] || {
@@ -201,5 +201,5 @@ set -x
 
 [ $BUILD_TARGET != posix-ncp ] || {
     ./bootstrap || die
-    COVERAGE=1 NODE_TYPE=ncp-sim make -f examples/Makefile-posix check || die
+    COVERAGE=1 NODE_TYPE=ncp-sim BuildJobs=30 make -f examples/Makefile-posix check || die
 }
