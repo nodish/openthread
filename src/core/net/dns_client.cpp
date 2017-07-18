@@ -354,7 +354,7 @@ Message *Client::FindRelatedQuery(const Header &aResponseHeader, QueryMetadata &
     while (message != NULL)
     {
         // Partially read DNS header to obtain message ID only.
-        assert(message->Read(message->GetOffset(), sizeof(messageId), &messageId) == sizeof(messageId));
+        VerifyOrExit(message->Read(message->GetOffset(), sizeof(messageId), &messageId) == sizeof(messageId));
 
         if (HostSwap16(messageId) == aResponseHeader.GetMessageId())
         {
