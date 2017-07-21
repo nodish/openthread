@@ -209,7 +209,7 @@ void cbQorvoRadioTransmitDone(otRadioFrame *aPacket, bool aFramePending, otError
     }
 
     ackFrame.mPsdu[1] = 0;
-    ackFrame.mPsdu[2] = sReceiveFrame.mPsdu[IEEE802154_DSN_OFFSET];
+    ackFrame.mPsdu[2] = aPacket->mPsdu[IEEE802154_DSN_OFFSET];
 
     otPlatRadioTxDone(pQorvoInstance, aPacket, &ackFrame, aError);
 }

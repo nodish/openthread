@@ -35,6 +35,9 @@ libopenthread_gp712_a_CPPFLAGS           =  \
     -I$(top_srcdir)/examples/platforms      \
     -I$(top_srcdir)/examples/platforms/utils\
     -I$(top_srcdir)/src/core                \
+    $(NULL)
+	
+libopenthread_gp712_a_LDFLAGS            =  \
     -lrt                                    \
     -lpthread                               \
     $(NULL)
