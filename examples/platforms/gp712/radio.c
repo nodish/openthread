@@ -196,7 +196,22 @@ exit:
 
 void cbQorvoRadioTransmitDone(otRadioFrame *aPacket, bool aFramePending, otError aError)
 {
-    otPlatRadioTransmitDone(pQorvoInstance, aPacket, aFramePending, aError);
+    otRadioFrame ackFrame;
+    uint8_t psdu[IEEE802154_ACK_LENGTH];
+
+    ackFrame.mPsdu = psdu;
+    ackFrame.mLength = IEEE802154_ACK_LENGTH;
+    ackFrame.mPsdu[0] = IEEE802154_FRAME_TYPE_ACK;
+
+    if (aFramePending)
+    {
+        ackFrame.mPsdu[0] |= IEEE802154_FRAME_PENDING;
+    }
+
+    ackFrame.mPsdu[1] = 0;
+    ackFrame.mPsdu[2] = sReceiveFrame.mPsdu[IEEE802154_DSN_OFFSET];
+
+    otPlatRadioTxDone(pQorvoInstance, aPacket, &ackFrame, aError);
 }
 
 void cbQorvoRadioReceiveDone(otRadioFrame *aPacket, otError aError)
