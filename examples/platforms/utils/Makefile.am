@@ -37,12 +37,14 @@ libopenthread_platform_utils_a_CPPFLAGS = \
     $(NULL)
 
 libopenthread_platform_utils_a_SOURCES  = \
+    radio_utils.c                         \
     settings.cpp                          \
     $(NULL)
 
 noinst_HEADERS                          = \
     code_utils.h                          \
     flash.h                               \
+    radio_utils.h                         \
     $(NULL)
 
 include $(abs_top_nlbuild_autotools_dir)/automake/post.am

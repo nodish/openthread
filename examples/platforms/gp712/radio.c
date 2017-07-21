@@ -41,6 +41,7 @@
 #include <openthread/platform/diag.h>
 
 #include "utils/code_utils.h"
+#include "utils/radio_utils.h"
 
 #include "radio_qorvo.h"
 
@@ -210,6 +211,8 @@ void cbQorvoRadioTransmitDone(otRadioFrame *aPacket, bool aFramePending, otError
 
     ackFrame.mPsdu[1] = 0;
     ackFrame.mPsdu[2] = aPacket->mPsdu[IEEE802154_DSN_OFFSET];
+
+    otRadioFrameFillCRC(&ackFrame);
 
     otPlatRadioTxDone(pQorvoInstance, aPacket, &ackFrame, aError);
 }
