@@ -35,10 +35,34 @@
 
 #include "instance.hpp"
 
+#include <new>
 #include <openthread/platform/misc.h>
 
 #include "common/logging.hpp"
-#include "common/new.hpp"
+
+#if OPENTHREAD_CONFIG_ENABLE_HEAP
+#if !OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
+void *operator new(std::size_t aSize) throw(std::bad_alloc)
+{
+    return ot::Instance::Get().GetHeap().CAlloc(1, aSize);
+}
+
+void *operator new[](std::size_t aSize) throw(std::bad_alloc)
+{
+    return ot::Instance::Get().GetHeap().CAlloc(1, aSize);
+}
+
+void operator delete(void *aPointer) throw()
+{
+    return ot::Instance::Get().GetHeap().Free(aPointer);
+}
+
+void operator delete[](void *aPointer) throw()
+{
+    return ot::Instance::Get().GetHeap().Free(aPointer);
+}
+#endif
+#endif // OPENTHREAD_CONFIG_ENABLE_HEAP
 
 namespace ot {
 

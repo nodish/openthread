@@ -93,6 +93,7 @@ check_PROGRAMS                                                      = \
     test-mac-frame                                                    \
     test-message                                                      \
     test-message-queue                                                \
+    test-new                                                          \
     test-priority-queue                                               \
     test-pskc                                                         \
     test-strlcat                                                      \
@@ -159,8 +160,8 @@ test_link_quality_SOURCES    = test_platform.cpp test_link_quality.cpp
 test_lowpan_LDADD            = $(COMMON_LDADD)
 test_lowpan_SOURCES          = test_platform.cpp test_lowpan.cpp test_util.cpp
 
-test_network_data_LDADD       = $(COMMON_LDADD)
-test_network_data_SOURCES     = test_platform.cpp test_network_data.cpp
+test_network_data_LDADD      = $(COMMON_LDADD)
+test_network_data_SOURCES    = test_platform.cpp test_network_data.cpp
 
 test_mac_frame_LDADD         = $(COMMON_LDADD)
 test_mac_frame_SOURCES       = test_platform.cpp test_mac_frame.cpp
@@ -173,6 +174,9 @@ test_message_queue_SOURCES   = test_platform.cpp test_message_queue.cpp
 
 test_ncp_buffer_LDADD        = $(COMMON_LDADD)
 test_ncp_buffer_SOURCES      = test_platform.cpp test_ncp_buffer.cpp
+
+test_new_LDADD               = $(COMMON_LDADD)
+test_new_SOURCES             = test_platform.cpp test_new.cpp
 
 test_priority_queue_LDADD    = $(COMMON_LDADD)
 test_priority_queue_SOURCES  = test_platform.cpp test_priority_queue.cpp
@@ -217,6 +221,7 @@ PRETTY_FILES                                                        = \
     $(test_link_quality_SOURCES)                                      \
     $(test_lowpan_SOURCES)                                            \
     $(test_network_data_SOURCES)                                      \
+    $(test_new_SOURCES)                                               \
     $(test_mac_frame_SOURCES)                                         \
     $(test_message_SOURCES)                                           \
     $(test_message_queue_SOURCES)                                     \
