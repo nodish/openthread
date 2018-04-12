@@ -161,7 +161,7 @@ const uint32_t tim1[11] = {
         (159 << OTPC_OTPC_TIM1_REG_OTPC_TIM1_CC_T_PW_Pos) |
         ( 64 << OTPC_OTPC_TIM1_REG_OTPC_TIM1_CC_T_CADX_Pos),
         /* 48MHz */
-        (  1 << OTPC_OTPC_TIM1_REG_OTPC_TIM1_CC_T_25NS_Pos) |
+        ( 1U << OTPC_OTPC_TIM1_REG_OTPC_TIM1_CC_T_25NS_Pos) |
         (  9 << OTPC_OTPC_TIM1_REG_OTPC_TIM1_CC_T_200NS_Pos) |
         ( 24 << OTPC_OTPC_TIM1_REG_OTPC_TIM1_CC_T_500NS_Pos) |
         ( 48 << OTPC_OTPC_TIM1_REG_OTPC_TIM1_CC_T_1US_Pos) |
