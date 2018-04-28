@@ -28,7 +28,7 @@
 
 #include "platform-posix.h"
 
-#if OPENTHREAD_POSIX_VIRTUAL_TIME == 0
+#if OPENTHREAD_POSIX_VIRTUAL_TIME == 0 || OPENTHREAD_ENABLE_POSIX_RADIO_NCP
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -67,8 +67,8 @@ uint32_t otPlatAlarmMilliGetNow(void)
     gettimeofday(&tv, NULL);
     timersub(&tv, &sStart, &tv);
 
-    return (uint32_t)(((uint64_t)tv.tv_sec * sSpeedUpFactor * MS_PER_S) +
-                      ((uint64_t)tv.tv_usec * sSpeedUpFactor / US_PER_MS));
+    return (uint32_t)(((unsigned long)tv.tv_sec * sSpeedUpFactor * MS_PER_S) +
+                      ((unsigned long)tv.tv_usec * sSpeedUpFactor / US_PER_MS));
 }
 
 void otPlatAlarmMilliStartAt(otInstance *aInstance, uint32_t aT0, uint32_t aDt)
@@ -196,4 +196,4 @@ void platformAlarmProcess(otInstance *aInstance)
 #endif // OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER
 }
 
-#endif // OPENTHREAD_POSIX_VIRTUAL_TIME == 0
+#endif // OPENTHREAD_POSIX_VIRTUAL_TIME == 0 || OPENTHREAD_ENABLE_POSIX_RADIO_NCP

@@ -34,6 +34,7 @@ libopenthread_posix_a_CPPFLAGS            = \
     -I$(top_srcdir)/include                 \
     -I$(top_srcdir)/examples/platforms      \
     -I$(top_srcdir)/src/core                \
+    -I$(top_srcdir)/src                     \
     -D_GNU_SOURCE                           \
     $(NULL)
 
@@ -48,6 +49,9 @@ PLATFORM_SOURCES                          = \
     uart-posix.c                            \
     flash.c                                 \
     spi-stubs.c                             \
+    ncp/frame_cache.cpp                     \
+    ncp/ncp_spinel.cpp                      \
+    ncp/radio-ncp.c                         \
     sim/alarm-sim.c                         \
     sim/platform-sim.c                      \
     sim/radio-sim.c                         \
@@ -57,8 +61,18 @@ libopenthread_posix_a_SOURCES             = \
      $(PLATFORM_SOURCES)                    \
     $(NULL)
 
+if OPENTHREAD_ENABLE_POSIX_RADIO_NCP
+libopenthread_posix_a_SOURCES            += \
+    ncp/hdlc.cpp                            \
+    ncp/spinel.c                            \
+    $(NULL)
+endif
+
 noinst_HEADERS                            = \
     platform-posix.h                        \
+    ncp/frame_cache.hpp                     \
+    ncp/ncp.h                               \
+    ncp/ncp_spinel.hpp                      \
     $(NULL)
 
 PRETTY_FILES                              = \

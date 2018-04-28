@@ -502,6 +502,40 @@ AM_CONDITIONAL([OPENTHREAD_ENABLE_NCP_FTD],     [test "${enable_ncp_app_ftd}" ==
 AM_CONDITIONAL([OPENTHREAD_ENABLE_NCP_RADIO],   [test "${enable_ncp_app_radio}" == "yes"])
 
 #
+# Posix Radio
+#
+
+AC_ARG_WITH(
+    [posix-radio],
+    [AS_HELP_STRING([--with-posix-radio],[Specify the POSIX radio (sim|ncp) @<:@default=sim@:>@.])],
+    [
+        case "${with_posix_radio}" in
+        sim)
+            OPENTHREAD_ENABLE_POSIX_RADIO_SIM=1
+            OPENTHREAD_ENABLE_POSIX_RADIO_NCP=0
+            ;;
+        ncp)
+            OPENTHREAD_ENABLE_POSIX_RADIO_SIM=0
+            OPENTHREAD_ENABLE_POSIX_RADIO_NCP=1
+            ;;
+        *)
+            AC_MSG_ERROR([unexpected --with-posix-radio=${with_posix_radio}])
+            ;;
+        esac
+    ],
+    [
+            OPENTHREAD_ENABLE_POSIX_RADIO_SIM=1
+            OPENTHREAD_ENABLE_POSIX_RADIO_NCP=0
+    ])
+
+AC_SUBST(OPENTHREAD_ENABLE_POSIX_RADIO_SIM)
+AC_SUBST(OPENTHREAD_ENABLE_POSIX_RADIO_NCP)
+AM_CONDITIONAL([OPENTHREAD_ENABLE_POSIX_RADIO_SIM], [test "${with_posix_radio}" == "sim"])
+AM_CONDITIONAL([OPENTHREAD_ENABLE_POSIX_RADIO_NCP], [test "${with_posix_radio}" == "ncp"])
+AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_POSIX_RADIO_SIM], [${OPENTHREAD_ENABLE_POSIX_RADIO_SIM}], [Define to 1 to simulate radio for POSIX.])
+AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_POSIX_RADIO_NCP], [${OPENTHREAD_ENABLE_POSIX_RADIO_NCP}], [Define to 1 to use ncp based radio for POSIX.])
+
+#
 # NCP BUS - how does the NCP talk to the host?
 #
 

@@ -66,6 +66,10 @@ class otCli:
             cmd = '%s/examples/apps/cli/ot-cli-%s' % (srcdir, mode)
         else:
             cmd = './ot-cli-%s' % mode
+
+        if 'NCP_FILE' in os.environ:
+            cmd += ' %s' % os.environ['NCP_FILE']
+
         cmd += ' %d' % nodeid
         print ("%s" % cmd)
 
@@ -81,8 +85,11 @@ class otCli:
             builddir = os.environ['top_builddir']
             cmd = 'spinel-cli.py -p %s/examples/apps/ncp/ot-ncp-%s -n' % (builddir, mode)
         else:
-            cmd = './ot-ncp-%s' % mode
-        cmd += ' %d' % nodeid
+            cmd = 'spinel-cli.py -p ./ot-ncp-%s -n' % mode
+        if 'NCP_FILE' in os.environ:
+            cmd += ' "%s %d"' % (os.environ['NCP_FILE'], nodeid)
+        else:
+            cmd += ' %d' % nodeid
         print ("%s" % cmd)
 
         self.pexpect = pexpect.spawn(cmd, timeout=4)
