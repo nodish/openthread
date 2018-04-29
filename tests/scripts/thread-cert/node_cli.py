@@ -73,7 +73,7 @@ class otCli:
         cmd += ' %d' % nodeid
         print ("%s" % cmd)
 
-        self.pexpect = pexpect.spawn(cmd, timeout=4)
+        self.pexpect = pexpect.spawn(cmd, timeout=10)
 
         # Add delay to ensure that the process is ready to receive commands.
         time.sleep(0.2)
@@ -92,7 +92,7 @@ class otCli:
             cmd += ' %d' % nodeid
         print ("%s" % cmd)
 
-        self.pexpect = pexpect.spawn(cmd, timeout=4)
+        self.pexpect = pexpect.spawn(cmd, timeout=10)
         time.sleep(0.2)
         self.pexpect.expect('spinel-cli >')
         self.debug(int(os.getenv('DEBUG', '0')))
