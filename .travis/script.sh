@@ -430,7 +430,7 @@ set -x
     make -f examples/Makefile-posix || die
     mv output $NCP_OUTPUT_DIR
     rm -rf build/*
-    NCP_FILE="$(pwd)/$(ls $NCP_OUTPUT_DIR/*/bin/ot-ncp-radio)" COVERAGE=1 RADIO=ncp BuildJobs=5 make -f examples/Makefile-posix check || die
+    NCP_FILE="$(pwd)/$(ls $NCP_OUTPUT_DIR/*/bin/ot-ncp-radio)" COVERAGE=1 RADIO=ncp make -f examples/Makefile-posix check || die
 }
 
 [ $BUILD_TARGET != posix-mtd ] || {
