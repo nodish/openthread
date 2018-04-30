@@ -822,6 +822,7 @@ otError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, const uint16_t
     }
 
 exit:
+    assert(error == OT_ERROR_NONE);
     (void)aInstance;
     return error;
 }

@@ -143,9 +143,10 @@ static int OpenPty(const char *aFile, const char *aConfig)
     char           command[255];
 
     sprintf(command, "%s %s", aFile, aConfig);
+    memset(&tios, 0, sizeof(tios));
+
     cfmakeraw(&tios);
 
-    memset(&tios, 0, sizeof(tios));
     tios.c_cflag = CS8 | HUPCL | CREAD | CLOCAL;
     // Duplicate stderr so that we can hook it back up in the forked process.
     stderrCopyFd = dup(STDERR_FILENO);
@@ -160,10 +161,6 @@ static int OpenPty(const char *aFile, const char *aConfig)
         // We are the forked process.
         const int dtablesize = getdtablesize();
         int       i;
-
-#if defined(_LINUX_PRCTL_H)
-        prctl(PR_SET_PDEATHSIG, SIGHUP);
-#endif
 
         // Re-instate our original stderr.
         dup2(stderrCopyFd, STDERR_FILENO);
@@ -183,11 +180,6 @@ static int OpenPty(const char *aFile, const char *aConfig)
         assert(false);
         _exit(EXIT_FAILURE);
     }
-
-#if HAVE_PTSNAME
-    // See http://stackoverflow.com/questions/3486491/
-    close(open(ptsname(masterFd), O_RDWR | O_NOCTTY));
-#endif
 
 exit:
     if (stderrCopyFd != -1)
