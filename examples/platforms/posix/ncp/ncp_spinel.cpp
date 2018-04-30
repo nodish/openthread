@@ -539,7 +539,7 @@ void NcpSpinel::Receive(void)
 
     if (rval < 0)
     {
-        perror("read");
+        perror("read spinel");
         if (errno != EAGAIN)
         {
             abort();
