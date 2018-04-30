@@ -188,7 +188,6 @@ static int OpenPty(const char *aFile, const char *aConfig)
         fcntl(masterFd, F_SETFL, flags | O_NONBLOCK);
     }
 
-
 exit:
     if (stderrCopyFd != -1)
     {
@@ -541,7 +540,10 @@ void NcpSpinel::Receive(void)
     if (rval < 0)
     {
         perror("read");
-        abort();
+        if (errno != EAGAIN)
+        {
+            abort();
+        }
     }
     if (rval > 0)
     {
