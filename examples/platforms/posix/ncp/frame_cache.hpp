@@ -21,7 +21,7 @@ public:
 private:
     enum
     {
-        kCacheSize = 1024,
+        kCacheSize = 2048,
     };
 
     uint8_t  mBuffer[kCacheSize];

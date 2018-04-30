@@ -34,6 +34,7 @@
 #include <errno.h>
 #include <pty.h>
 #include <stdarg.h>
+#include <sys/time.h>
 #include <sys/wait.h>
 #include <syslog.h>
 #include <termios.h>
@@ -629,26 +630,26 @@ otError NcpSpinel::Remove(spinel_prop_key_t aKey, const char *aFormat, va_list a
 otError NcpSpinel::WaitReply(void)
 {
     otError        error = OT_ERROR_NONE;
-    struct timeval started;
-    long           expire;
-    long           now;
+    struct timeval end;
+    struct timeval now;
+    struct timeval timeout = {
+        kMaxWaitTime / 1000,
+        (kMaxWaitTime % 1000) * 1000
+    };
 
-    gettimeofday(&started, NULL);
-    expire = started.tv_usec + kMaxWaitTime * 1000;
-    now    = started.tv_usec;
+    gettimeofday(&now, NULL);
+    timeradd(&now, &timeout, &end);
 
     do
     {
         fd_set read_fds;
         fd_set error_fds;
+
         FD_ZERO(&read_fds);
         FD_ZERO(&error_fds);
         FD_SET(mSockFd, &read_fds);
         FD_SET(mSockFd, &error_fds);
-        struct timeval timeout;
-        timeout.tv_sec  = 0;
-        timeout.tv_usec = expire - now;
-        int rval        = select(mSockFd + 1, &read_fds, NULL, &error_fds, &timeout);
+        int rval = select(mSockFd + 1, &read_fds, NULL, &error_fds, &timeout);
         if (rval > 0)
         {
             assert(!FD_ISSET(mSockFd, &error_fds));
@@ -680,17 +681,19 @@ otError NcpSpinel::WaitReply(void)
             assert(false);
             exit(EXIT_FAILURE);
         }
-        {
-            struct timeval tv;
-            gettimeofday(&tv, NULL);
-            now = tv.tv_usec;
-            if (tv.tv_sec != started.tv_sec)
-            {
-                now += 1000 * 1000 * (tv.tv_sec - started.tv_sec);
-            }
-        }
-    } while (mWaitingTid && expire > now);
 
+        gettimeofday(&now, NULL);
+        if (timercmp(&end, &now, >))
+        {
+            timersub(&end, &now, &timeout);
+        }
+        else
+        {
+            break;
+        }
+    } while (mWaitingTid);
+
+    assert(mWaitingTid == 0);
     error = mLastError;
 
 exit:

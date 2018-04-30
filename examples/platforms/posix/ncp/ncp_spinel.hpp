@@ -128,7 +128,7 @@ public:
 private:
     enum
     {
-        kMaxSpinelFrame = 512,  /// Max size in bytes for transfering spinel frames.
+        kMaxSpinelFrame = 512,  ///< Max size in bytes for transfering spinel frames.
         kMaxWaitTime    = 2000, ///< Max time to wait for response in milliseconds.
     };
 
