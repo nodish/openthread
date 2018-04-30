@@ -32,6 +32,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <pty.h>
 #include <stdarg.h>
 #include <sys/time.h>
@@ -136,32 +137,33 @@ static otError SpinelStatusToOtError(spinel_status_t aError)
 
 static int OpenPty(const char *aFile, const char *aConfig)
 {
-    int            masterFd     = -1;
-    int            stderrCopyFd = -1;
-    int            pid;
-    struct termios tios;
-    char           command[255];
+    int masterFd     = -1;
+    int stderrCopyFd = -1;
+    int pid;
 
-    sprintf(command, "%s %s", aFile, aConfig);
-    memset(&tios, 0, sizeof(tios));
+    {
+        struct termios tios;
 
-    cfmakeraw(&tios);
+        memset(&tios, 0, sizeof(tios));
+        cfmakeraw(&tios);
+        tios.c_cflag = CS8 | HUPCL | CREAD | CLOCAL;
+        // Duplicate stderr so that we can hook it back up in the forked process.
+        stderrCopyFd = dup(STDERR_FILENO);
+        otEXPECT(stderrCopyFd > 0);
 
-    tios.c_cflag = CS8 | HUPCL | CREAD | CLOCAL;
-    // Duplicate stderr so that we can hook it back up in the forked process.
-    stderrCopyFd = dup(STDERR_FILENO);
-    otEXPECT(stderrCopyFd > 0);
-
-    pid = forkpty(&masterFd, NULL, &tios, NULL);
-    otEXPECT(pid >= 0);
+        pid = forkpty(&masterFd, NULL, &tios, NULL);
+        otEXPECT(pid >= 0);
+    }
 
     // Check to see if we are the forked process or not.
     if (0 == pid)
     {
+        char command[255];
         // We are the forked process.
         const int dtablesize = getdtablesize();
         int       i;
 
+        sprintf(command, "%s %s", aFile, aConfig);
         // Re-instate our original stderr.
         dup2(stderrCopyFd, STDERR_FILENO);
 
@@ -180,6 +182,12 @@ static int OpenPty(const char *aFile, const char *aConfig)
         assert(false);
         _exit(EXIT_FAILURE);
     }
+    else
+    {
+        int flags = fcntl(masterFd, F_GETFL);
+        fcntl(masterFd, F_SETFL, flags | O_NONBLOCK);
+    }
+
 
 exit:
     if (stderrCopyFd != -1)
@@ -226,7 +234,7 @@ static int OpenUart(const char *aNcpFile, const char *aNcpConfig)
     sprintf(stty, "stty -F %s %s", aNcpFile, aNcpConfig);
     int rval = system(stty);
     assert(rval == 0);
-    int fd = open(aNcpFile, O_RDWR | O_NOCTTY);
+    int fd = open(aNcpFile, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd == -1)
     {
         perror("open");
@@ -530,13 +538,15 @@ void NcpSpinel::Receive(void)
     uint8_t buf[kMaxSpinelFrame];
     ssize_t rval = read(mSockFd, buf, sizeof(buf));
 
-    if (rval <= 0)
+    if (rval < 0)
     {
         perror("read");
         abort();
     }
-
-    mHdlcDecoder.Decode(buf, static_cast<uint16_t>(rval));
+    if (rval > 0)
+    {
+        mHdlcDecoder.Decode(buf, static_cast<uint16_t>(rval));
+    }
 }
 
 void NcpSpinel::ProcessCache(void)
