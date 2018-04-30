@@ -632,10 +632,7 @@ otError NcpSpinel::WaitReply(void)
     otError        error = OT_ERROR_NONE;
     struct timeval end;
     struct timeval now;
-    struct timeval timeout = {
-        kMaxWaitTime / 1000,
-        (kMaxWaitTime % 1000) * 1000
-    };
+    struct timeval timeout = {kMaxWaitTime / 1000, (kMaxWaitTime % 1000) * 1000};
 
     gettimeofday(&now, NULL);
     timeradd(&now, &timeout, &end);
