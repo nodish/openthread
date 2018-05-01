@@ -33,7 +33,6 @@ import time
 import pexpect
 import re
 import ipaddress
-import subprocess
 
 import config
 import simulator
@@ -74,7 +73,7 @@ class otCli:
         cmd += ' %d' % nodeid
         print ("%s" % cmd)
 
-        self.pexpect = pexpect.spawn(cmd, timeout=10)
+        self.pexpect = pexpect.spawn(cmd, timeout=4)
 
         # Add delay to ensure that the process is ready to receive commands.
         time.sleep(0.2)
@@ -83,19 +82,19 @@ class otCli:
     def __init_ncp_sim(self, nodeid, mode):
         """ Initialize an NCP simulation node. """
         if 'NCP_FILE' in os.environ:
-            args = os.environ['NCP_FILE']
+            args = ' %s' % os.environ['NCP_FILE']
         else:
             args = ''
 
         if "top_builddir" in os.environ.keys():
             builddir = os.environ['top_builddir']
-            cmd = 'spinel-cli.py -p "%s/examples/apps/ncp/ot-ncp-%s %s" -n' % (builddir, mode, args)
+            cmd = 'spinel-cli.py -p "%s/examples/apps/ncp/ot-ncp-%s%s" -n' % (builddir, mode, args)
         else:
-            cmd = 'spinel-cli.py -p "./ot-ncp-%s %s" -n' % (mode, args)
+            cmd = 'spinel-cli.py -p "./ot-ncp-%s%s" -n' % (mode, args)
         cmd += ' %d' % nodeid
         print ("%s" % cmd)
 
-        self.pexpect = pexpect.spawn(cmd, timeout=10)
+        self.pexpect = pexpect.spawn(cmd, timeout=4)
         time.sleep(0.2)
         self.pexpect.expect('spinel-cli >')
         self.debug(int(os.getenv('DEBUG', '0')))
