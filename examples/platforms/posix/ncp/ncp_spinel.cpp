@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017-2018, The OpenThread Authors.
+ *  Copyright (c) 2018, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -40,8 +40,6 @@
 #include <syslog.h>
 #include <termios.h>
 #include <unistd.h>
-
-#include <openthread-core-config.h>
 
 #include <common/logging.hpp>
 #include <openthread/platform/alarm-milli.h>

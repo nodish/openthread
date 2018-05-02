@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017-2018, The OpenThread Authors.
+ *  Copyright (c) 2018, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,6 @@
 
 #include <assert.h>
 #include <string.h>
-
-#include <openthread-core-config.h>
 
 #include "utils/code_utils.h"
 

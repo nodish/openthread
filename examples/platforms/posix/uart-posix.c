@@ -240,13 +240,15 @@ void platformUartProcess(const fd_set *aReadFdSet, const fd_set *aWriteFdSet, co
     {
         rval = read(s_in_fd, s_receive_buffer, sizeof(s_receive_buffer));
 
-        if (rval <= 0)
+        if (rval < 0)
         {
             perror("read");
             exit(EXIT_FAILURE);
         }
-
-        otPlatUartReceived(s_receive_buffer, (uint16_t)rval);
+        else if (rval > 0)
+        {
+            otPlatUartReceived(s_receive_buffer, (uint16_t)rval);
+        }
     }
 
     if ((s_write_length > 0) && (FD_ISSET(s_out_fd, aWriteFdSet)))

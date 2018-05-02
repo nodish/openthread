@@ -401,7 +401,7 @@ void platformRadioInit(void)
     }
     else
     {
-        sockaddr.sin_port = htons(9000 + sPortOffset + NODE_ID);
+        sockaddr.sin_port = htons(9000 + sPortOffset + (uint16_t)NODE_ID);
     }
 
     sockaddr.sin_addr.s_addr = INADDR_ANY;

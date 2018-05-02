@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2018, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -79,11 +79,6 @@ enum
     IEEE802154_KEY_ID_MODE_MASK = 3 << 3,
 
     IEEE802154_MACCMD_DATA_REQ = 4,
-};
-
-enum
-{
-    POSIX_RECEIVE_SENSITIVITY = -100, // dBm
 };
 
 enum
