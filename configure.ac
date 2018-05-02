@@ -511,11 +511,9 @@ AC_ARG_WITH(
     [
         case "${with_posix_radio}" in
         sim)
-            OPENTHREAD_ENABLE_POSIX_RADIO_SIM=1
             OPENTHREAD_ENABLE_POSIX_RADIO_NCP=0
             ;;
         ncp)
-            OPENTHREAD_ENABLE_POSIX_RADIO_SIM=0
             OPENTHREAD_ENABLE_POSIX_RADIO_NCP=1
             ;;
         *)
@@ -524,16 +522,12 @@ AC_ARG_WITH(
         esac
     ],
     [
-            OPENTHREAD_ENABLE_POSIX_RADIO_SIM=1
             OPENTHREAD_ENABLE_POSIX_RADIO_NCP=0
     ])
 
-AC_SUBST(OPENTHREAD_ENABLE_POSIX_RADIO_SIM)
 AC_SUBST(OPENTHREAD_ENABLE_POSIX_RADIO_NCP)
-AM_CONDITIONAL([OPENTHREAD_ENABLE_POSIX_RADIO_SIM], [test "${with_posix_radio}" == "sim"])
 AM_CONDITIONAL([OPENTHREAD_ENABLE_POSIX_RADIO_NCP], [test "${with_posix_radio}" == "ncp"])
-AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_POSIX_RADIO_SIM], [${OPENTHREAD_ENABLE_POSIX_RADIO_SIM}], [Define to 1 to simulate radio for POSIX.])
-AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_POSIX_RADIO_NCP], [${OPENTHREAD_ENABLE_POSIX_RADIO_NCP}], [Define to 1 to use ncp based radio for POSIX.])
+AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_POSIX_RADIO_NCP], [${OPENTHREAD_ENABLE_POSIX_RADIO_NCP}], [Define to 1 to use ncp based radio for POSIX platform.])
 
 #
 # NCP BUS - how does the NCP talk to the host?

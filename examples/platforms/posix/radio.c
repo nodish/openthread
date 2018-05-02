@@ -28,7 +28,7 @@
 
 #include "platform-posix.h"
 
-#if OPENTHREAD_POSIX_VIRTUAL_TIME == 0 && OPENTHREAD_ENABLE_POSIX_RADIO_SIM
+#if OPENTHREAD_POSIX_VIRTUAL_TIME == 0 && OPENTHREAD_ENABLE_POSIX_RADIO_NCP == 0
 
 #include <openthread/platform/alarm-milli.h>
 #include <openthread/platform/diag.h>
@@ -888,4 +888,4 @@ int8_t otPlatRadioGetReceiveSensitivity(otInstance *aInstance)
     return POSIX_RECEIVE_SENSITIVITY;
 }
 
-#endif // OPENTHREAD_POSIX_VIRTUAL_TIME == 0 && OPENTHREAD_ENABLE_POSIX_RADIO_SIM
+#endif // OPENTHREAD_POSIX_VIRTUAL_TIME == 0 && OPENTHREAD_ENABLE_POSIX_RADIO_NCP == 0
