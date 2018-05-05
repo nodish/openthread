@@ -448,6 +448,8 @@ private:
 #endif
 
     DataPollManager mDataPollManager;
+
+    TimerMilli mLedTimer;
 };
 
 /**

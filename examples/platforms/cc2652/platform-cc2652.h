@@ -82,6 +82,12 @@ void cc2652RandomInit(void);
  */
 void cc2652UartProcess(void);
 
+/**
+ * This method initializes the Gpios for the demo
+ *
+ */
+void cc2652GpioInit(void);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

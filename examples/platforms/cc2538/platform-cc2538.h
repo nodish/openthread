@@ -90,4 +90,10 @@ void cc2538RandomInit(void);
  */
 void cc2538UartProcess(void);
 
+/**
+ * This function initializes the Gpios used for demo.
+ *
+ */
+void cc2538GpioInit(void);
+
 #endif // PLATFORM_CC2538_H_

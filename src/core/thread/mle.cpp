@@ -37,6 +37,7 @@
 
 #include <openthread/platform/radio.h>
 #include <openthread/platform/time.h>
+#include <openthread/platform/gpio.h>
 
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
@@ -57,6 +58,7 @@
 #include "thread/mle_router.hpp"
 #include "thread/thread_netif.hpp"
 #include "thread/time_sync_service.hpp"
+#include "utils/slaac_address.cpp"
 
 using ot::Encoding::BigEndian::HostSwap16;
 
@@ -111,6 +113,7 @@ Mle::Mle(Instance &aInstance)
     , mNotifierCallback(&Mle::HandleStateChanged, this)
     , mParentResponseCb(NULL)
     , mParentResponseCbContext(NULL)
+    , mHeartBeatTimer(aInstance, &Mle::HandleHeartBeatTimer, this)
 {
     otMeshLocalPrefix meshLocalPrefix;
 
@@ -276,6 +279,8 @@ otError Mle::Start(bool aEnableReattach, bool aAnnounceAttach)
         SendChildUpdateRequest();
     }
 
+    mHeartBeatTimer.Start(10000); // 10s
+
 exit:
     return error;
 }
@@ -300,6 +305,8 @@ otError Mle::Stop(bool aClearNetworkDatasets)
     netif.RemoveUnicastAddress(mMeshLocal64);
 
     SetRole(OT_DEVICE_ROLE_DISABLED);
+
+    mHeartBeatTimer.Stop();
 
 exit:
     return OT_ERROR_NONE;
@@ -723,6 +730,12 @@ otError Mle::SetStateDetached(void)
     netif.GetIp6().SetForwardingEnabled(false);
     netif.GetIp6().GetMpl().SetTimerExpirations(0);
 
+    // turn off all of the LEDs when detach
+    otPlatGpioClear(LED_GPIO_PORT, RED_LED_PIN);
+    otPlatGpioClear(LED_GPIO_PORT, GREEN_LED_PIN);
+    otPlatGpioClear(LED_GPIO_PORT, BLUE_LED_PIN);
+
+    otLogInfoMle(GetInstance(), "Role -> Detached");
     return OT_ERROR_NONE;
 }
 
@@ -768,6 +781,12 @@ otError Mle::SetStateChild(uint16_t aRloc16)
     mPreviousParentRloc = mParent.GetRloc16();
 #endif
 
+    // turn on the green LED when becoming a child and turn off other two LEDs
+    otPlatGpioSet(LED_GPIO_PORT, GREEN_LED_PIN);
+    otPlatGpioClear(LED_GPIO_PORT, BLUE_LED_PIN);
+    otPlatGpioClear(LED_GPIO_PORT, RED_LED_PIN);
+
+    otLogInfoMle(GetInstance(), "Role -> Child");
     return OT_ERROR_NONE;
 }
 
@@ -4124,6 +4143,7 @@ const char *Mle::RoleToString(otDeviceRole aRole)
     return roleString;
 }
 
+
 #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_NOTE) && (OPENTHREAD_CONFIG_LOG_MLE == 1)
 const char *Mle::AttachModeToString(AttachMode aMode)
 {
@@ -4229,6 +4249,79 @@ void Mle::RegisterParentResponseStatsCallback(otThreadParentResponseCallback aCa
 {
     mParentResponseCb        = aCallback;
     mParentResponseCbContext = aContext;
+}
+
+#define OT_URI_PATH_HEART_BEAT "hb"
+
+#define DEMO_SERVER_IP "64:ff9b::68c5:c52"
+#define DEMO_SERVER_PORT 25683
+
+void Mle::SendHeartBeat(void)
+{
+    ThreadNetif &netif = GetNetif();
+    otError error = OT_ERROR_NONE;
+    Message *message;
+    Ip6::MessageInfo messageInfo;
+    Coap::Header     header;
+    Ip6::Address coapDestinationIp;
+
+    uint8_t iid = Utils::Slaac::GetIid();
+    uint16_t rloc = ot::Encoding::BigEndian::HostSwap16(GetRloc16());
+    uint8_t parentId = GetRouterId(mParent.GetRloc16());
+    uint8_t leaderId = GetLeaderId();
+
+    header.Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
+    header.SetToken(Coap::Header::kDefaultTokenLength);
+    header.AppendUriPathOptions(OT_URI_PATH_HEART_BEAT);
+    header.SetPayloadMarker();
+
+    VerifyOrExit((message = netif.GetCoap().NewMessage(header)) != NULL, error = OT_ERROR_NO_BUFS);
+
+    SuccessOrExit(error = message->Append(&iid, sizeof(iid)));
+    SuccessOrExit(error = message->Append(&rloc, sizeof(rloc)));
+    SuccessOrExit(error = message->Append(&leaderId, sizeof(leaderId)));
+
+    if (mRole == OT_DEVICE_ROLE_CHILD)
+    {
+        SuccessOrExit(error = message->Append(&parentId, sizeof(parentId)));
+    }
+
+#if OPENTHREAD_FTD
+    if (mRole == OT_DEVICE_ROLE_LEADER || mRole == OT_DEVICE_ROLE_ROUTER)
+    {
+        SuccessOrExit(error = netif.GetMle().AppendRouteInfo(*message));
+    }
+#endif
+
+    memset(&messageInfo, 0, sizeof(messageInfo));
+    coapDestinationIp.FromString(DEMO_SERVER_IP);
+    messageInfo.SetPeerAddr(coapDestinationIp);
+    messageInfo.SetPeerPort(DEMO_SERVER_PORT);
+
+    SuccessOrExit(error = netif.GetCoap().SendMessage(*message, messageInfo));
+
+    otLogInfoMle(GetInstance(), "sending heart beat message");
+
+exit:
+
+    if ((error != OT_ERROR_NONE) && (message != NULL))
+    {
+        otMessageFree(message);
+    }
+
+    mHeartBeatTimer.Start(10000); // 10s
+
+    return;
+}
+
+void Mle::HandleHeartBeatTimer(Timer &aTimer)
+{
+    aTimer.GetOwner<Mle>().HandleHeartBeatTimer();
+}
+
+void Mle::HandleHeartBeatTimer(void)
+{
+    SendHeartBeat();
 }
 
 } // namespace Mle

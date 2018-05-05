@@ -48,6 +48,48 @@
 namespace ot {
 namespace Utils {
 
+#ifdef OPENTHREAD_EXAMPLES_CC2538
+static uint8_t mIid[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa1};
+//static uint8_t mIid[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xb1};
+#endif // OPENTHREAD_EXAMPLES_CC2538
+
+#ifdef OPENTHREAD_EXAMPLES_CC2650
+static uint8_t mIid[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa2};
+#endif // OPENTHREAD_EXAMPLES_CC2650
+
+#ifdef OPENTHREAD_EXAMPLES_CC2652
+static uint8_t mIid[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa3};
+#endif // OPENTHREAD_EXAMPLES_CC2652
+
+#ifdef OPENTHREAD_EXAMPLES_KW41Z
+static uint8_t mIid[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa4};
+#endif //OPENTHREAD_EXAMPLES_KW41Z
+
+#ifdef OPENTHREAD_EXAMPLES_NRF52840
+static uint8_t mIid[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa5};
+#endif //OPENTHREAD_EXAMPLES_NRF52840
+
+#ifdef OPENTHREAD_EXAMPLES_EFR32
+#ifdef EFR32MG12P432F1024GL125 // Wireless Started Kit
+static uint8_t mIid[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa6};
+#else                         // Thunderboard Sense2
+static uint8_t mIid[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa7};
+#endif
+#endif //OPENTHREAD_EXAMPLES_EFR32
+
+#ifdef OPENTHREAD_EXAMPLES_DA15000
+static uint8_t mIid[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa8};
+#endif //OPENTHREAD_EXAMPLES_DA15000
+
+#ifdef OPENTHREAD_EXAMPLES_CORAL
+static uint8_t mIid[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa9};
+#endif // OPENTHREAD_EXAMPLES_CORAL
+
+uint8_t Slaac::GetIid()
+{
+    return mIid[7];
+}
+
 void Slaac::UpdateAddresses(otInstance *    aInstance,
                             otNetifAddress *aAddresses,
                             uint32_t        aNumAddresses,
@@ -154,7 +196,8 @@ void Slaac::UpdateAddresses(otInstance *    aInstance,
 
 otError Slaac::CreateRandomIid(otInstance *, otNetifAddress *aAddress, void *)
 {
-    Random::FillBuffer(aAddress->mAddress.mFields.m8 + OT_IP6_ADDRESS_SIZE - OT_IP6_IID_SIZE, OT_IP6_IID_SIZE);
+    //Random::FillBuffer(aAddress->mAddress.mFields.m8 + OT_IP6_ADDRESS_SIZE - OT_IP6_IID_SIZE, OT_IP6_IID_SIZE);
+    memcpy(&(aAddress->mAddress.mFields.m8[8]), mIid, sizeof(mIid));
     return OT_ERROR_NONE;
 }
 

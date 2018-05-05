@@ -37,6 +37,8 @@
 
 #include "mesh_forwarder.hpp"
 
+#include <openthread/platform/gpio.h>
+
 #include "common/logging.hpp"
 #include "common/owner-locator.hpp"
 #include "meshcop/meshcop.hpp"
@@ -960,6 +962,14 @@ void MeshForwarder::HandleMesh(uint8_t *               aFrame,
     }
     else if (meshHeader.GetHopsLeft() > 0)
     {
+        // turn off all of the LEDs when forwarding a message
+        otPlatGpioSet(LED_GPIO_PORT, RED_LED_PIN);
+        otPlatGpioSet(LED_GPIO_PORT, GREEN_LED_PIN);
+        otPlatGpioSet(LED_GPIO_PORT, BLUE_LED_PIN);
+
+        // turn on the original LED after 300ms
+        mLedTimer.Start(300);
+
         netif.GetMle().ResolveRoutingLoops(aMacSource.GetShort(), meshDest.GetShort());
 
         SuccessOrExit(error = CheckReachability(aFrame, aFrameLength, meshSource, meshDest));

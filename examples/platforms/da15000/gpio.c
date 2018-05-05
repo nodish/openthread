@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,40 +28,42 @@
 
 /**
  * @file
- * @brief
- *   This file includes the platform-specific initializers.
+ *   This file implements the OpenThread platform abstraction for GPIO.
+ *
  */
-#include "platform-cc2538.h"
-#include <openthread/config.h>
 
-otInstance *sInstance;
+#include <openthread/types.h>
+#include <openthread/platform/gpio.h>
 
-void otSysInit(int argc, char *argv[])
+#include "platform-da15000.h"
+#include "hw_gpio.h"
+
+static uint8_t mRedLedOutput   = GPIO_LOGIC_LOW;
+static uint8_t mGreenLedOutput = GPIO_LOGIC_LOW;
+static uint8_t mBlueLedOutput  = GPIO_LOGIC_LOW;
+
+void da15000GpioInit()
 {
-#if OPENTHREAD_CONFIG_ENABLE_DEBUG_UART
-    cc2538DebugUartInit();
-#endif
-    cc2538AlarmInit();
-    cc2538RandomInit();
-    cc2538RadioInit();
-    cc2538GpioInit();
+    // configure GPIO mode: output and initial pin state as low
+    hw_gpio_set_pin_function(LED_GPIO_PORT, RED_LED_PIN, HW_GPIO_MODE_OUTPUT, HW_GPIO_FUNC_GPIO);
+    hw_gpio_set_pin_function(LED_GPIO_PORT, GREEN_LED_PIN, HW_GPIO_MODE_OUTPUT, HW_GPIO_FUNC_GPIO);
+    hw_gpio_set_pin_function(LED_GPIO_PORT, BLUE_LED_PIN, HW_GPIO_MODE_OUTPUT, HW_GPIO_FUNC_GPIO);
 
-    (void)argc;
-    (void)argv;
+    hw_gpio_set_inactive(LED_GPIO_PORT, RED_LED_PIN);
+    hw_gpio_set_inactive(LED_GPIO_PORT, GREEN_LED_PIN);
+    hw_gpio_set_inactive(LED_GPIO_PORT, BLUE_LED_PIN);
+
+    mRedLedOutput   = GPIO_LOGIC_LOW;
+    mGreenLedOutput = GPIO_LOGIC_LOW;
+    mBlueLedOutput  = GPIO_LOGIC_LOW;
 }
 
-bool otSysPseudoResetWasRequested(void)
+void otPlatGpioSet(uint32_t port, uint8_t pin)
 {
-    return false;
+    hw_gpio_set_active(port, pin);
 }
 
-void otSysProcessDrivers(otInstance *aInstance)
+void otPlatGpioClear(uint32_t port, uint8_t pin)
 {
-    sInstance = aInstance;
-
-    // should sleep and wait for interrupts here
-
-    cc2538UartProcess();
-    cc2538RadioProcess(aInstance);
-    cc2538AlarmProcess(aInstance);
+    hw_gpio_set_inactive(port, pin);
 }

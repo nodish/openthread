@@ -77,6 +77,12 @@ void cc2650RandomInit(void);
  */
 void cc2650UartProcess(void);
 
+/**
+ * This method initializes the Gpios for the demo
+ *
+ */
+void cc2650GpioInit(void);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

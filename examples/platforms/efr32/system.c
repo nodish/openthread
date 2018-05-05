@@ -75,6 +75,7 @@ void otSysInit(int argc, char *argv[])
     efr32AlarmInit();
     efr32MiscInit();
     efr32RandomInit();
+    efr32GpioInit();
 }
 
 bool otSysPseudoResetWasRequested(void)

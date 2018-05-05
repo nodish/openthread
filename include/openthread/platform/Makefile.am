@@ -33,6 +33,7 @@ ot_platform_headers                     = \
     alarm-milli.h                         \
     ble.h                                 \
     diag.h                                \
+    gpio.h                                \
     memory.h                              \
     misc.h                                \
     logging.h                             \

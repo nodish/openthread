@@ -98,6 +98,8 @@ void otSysInit(int argc, char *argv[])
 #endif
 
     gPlatformPseudoResetWasRequested = false;
+
+    nrf5GpioInit();
 }
 
 void otSysDeinit(void)

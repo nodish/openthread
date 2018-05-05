@@ -116,4 +116,30 @@
  */
 #define RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM                   6
 
+/* GPIO configuration for demo */
+#include "em_gpio.h"
+#ifdef EFR32MG12P432F1024GL125 // Wireless Started Kit
+
+#define LED_GPIO_PORT   gpioPortD
+#define RED_LED_PIN     10
+#define GREEN_LED_PIN   9
+#define BLUE_LED_PIN    8
+
+#else                         // Thunderboard Sense2
+
+#define RGB_ENABLE_PORT   gpioPortJ
+#define RGB_ENABLE_GPIO   14
+#define RGB_SELECT_PORT   gpioPortI
+#define RGB_SELECT_GPIO0  0
+#define RGB_SELECT_GPIO1  1
+#define RGB_SELECT_GPIO2  2
+#define RGB_SELECT_GPIO3  3
+
+#define LED_GPIO_PORT   gpioPortD
+#define RED_LED_PIN     11
+#define GREEN_LED_PIN   12
+#define BLUE_LED_PIN    13
+
+#endif
+
 #endif  // OPENTHREAD_CORE_EFR32_CONFIG_H_

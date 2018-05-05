@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -27,41 +27,55 @@
  */
 
 /**
- * @file
- * @brief
- *   This file includes the platform-specific initializers.
+ * @file:This file implements the OpenThread platform abstraction for GPIO.
+ *
  */
-#include "platform-cc2538.h"
-#include <openthread/config.h>
 
-otInstance *sInstance;
+#include <openthread/types.h>
+#include <openthread/platform/gpio.h>
 
-void otSysInit(int argc, char *argv[])
+#include <hal/nrf_gpio.h>
+
+#include "platform-nrf5.h"
+
+void nrf5GpioInit(void)
 {
-#if OPENTHREAD_CONFIG_ENABLE_DEBUG_UART
-    cc2538DebugUartInit();
-#endif
-    cc2538AlarmInit();
-    cc2538RandomInit();
-    cc2538RadioInit();
-    cc2538GpioInit();
+    // configure GPIO mode: output
+    nrf_gpio_cfg_output(RED_LED_PIN);
+    nrf_gpio_cfg_output(GREEN_LED_PIN);
+    nrf_gpio_cfg_output(BLUE_LED_PIN);
 
-    (void)argc;
-    (void)argv;
+    // clear all output first
+    nrf_gpio_pin_write(RED_LED_PIN, GPIO_LOGIC_LOW);
+    nrf_gpio_pin_write(GREEN_LED_PIN, GPIO_LOGIC_LOW);
+    nrf_gpio_pin_write(BLUE_LED_PIN, GPIO_LOGIC_LOW);
 }
 
-bool otSysPseudoResetWasRequested(void)
+void otPlatGpioSet(uint32_t port, uint8_t pin)
 {
-    return false;
+    (void)port;
+
+    nrf_gpio_pin_write(pin, GPIO_LOGIC_HIGH);
 }
 
-void otSysProcessDrivers(otInstance *aInstance)
+void otPlatGpioClear(uint32_t port, uint8_t pin)
 {
-    sInstance = aInstance;
+    (void)port;
 
-    // should sleep and wait for interrupts here
+    nrf_gpio_pin_write(pin, GPIO_LOGIC_LOW);
+}
 
-    cc2538UartProcess();
-    cc2538RadioProcess(aInstance);
-    cc2538AlarmProcess(aInstance);
+void otPlatGpioToggle(uint32_t port, uint8_t pin)
+{
+    (void)port;
+
+    nrf_gpio_pin_toggle((uint32_t)pin);
+}
+
+uint8_t otPlatGpioGet(uint32_t port, uint8_t pin)
+{
+    (void)port;
+    uint8_t rval = nrf_gpio_pin_out_read((uint32_t)pin);
+
+    return rval > 0 ? GPIO_LOGIC_HIGH : GPIO_LOGIC_LOW;
 }

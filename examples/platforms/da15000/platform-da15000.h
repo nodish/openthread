@@ -68,6 +68,7 @@ void da15000AlarmProcess(otInstance *aInstance);
  */
 void da15000RandomInit(void);
 
+void da15000GpioInit(void);
 /**
  * This function performs UART driver processing.
  *

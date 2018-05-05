@@ -35,6 +35,8 @@
 
 #include "mesh_forwarder.hpp"
 
+#include <openthread/platform/gpio.h>
+
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
 #include "common/encoding.hpp"
@@ -84,6 +86,7 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
     , mIndirectStartingChild(NULL)
 #endif
     , mDataPollManager(aInstance)
+    , mLedTimer(aInstance, &MeshForwarder::HandleLedTimer, this)
 {
     mFragTag = Random::GetUint16();
 
@@ -1872,5 +1875,35 @@ void MeshForwarder::LogLowpanHcFrameDrop(otError, uint8_t, const Mac::Address &,
 }
 
 #endif // #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_INFO) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
+
+void MeshForwarder::HandleLedTimer(Timer &aTimer)
+{
+    aTimer.GetOwner<MeshForwarder>().HandleLedTimer();
+}
+
+void MeshForwarder::HandleLedTimer(void)
+{
+    otDeviceRole role = GetNetif().GetMle().GetRole();
+
+    // turn on the original LED
+    if (role == OT_DEVICE_ROLE_LEADER)
+    {
+        otPlatGpioSet(LED_GPIO_PORT, RED_LED_PIN);
+        otPlatGpioClear(LED_GPIO_PORT, GREEN_LED_PIN);
+        otPlatGpioClear(LED_GPIO_PORT, BLUE_LED_PIN);
+    }
+    else if (role == OT_DEVICE_ROLE_ROUTER)
+    {
+        otPlatGpioSet(LED_GPIO_PORT, BLUE_LED_PIN);
+        otPlatGpioClear(LED_GPIO_PORT, RED_LED_PIN);
+        otPlatGpioClear(LED_GPIO_PORT, GREEN_LED_PIN);
+    }
+    else if (role == OT_DEVICE_ROLE_CHILD)
+    {
+        otPlatGpioSet(LED_GPIO_PORT, GREEN_LED_PIN);
+        otPlatGpioClear(LED_GPIO_PORT, RED_LED_PIN);
+        otPlatGpioClear(LED_GPIO_PORT, BLUE_LED_PIN);
+    }
+}
 
 } // namespace ot

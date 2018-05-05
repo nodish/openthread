@@ -100,4 +100,13 @@
  */
 #define OPENTHREAD_CONFIG_ENABLE_SOFTWARE_CSMA_BACKOFF          1
 
+/* GPIO configuration for demo */
+#define LED_GPIO_PORT   0x400FF000u
+#define RED_LED_PIN     1
+#define GREEN_LED_PIN   19
+#define BLUE_LED_PIN    18
+
+#define INTERRUPT_PORT  0x400FF000u
+#define INTERRUPT_PIN   4
+
 #endif  // OPENTHREAD_CORE_KW41Z_CONFIG_H_

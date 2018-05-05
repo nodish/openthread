@@ -36,6 +36,8 @@
 
 #include "mle_router.hpp"
 
+#include <openthread/platform/gpio.h>
+
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
 #include "common/encoding.hpp"
@@ -333,6 +335,12 @@ otError MleRouter::SetStateRouter(uint16_t aRloc16)
         }
     }
 
+    // turn on the blue LED when becoming a Router and turn off other two LEDs
+    otPlatGpioSet(LED_GPIO_PORT, BLUE_LED_PIN);
+    otPlatGpioClear(LED_GPIO_PORT, GREEN_LED_PIN);
+    otPlatGpioClear(LED_GPIO_PORT, RED_LED_PIN);
+
+    otLogInfoMle(GetInstance(), "Role -> Router");
     return OT_ERROR_NONE;
 }
 
@@ -376,6 +384,12 @@ otError MleRouter::SetStateLeader(uint16_t aRloc16)
 
     otLogNoteMle("Leader partition id 0x%x", mLeaderData.GetPartitionId());
 
+    // turn on the red LED when becoming a Leader and turn off other two LEDs
+    otPlatGpioSet(LED_GPIO_PORT, RED_LED_PIN);
+    otPlatGpioClear(LED_GPIO_PORT, GREEN_LED_PIN);
+    otPlatGpioClear(LED_GPIO_PORT, BLUE_LED_PIN);
+
+    otLogInfoMle(GetInstance(), "Role -> Leader %d", mLeaderData.GetPartitionId());
     return OT_ERROR_NONE;
 }
 
@@ -4447,6 +4461,36 @@ void MleRouter::FillRouteTlv(RouteTlv &aTlv)
     }
 
     aTlv.SetRouteDataLength(routerCount);
+}
+
+otError MleRouter::AppendRouteInfo(Message &aMessage)
+{
+    otError  error;
+
+    uint8_t neighborNum = 0;
+    uint8_t neighbor[kMaxRouterId] = {0};
+
+    for (uint8_t i = 0; i <= kMaxRouterId; i++)
+    {
+        if (mRouters[i].IsAllocated() == false)
+        {
+            continue;
+        }
+
+        if (i != mRouterId)
+        {
+            if (mRouters[i].GetLinkQualityOut() != 0 && mRouters[i].GetLinkInfo().GetLinkQuality() != 0)
+	    {
+                neighbor[neighborNum++] = i;
+	    }
+        }
+    }
+
+    SuccessOrExit(error = aMessage.Append(&neighborNum, sizeof(neighborNum)));
+    SuccessOrExit(error = aMessage.Append(neighbor, sizeof(uint8_t) * neighborNum));
+
+exit:
+    return error;
 }
 
 otError MleRouter::AppendRoute(Message &aMessage)

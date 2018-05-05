@@ -1741,6 +1741,11 @@ private:
     void        UpdateParentSearchState(void);
 #endif
 
+    static void HandleHeartBeatTimer(Timer &aTimer);
+    void        HandleHeartBeatTimer(void);
+
+    void SendHeartBeat(void);
+
     MessageQueue mDelayedResponses;
 
     struct
@@ -1815,6 +1820,7 @@ private:
 
     otThreadParentResponseCallback mParentResponseCb;
     void *                         mParentResponseCbContext;
+    TimerMilli mHeartBeatTimer;
 };
 
 } // namespace Mle

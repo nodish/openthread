@@ -81,4 +81,10 @@ void kw41zRandomInit(void);
  *
  */
 void kw41zUartProcess(void);
+
+/**
+ * This function initializes the GPIOs used by OpenThread.
+ *
+ */
+void kw41zGpioInit(void);
 #endif  // PLATFORM_KW41Z_H_

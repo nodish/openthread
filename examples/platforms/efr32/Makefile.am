@@ -76,6 +76,7 @@ PLATFORM_SOURCES                                                              = 
     diag.c                                                                      \
     fem-control.c                                                               \
     flash.c                                                                     \
+    gpio.c                                                                      \
     logging.c                                                                   \
     misc.c                                                                      \
     radio.c                                                                     \
