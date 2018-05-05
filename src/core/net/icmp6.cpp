@@ -35,6 +35,8 @@
 
 #include "icmp6.hpp"
 
+#include <openthread/platform/gpio.h>
+
 #include "utils/wrap_string.h"
 
 #include "common/code_utils.hpp"
@@ -42,6 +44,7 @@
 #include "common/instance.hpp"
 #include "common/logging.hpp"
 #include "common/message.hpp"
+#include "common/owner-locator.hpp"
 #include "net/ip6.hpp"
 
 using ot::Encoding::BigEndian::HostSwap16;
@@ -54,6 +57,7 @@ Icmp::Icmp(Instance &aInstance)
     , mHandlers(NULL)
     , mEchoSequence(1)
     , mEchoMode(OT_ICMP6_ECHO_HANDLER_ALL)
+    , mLedTimer(aInstance, &Icmp::HandleLedTimer, this)
 {
 }
 
@@ -208,6 +212,14 @@ otError Icmp::HandleEchoRequest(Message &aRequestMessage, const MessageInfo &aMe
 
     otLogInfoIcmp(GetInstance(), "Received Echo Request");
 
+    // turn on all of the LEDs after receiving a echo request
+    otPlatGpioClear(LED_GPIO_PORT, RED_LED_PIN);
+    otPlatGpioClear(LED_GPIO_PORT, GREEN_LED_PIN);
+    otPlatGpioClear(LED_GPIO_PORT, BLUE_LED_PIN);
+
+    // turn off the other two LEDs after 500ms
+    mLedTimer.Start(500);
+
     icmp6Header.Init();
     icmp6Header.SetType(IcmpHeader::kTypeEchoReply);
 
@@ -260,6 +272,36 @@ otError Icmp::UpdateChecksum(Message &aMessage, uint16_t aChecksum)
     aChecksum = HostSwap16(aChecksum);
     aMessage.Write(aMessage.GetOffset() + IcmpHeader::GetChecksumOffset(), sizeof(aChecksum), &aChecksum);
     return OT_ERROR_NONE;
+}
+
+void Icmp::HandleLedTimer(Timer &aTimer)
+{
+    aTimer.GetOwner<Icmp>().HandleLedTimer();
+}
+
+void Icmp::HandleLedTimer(void)
+{
+    otDeviceRole role = GetNetif().GetMle().GetRole();
+
+    // turn on the original LED
+    if (role == OT_DEVICE_ROLE_LEADER)
+    {
+        otPlatGpioSet(LED_GPIO_PORT, RED_LED_PIN);
+        otPlatGpioClear(LED_GPIO_PORT, GREEN_LED_PIN);
+        otPlatGpioClear(LED_GPIO_PORT, BLUE_LED_PIN);
+    }
+    else if (role == OT_DEVICE_ROLE_ROUTER)
+    {
+        otPlatGpioSet(LED_GPIO_PORT, BLUE_LED_PIN);
+        otPlatGpioClear(LED_GPIO_PORT, RED_LED_PIN);
+        otPlatGpioClear(LED_GPIO_PORT, GREEN_LED_PIN);
+    }
+    else if (role == OT_DEVICE_ROLE_CHILD)
+    {
+        otPlatGpioSet(LED_GPIO_PORT, GREEN_LED_PIN);
+        otPlatGpioClear(LED_GPIO_PORT, RED_LED_PIN);
+        otPlatGpioClear(LED_GPIO_PORT, BLUE_LED_PIN);
+    }
 }
 
 } // namespace Ip6

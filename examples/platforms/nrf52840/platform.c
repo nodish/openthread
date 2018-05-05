@@ -86,6 +86,7 @@ void PlatformInit(int argc, char *argv[])
     nrf5CryptoInit();
     nrf5RadioInit();
     nrf5TempInit();
+    nrf5GpioInit();
 }
 
 void PlatformDeinit(void)

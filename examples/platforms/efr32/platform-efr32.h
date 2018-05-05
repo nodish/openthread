@@ -98,4 +98,10 @@ void efr32MiscInit(void);
  */
 void efr32RandomInit(void);
 
+/**
+ * Initialization of GPIOs used for demo.
+ *
+ */
+void efr32GpioInit(void);
+
 #endif // PLATFORM_EFR32_H_

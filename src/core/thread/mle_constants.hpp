@@ -99,7 +99,7 @@ enum
     kMinDowngradeNeighbors      = 7,                ///< MIN_DOWNGRADE_NEIGHBORS
     kNetworkIdTimeout           = 120,              ///< NETWORK_ID_TIMEOUT (seconds)
     kParentRouteToLeaderTimeout = 20,               ///< PARENT_ROUTE_TO_LEADER_TIMEOUT (seconds)
-    kRouterSelectionJitter      = 120,              ///< ROUTER_SELECTION_JITTER (seconds)
+    kRouterSelectionJitter      = 1,              ///< ROUTER_SELECTION_JITTER (seconds)
     kRouterDowngradeThreshold   = 23,               ///< ROUTER_DOWNGRADE_THRESHOLD (routers)
     kRouterUpgradeThreshold     = 16,               ///< ROUTER_UPGRADE_THRESHOLD (routers)
     kMaxLeaderToRouterTimeout   = 90,               ///< INFINITE_COST_TIMEOUT (seconds)

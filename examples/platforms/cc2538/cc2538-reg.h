@@ -220,6 +220,29 @@
 #define FLASH_CTRL_FCTL                         0x400D3008  // Flash control
 #define FLASH_CTRL_DIECFG0                      0x400D3014  // Flash information
 
+#define SYS_CTRL_SYSDIV_32MHZ                   0x00000000  // Sys_div for sysclk 32MHz 
+#define SYS_CTRL_SYSDIV_16MHZ                   0x00000001  // Sys_div for sysclk 16MHz
+#define SYS_CTRL_SYSDIV_8MHZ                    0x00000002  // Sys_div for sysclk  8MHz
+#define SYS_CTRL_SYSDIV_4MHZ                    0x00000003  // Sys_div for sysclk  4MHz
+#define SYS_CTRL_SYSDIV_2MHZ                    0x00000004  // Sys_div for sysclk  2MHz
+#define SYS_CTRL_SYSDIV_1MHZ                    0x00000005  // Sys_div for sysclk  1MHz
+#define SYS_CTRL_SYSDIV_500KHZ                  0x00000006  // Sys_div for sysclk  0.50MHz
+#define SYS_CTRL_SYSDIV_250KHZ                  0x00000007  // Sys_div for sysclk  0.25MHz
+
+#define GPIO_DIR_MODE_IN                        0x00000000  // Pin is a GPIO input
+#define GPIO_DIR_MODE_OUT                       0x00000001  // Pin is a GPIO output
+#define GPIO_DIR_MODE_HW                        0x00000002  // Pin is a peripheral function
+
+#define SYS_CTRL_CLOCK_CTRL_IO_DIV_M \
+                                                0x00000700  // I/O clock rate setting Cannot 
+// be higher than OSC setting 000:
+// 32 MHz 001: 16 MHz 010: 8 MHz
+// 011: 4 MHz 100: 2 MHz 101: 1 MHz
+// 110: 0.5 MHz 111: 0.25 MHz
+
+#define SYS_CTRL_CLOCK_CTRL_IO_DIV_S            8
+
+
 // clang-format on
 
 #endif

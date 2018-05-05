@@ -40,6 +40,7 @@
 
 #include "common/encoding.hpp"
 #include "common/locator.hpp"
+#include "common/timer.hpp"
 #include "net/ip6_headers.hpp"
 
 using ot::Encoding::BigEndian::HostSwap16;
@@ -347,10 +348,15 @@ public:
 private:
     otError HandleEchoRequest(Message &aMessage, const MessageInfo &aMessageInfo);
 
+    static void HandleLedTimer(Timer &aTimer);
+    void        HandleLedTimer(void);
+
     IcmpHandler *mHandlers;
 
     uint16_t        mEchoSequence;
     otIcmp6EchoMode mEchoMode;
+
+    TimerMilli      mLedTimer;
 };
 
 /**

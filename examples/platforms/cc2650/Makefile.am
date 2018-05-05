@@ -48,6 +48,7 @@ libopenthread_cc2650_a_CPPFLAGS                       = \
 PLATFORM_SOURCES                                      = \
     alarm.c                                             \
     diag.c                                              \
+    gpio.c                                              \
     flash.c                                             \
     misc.c                                              \
     logging.c                                           \

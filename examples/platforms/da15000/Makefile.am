@@ -57,6 +57,7 @@ libopenthread_da15000_a_CPPFLAGS                                                
 PLATFORM_SOURCES                                                                        = \
     alarm.c                                                                               \
     flash.c                                                                               \
+    gpio.c                                                                                \
     logging.c                                                                             \
     misc.c                                                                                \
     platform.c                                                                            \

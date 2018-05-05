@@ -740,6 +740,7 @@ private:
     otError AppendConnectivity(Message &aMessage);
     otError AppendChildAddresses(Message &aMessage, Child &aChild);
     otError AppendRoute(Message &aMessage);
+    otError AppendRouteInfo(Message &aMessage);
     otError AppendActiveDataset(Message &aMessage);
     otError AppendPendingDataset(Message &aMessage);
     otError GetChildInfo(Child &aChild, otChildInfo &aChildInfo);

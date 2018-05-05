@@ -64,8 +64,8 @@ static const otExtAddress sMode2ExtAddress = {
     {0x35, 0x06, 0xfe, 0xb8, 0x23, 0xd4, 0x87, 0x12},
 };
 
-static const uint8_t sExtendedPanidInit[] = {0xde, 0xad, 0x00, 0xbe, 0xef, 0x00, 0xca, 0xfe};
-static const char    sNetworkNameInit[]   = "OpenThread";
+static const uint8_t sExtendedPanidInit[] = {0x20, 0x18, 0x05, 0x08, 0x20, 0x18, 0x05, 0x11};
+static const char    sNetworkNameInit[]   = "IO2018";
 
 #ifdef _WIN32
 const uint32_t kMinBackoffSum = kMinBackoff + (kUnitBackoffPeriod * OT_RADIO_SYMBOL_TIME * (1 << kMinBE)) / 1000;
@@ -167,7 +167,7 @@ Mac::Mac(Instance &aInstance)
     , mBackoffTimer(aInstance, &Mac::HandleBackoffTimer, this)
     , mReceiveTimer(aInstance, &Mac::HandleReceiveTimer, this)
     , mShortAddress(kShortAddrInvalid)
-    , mPanId(kPanIdBroadcast)
+    , mPanId(0xc001)
     , mChannel(OPENTHREAD_CONFIG_DEFAULT_CHANNEL)
     , mSendHead(NULL)
     , mSendTail(NULL)

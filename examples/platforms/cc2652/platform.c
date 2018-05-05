@@ -41,6 +41,7 @@
 #include "inc/hw_ccfg.h"
 #include "inc/hw_ccfg_simple_struct.h"
 #include "inc/hw_types.h"
+#include <driverlib/watchdog.h>
 
 extern const ccfg_t __ccfg;
 
@@ -69,6 +70,13 @@ void PlatformInit(int argc, char *argv[])
     cc2652AlarmInit();
     cc2652RandomInit();
     cc2652RadioInit();
+    cc2652GpioInit();
+
+    WatchdogReloadSet(5000000); // Sets the watchdog timer reload value.
+    WatchdogResetEnable (); // Enables the capability of the watchdog timer to issue a reset to the processor
+    WatchdogEnable (); // Enables the watchdog timer
+//    WatchdogLock (); // Locks out write access to the watchdog timer configuration
+    WatchdogIntClear ();
 }
 
 bool PlatformPseudoResetWasRequested(void)
@@ -82,6 +90,8 @@ bool PlatformPseudoResetWasRequested(void)
 void PlatformProcessDrivers(otInstance *aInstance)
 {
     // should sleep and wait for interrupts here
+
+    WatchdogReloadSet(5000000); // Sets the watchdog timer reload value.
 
     cc2652UartProcess();
     cc2652RadioProcess(aInstance);

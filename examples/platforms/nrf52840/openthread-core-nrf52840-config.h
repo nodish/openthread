@@ -156,6 +156,12 @@
  */
 #define OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE_NO_DTLS             2048
 
+/* GPIO configuration for demo */
+#define LED_GPIO_PORT   0x50000300UL
+#define RED_LED_PIN     45  // P1.13
+#define GREEN_LED_PIN   46  // P1.14
+#define BLUE_LED_PIN    47  // P1.15
+
 /*
  * Suppress the ARMCC warning on unreachable statement,
  * e.g. break after assert(false) or ExitNow() macro.

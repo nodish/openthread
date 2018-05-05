@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -29,39 +29,78 @@
 /**
  * @file
  * @brief
- *   This file includes the platform-specific initializers.
+ *   This file includes the platform abstraction for GPIO.
  */
-#include "platform-cc2538.h"
-#include <openthread/config.h>
 
-otInstance *sInstance;
+#ifndef GPIO_H_
+#define GPIO_H_
 
-void PlatformInit(int argc, char *argv[])
-{
-#if OPENTHREAD_CONFIG_ENABLE_DEBUG_UART
-    cc2538DebugUartInit();
+#include "openthread/types.h"
+
+#ifdef __cplusplus
+extern "C" {
 #endif
-    cc2538AlarmInit();
-    cc2538RandomInit();
-    cc2538RadioInit();
-    cc2538GpioInit();
 
-    (void)argc;
-    (void)argv;
-}
+/**
+ * @defgroup gpio GPIO
+ * @ingroup platform
+ *
+ * @brief
+ *   This module includes the platform abstraction to GPIO.
+ *
+ * @{
+ *
+ */
 
-bool PlatformPseudoResetWasRequested(void)
+enum
 {
-    return false;
-}
+    GPIO_LOGIC_HIGH = 1,
+    GPIO_LOGIC_LOW  = 0,
+};
 
-void PlatformProcessDrivers(otInstance *aInstance)
-{
-    sInstance = aInstance;
+/**
+ * Set logic high for output pin.
+ *
+ */
+void otPlatGpioSet(uint32_t port, uint8_t pin);
 
-    // should sleep and wait for interrupts here
+/**
+ * Set logic low for output pin.
+ *
+ */
+void otPlatGpioClear(uint32_t port, uint8_t pin);
 
-    cc2538UartProcess();
-    cc2538RadioProcess(aInstance);
-    cc2538AlarmProcess(aInstance);
-}
+/**
+ * Toggle output pin.
+ *
+ */
+void otPlatGpioToggle(uint32_t port, uint8_t pin);
+
+/**
+ * Read the value of output pin.
+ *
+ */
+uint8_t otPlatGpioGet(uint32_t port, uint8_t pin);
+
+/**
+ * A callback will be called when GPIO interrupt occurs.
+ *
+ */
+typedef void (*otPlatGpioIntCallback)(void);
+
+/**
+ * Register a callback for GPIO interrupt.
+ *
+ */
+void otPlatGpioRegisterCallback(uint32_t port, otPlatGpioIntCallback aCallback);
+
+/**
+ * @}
+ *
+ */
+
+#ifdef __cplusplus
+}  // end of extern "C"
+#endif
+
+#endif  // GPIO_H_

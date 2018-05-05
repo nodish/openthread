@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,40 +28,72 @@
 
 /**
  * @file
- * @brief
- *   This file includes the platform-specific initializers.
+ *   This file implements the OpenThread platform abstraction for GPIO.
+ *
  */
-#include "platform-cc2538.h"
-#include <openthread/config.h>
 
-otInstance *sInstance;
+#include <common/code_utils.hpp>
+#include <openthread/types.h>
+#include <openthread/platform/gpio.h>
+#include <utils/code_utils.h>
 
-void PlatformInit(int argc, char *argv[])
+#include "platform-cc2652.h"
+
+#include "driverlib/gpio.h"
+#include "driverlib/ioc.h"
+#include "driverlib/prcm.h"
+
+static uint8_t mOutPut = GPIO_LOGIC_LOW;
+
+void cc2652GpioInit(void)
 {
-#if OPENTHREAD_CONFIG_ENABLE_DEBUG_UART
-    cc2538DebugUartInit();
-#endif
-    cc2538AlarmInit();
-    cc2538RandomInit();
-    cc2538RadioInit();
-    cc2538GpioInit();
+    PRCMPowerDomainOn(PRCM_DOMAIN_PERIPH);
 
-    (void)argc;
-    (void)argv;
+    while (PRCMPowerDomainStatus(PRCM_DOMAIN_PERIPH) != PRCM_DOMAIN_POWER_ON);
+
+    PRCMPeripheralRunEnable(PRCM_PERIPH_GPIO);
+    PRCMPeripheralSleepEnable(PRCM_PERIPH_GPIO);
+    PRCMPeripheralDeepSleepEnable(PRCM_PERIPH_GPIO);
+    PRCMLoadSet();
+
+    while (!PRCMLoadGet());
+
+    IOCPinTypeGpioOutput(IOID_25);
+    IOCPinTypeGpioOutput(IOID_26);
+    IOCPinTypeGpioOutput(IOID_27);
+
+    // clear output first
+    GPIO_writeDio(RED_LED_PIN, GPIO_LOGIC_LOW);
+    GPIO_writeDio(GREEN_LED_PIN, GPIO_LOGIC_LOW);
+    GPIO_writeDio(BLUE_LED_PIN, GPIO_LOGIC_LOW);
 }
 
-bool PlatformPseudoResetWasRequested(void)
+void otPlatGpioSet(uint32_t port, uint8_t pin)
 {
-    return false;
+    (void)port;
+
+    mOutPut = GPIO_LOGIC_HIGH;
+    GPIO_writeDio(pin, GPIO_LOGIC_HIGH);
+
+    return;
 }
 
-void PlatformProcessDrivers(otInstance *aInstance)
+void otPlatGpioClear(uint32_t port, uint8_t pin)
 {
-    sInstance = aInstance;
+    (void)port;
 
-    // should sleep and wait for interrupts here
+    mOutPut = GPIO_LOGIC_LOW;
+    GPIO_writeDio(pin, GPIO_LOGIC_LOW);
 
-    cc2538UartProcess();
-    cc2538RadioProcess(aInstance);
-    cc2538AlarmProcess(aInstance);
+    return;
+}
+
+void otPlatGpioToggle(uint32_t port, uint8_t pin)
+{
+    (void)port;
+
+    mOutPut = mOutPut ? GPIO_LOGIC_LOW : GPIO_LOGIC_HIGH;
+    GPIO_toggleDio(pin);
+
+    return;
 }

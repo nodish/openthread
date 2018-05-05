@@ -85,4 +85,21 @@
  */
 #define SETTINGS_CONFIG_PAGE_SIZE                              2048
 
+/* GPIO configuration for demo */
+#define GPIO_FALLING_EDGE       0x00000000  // Interrupt on falling edge
+#define GPIO_RISING_EDGE        0x00000004  // Interrupt on rising edge
+#define GPIO_BOTH_EDGES         0x00000001  // Interrupt on both edges
+#define GPIO_LOW_LEVEL          0x00000002  // Interrupt on low level
+#define GPIO_HIGH_LEVEL         0x00000007  // Interrupt on high level
+
+#define GPIO_A_BASE     0x400D9000  // GPIO_A
+#define GPIO_B_BASE     0x400DA000  // GPIO_B
+#define GPIO_C_BASE     0x400DB000  // GPIO_C 
+#define GPIO_D_BASE     0x400DC000  // GPIO_D
+
+#define LED_GPIO_PORT   GPIO_D_BASE // GPIO_PORT_D
+#define RED_LED_PIN     0x00000020  // pin 5
+#define GREEN_LED_PIN   0x00000010  // pin 4
+#define BLUE_LED_PIN    0x00000008  // pin 3
+
 #endif  // OPENTHREAD_CORE_CC2538_CONFIG_H_

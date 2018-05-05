@@ -96,6 +96,8 @@ public:
      * @retval  OT_ERROR_NONE  Generated valid IID.
      */
     static otError CreateRandomIid(otInstance *aInstance, otNetifAddress *aAddress, void *aContext);
+
+    static uint8_t GetIid();
 };
 
 /**

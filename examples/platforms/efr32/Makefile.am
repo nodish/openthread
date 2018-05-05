@@ -74,6 +74,7 @@ PLATFORM_SOURCES                                                              = 
     alarm.c                                                                     \
     diag.c                                                                      \
     flash.c                                                                     \
+    gpio.c                                                                      \
     logging.c                                                                   \
     misc.c                                                                      \
     platform.c                                                                  \

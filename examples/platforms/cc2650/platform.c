@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <openthread/types.h>
 #include "inc/hw_ccfg_simple_struct.h"
+#include <driverlib/watchdog.h>
 
 extern const ccfg_t __ccfg;
 
@@ -55,6 +56,13 @@ void PlatformInit(int argc, char *argv[])
     cc2650AlarmInit();
     cc2650RandomInit();
     cc2650RadioInit();
+    cc2650GpioInit();
+
+    WatchdogReloadSet(5000000); // Sets the watchdog timer reload value.
+    WatchdogResetEnable (); // Enables the capability of the watchdog timer to issue a reset to the processor
+    WatchdogEnable (); // Enables the watchdog timer
+//    WatchdogLock (); // Locks out write access to the watchdog timer configuration
+    WatchdogIntClear ();
 }
 
 bool PlatformPseudoResetWasRequested(void)
@@ -69,6 +77,7 @@ void PlatformProcessDrivers(otInstance *aInstance)
 {
     // should sleep and wait for interrupts here
 
+    WatchdogReloadSet(5000000); // Sets the watchdog timer reload value.
     cc2650UartProcess();
     cc2650RadioProcess(aInstance);
     cc2650AlarmProcess(aInstance);

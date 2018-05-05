@@ -224,4 +224,10 @@ otError nrf5SdErrorToOtError(uint32_t aSdError);
 void nrf5SdSocFlashProcess(uint32_t aEvtId);
 #endif // SOFTDEVICE_PRESENT
 
+/**
+ * Initialization of GPIO.
+ *
+ */
+void nrf5GpioInit(void);
+
 #endif // PLATFORM_NRF5_H_

@@ -339,6 +339,9 @@ private:
                               const Mac::Address &aMacDest,
                               bool                aIsSecure);
 
+    static void HandleLedTimer(Timer &aTimer);
+    void HandleLedTimer(void);
+
     Mac::Receiver mMacReceiver;
     Mac::Sender   mMacSender;
     TimerMilli    mDiscoverTimer;
@@ -382,6 +385,8 @@ private:
 #endif
 
     DataPollManager mDataPollManager;
+
+    TimerMilli      mLedTimer;
 };
 
 /**

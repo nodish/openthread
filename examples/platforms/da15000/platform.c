@@ -134,6 +134,8 @@ void PlatformInit(int argc, char *argv[])
     // Initialize Radio
     da15000RadioInit();
 
+    da15000GpioInit();
+
     (void)argc;
     (void)argv;
 }

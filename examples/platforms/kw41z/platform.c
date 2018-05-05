@@ -93,6 +93,7 @@ void PlatformInit(int argc, char *argv[])
     kw41zAlarmInit();
     kw41zRandomInit();
     kw41zRadioInit();
+    kw41zGpioInit();
 
     otPlatUartEnable();
 

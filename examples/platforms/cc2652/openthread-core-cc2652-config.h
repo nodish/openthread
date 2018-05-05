@@ -60,5 +60,11 @@
  */
 #define SETTINGS_CONFIG_PAGE_NUM                           (2)
 
+/* GPIO configuration for demo */
+#define LED_GPIO_PORT   0x40022000
+#define RED_LED_PIN     27 // DIO27
+#define GREEN_LED_PIN   26 // DIO26
+#define BLUE_LED_PIN    25 // DIO25
+
 #endif /* OPENTHREAD_CORE_CC2650_CONFIG_H_ */
 

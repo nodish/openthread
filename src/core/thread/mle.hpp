@@ -1522,6 +1522,11 @@ private:
     void        UpdateParentSearchState(void);
 #endif
 
+    static void HandleHeartBeatTimer(Timer &aTimer);
+    void        HandleHeartBeatTimer(void);
+
+    void SendHeartBeat(void);
+
     MessageQueue mDelayedResponses;
 
     struct
@@ -1587,6 +1592,8 @@ private:
     Ip6::NetifMulticastAddress mRealmLocalAllThreadNodes;
 
     Notifier::Callback mNotifierCallback;
+
+    TimerMilli mHeartBeatTimer;
 };
 
 } // namespace Mle

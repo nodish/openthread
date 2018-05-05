@@ -48,6 +48,7 @@ libopenthread_cc2652_a_CPPFLAGS                       = \
 PLATFORM_SOURCES                                      = \
     alarm.c                                             \
     diag.c                                              \
+    gpio.c                                              \
     flash.c                                             \
     logging.c                                           \
     misc.c                                              \
