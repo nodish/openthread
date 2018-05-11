@@ -84,8 +84,22 @@ Dash                                      = -
 libopenthread_posix_a_LIBADD              = \
     $(shell find $(top_builddir)/examples/platforms/utils $(Dash)type f $(Dash)name "*.o")
 
+if OPENTHREAD_BUILD_TESTS
+
+noinst_PROGRAMS                           = frame-cache-test
+frame_cache_test_SOURCES                  = ncp/frame_cache.cpp
+frame_cache_test_CPPFLAGS                 = \
+    -DSELF_TEST=1                           \
+    -I$(top_srcdir)/examples/platforms      \
+    -I$(top_srcdir)/include                 \
+    -I$(top_srcdir)/src/core                \
+    $(NULL)
+
+TESTS                                     = frame-cache-test
+
 if OPENTHREAD_BUILD_COVERAGE
 CLEANFILES                                = $(wildcard *.gcda *.gcno)
 endif # OPENTHREAD_BUILD_COVERAGE
+endif # OPENTHREAD_BUILD_TESTS
 
 include $(abs_top_nlbuild_autotools_dir)/automake/post.am

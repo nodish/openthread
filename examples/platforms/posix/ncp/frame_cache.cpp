@@ -39,26 +39,27 @@
 
 namespace ot {
 
-void FrameCache::Push(const uint8_t *aFrame, uint16_t aLength)
+otError FrameCache::Push(const uint8_t *aFrame, uint8_t aLength)
 {
-    assert(aLength <= 255 && aFrame);
-    uint16_t tail = mTail + aLength + 1;
+    otError  error   = OT_ERROR_NONE;
+    uint16_t newTail = mTail + aLength + 1;
+
+    assert(aFrame != NULL);
+    otEXPECT_ACTION(aFrame != NULL, error = OT_ERROR_INVALID_ARGS);
 
     if (mHead > mTail)
     {
-        assert(tail < mHead);
-        otEXPECT(tail < mHead);
+        otEXPECT_ACTION(newTail < mHead, error = OT_ERROR_NO_BUFS);
     }
-    else if (tail >= sizeof(mBuffer))
+    else if (newTail >= sizeof(mBuffer))
     {
-        tail -= sizeof(mBuffer);
-        assert(tail < mHead);
-        otEXPECT(tail < mHead);
+        newTail -= sizeof(mBuffer);
+        otEXPECT_ACTION(newTail < mHead, error = OT_ERROR_NO_BUFS);
     }
 
-    mBuffer[mTail] = static_cast<uint8_t>(aLength);
+    mBuffer[mTail] = aLength;
 
-    if (tail > mTail)
+    if (newTail > mTail)
     {
         memcpy(mBuffer + mTail + 1, aFrame, aLength);
     }
@@ -68,10 +69,11 @@ void FrameCache::Push(const uint8_t *aFrame, uint16_t aLength)
         memcpy(mBuffer + mTail + 1, aFrame, half);
         memcpy(mBuffer, aFrame + half, (aLength - half));
     }
-    mTail = tail;
+
+    mTail = newTail;
 
 exit:
-    return;
+    return error;
 }
 
 void FrameCache::Shift(void)
@@ -83,7 +85,7 @@ void FrameCache::Shift(void)
     }
 }
 
-const uint8_t *FrameCache::Peek(uint8_t *aFrame, uint16_t &aLength)
+const uint8_t *FrameCache::Peek(uint8_t *aFrame, uint8_t &aLength)
 {
     const uint8_t *frame = NULL;
     uint16_t       next;
@@ -112,20 +114,124 @@ exit:
 } // namespace ot
 
 #if SELF_TEST
-void main(void)
+#include <stdlib.h>
+void TestSingle()
 {
-    ot::FrameCache fc;
-    uint16_t       l;
-    uint8_t        a[] = "12345";
-    fc.Push(a, sizeof(a));
-    assert(fc.Peek(NULL, l));
-    assert(!fc.IsEmpty());
-    fc.Shift();
-    fc.Push(a, sizeof(a));
-    assert(!fc.IsEmpty());
-    fc.Peek(NULL, l);
-    fc.Shift();
-    assert(fc.IsEmpty());
+    otError        error;
+    ot::FrameCache frameCache;
+    uint8_t        length;
+    uint8_t        frame[255];
+
+    for (size_t i = 0; i < sizeof(frame); ++i)
+    {
+        frame[i] = i;
+    }
+
+    for (size_t i = 0; i < sizeof(frame); ++i)
+    {
+        uint8_t        outFrame[255];
+        const uint8_t *retFrame = NULL;
+        error                   = frameCache.Push(frame, i);
+        assert(OT_ERROR_NONE == error);
+        assert(!frameCache.IsEmpty());
+        retFrame = frameCache.Peek(outFrame, length);
+        assert(retFrame != NULL);
+        assert(length == i);
+
+        for (size_t j = 0; j < i; ++j)
+        {
+            assert(retFrame[j] == frame[j]);
+        }
+
+        frameCache.Shift();
+        assert(frameCache.IsEmpty());
+    }
+}
+
+void TestMultiple()
+{
+    otError        error;
+    ot::FrameCache frameCache;
+    uint8_t        length;
+    uint8_t        frame[255];
+
+    for (size_t i = 0; i < sizeof(frame); ++i)
+    {
+        frame[i] = i;
+    }
+
+    srand(0);
+
+    for (size_t i = 0; i < sizeof(frame); ++i)
+    {
+        uint8_t        outFrame[255];
+        const uint8_t *retFrame = NULL;
+
+        int action = rand();
+        if (action & 0x01) // push when odd
+        {
+            error = frameCache.Push(frame, i);
+            if (error == OT_ERROR_NO_BUFS)
+                continue;
+
+            assert(OT_ERROR_NONE == error);
+            assert(!frameCache.IsEmpty());
+            retFrame = frameCache.Peek(outFrame, length);
+            assert(retFrame != NULL);
+
+            for (size_t j = 0; j < length; ++j)
+            {
+                assert(retFrame[j] == frame[j]);
+            }
+        }
+        else
+        {
+            frameCache.Shift();
+        }
+    }
+}
+
+void TestRing()
+{
+    ot::FrameCache frameCache;
+    uint8_t        length;
+    uint8_t        frame[255];
+
+    for (size_t i = 0; i < sizeof(frame); ++i)
+    {
+        frame[i] = i;
+    }
+
+    for (size_t i = 0; i < OPENTHREAD_CONFIG_FRAME_CACHE_SIZE + 255; i += sizeof(frame))
+    {
+        uint8_t        outFrame[255];
+        const uint8_t *retFrame = NULL;
+
+        frameCache.Push(frame, sizeof(frame));
+
+        retFrame = frameCache.Peek(outFrame, length);
+
+        for (size_t j = 0; j < sizeof(frame); ++j)
+        {
+            assert(retFrame[j] == frame[j]);
+        }
+
+        frameCache.Shift();
+    };
+}
+
+void RunAllTests()
+{
+    TestSingle();
+    TestMultiple();
+    TestRing();
+}
+
+int main(void)
+{
+    RunAllTests();
+    printf("All tests passed\n");
+    return 0;
 }
 #endif
 

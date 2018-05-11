@@ -26,8 +26,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef FRAME_CACHE_HPP_
-#define FRAME_CACHE_HPP_
+#ifndef OT_FRAME_CACHE_HPP_
+#define OT_FRAME_CACHE_HPP_
 
 #include <stdint.h>
 
@@ -55,7 +55,7 @@ public:
     bool IsEmpty(void) const { return mHead == mTail; }
 
     /**
-     * This method returns one frame from the head.
+     * This method removes one frame from the head.
      *
      */
     void Shift(void);
@@ -66,13 +66,16 @@ public:
      * @param[in]   aFrame      A pointer to a spinel frame to be cached.
      * @param[in]   aLength     Frame length in bytes.
      *
+     * @retval OT_ERROR_NONE    Successfully cached this frame.
+     * @retval OT_ERROR_NO_BUFS Insufficient memory for this frame.
+     *
      */
-    void Push(const uint8_t *aFrame, uint16_t aLength);
+    otError Push(const uint8_t *aFrame, uint8_t aLength);
 
     /**
      * This method gets one frame at the head.
      *
-     * @note aFrame may not be updated, always use the returned pointer to access frame data.
+     * @note aFrame is only used when necessary, always use the returned pointer to access frame data.
      *
      * @param[out]  aFrame      A pointer to the frame to receive the data.
      * @param[out]  aLength     A reference to receive the frame length.
@@ -80,12 +83,12 @@ public:
      * @return A pointer to the frame.
      *
      */
-    const uint8_t *Peek(uint8_t *aFrame, uint16_t &aLength);
+    const uint8_t *Peek(uint8_t *aFrame, uint8_t &aLength);
 
 private:
     enum
     {
-        kCacheSize = 4096,
+        kCacheSize = OPENTHREAD_CONFIG_FRAME_CACHE_SIZE,
     };
 
     uint8_t  mBuffer[kCacheSize];
@@ -95,4 +98,4 @@ private:
 
 } // namespace ot
 
-#endif // FRAME_CACHE_HPP_
+#endif // OT_FRAME_CACHE_HPP_
