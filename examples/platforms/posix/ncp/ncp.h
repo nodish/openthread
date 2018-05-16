@@ -99,7 +99,8 @@ otError ncpRemove(spinel_prop_key_t aKey, const char *aFormat, ...);
  * @param[in]   aFrame      A pointer to the frame to be transmitted.
  * @param[in]   aAckFrame   A pointer to the frame to receive ACK.
  *
- * @returns The error.
+ * @retval  OT_ERROR_NONE       Successfully transmitted the frame.
+ * @retval  OT_ERROR_FAILED     Failed to transmit the frame.
  *
  */
 otError ncpTransmit(const otRadioFrame *aFrame, otRadioFrame *aAckFrame);

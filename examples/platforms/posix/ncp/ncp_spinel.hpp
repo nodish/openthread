@@ -163,9 +163,10 @@ private:
     void         Receive(void);
     spinel_tid_t GetNextTid(void);
     void         FreeTid(spinel_tid_t tid) { mCmdTidsInUse &= ~(1 << tid); }
-    otError      RequestV(bool wait, uint32_t command, spinel_prop_key_t key, const char *pack_format, va_list args);
-    otError      Request(bool wait, uint32_t command, spinel_prop_key_t key, const char *pack_format, ...);
-    otError      WaitReply(void);
+    otError      RequestV(bool aWait, uint32_t aCommand, spinel_prop_key_t aKey, const char *aFormat, va_list aArgs);
+    otError      Request(bool aWait, uint32_t aCommand, spinel_prop_key_t aKey, const char *aFormat, ...);
+    otError      WaitResponse(void);
+    otError      SendAll(const uint8_t *aBuffer, uint16_t aLength);
     otError      SendReset(void);
     otError      SendCommand(uint32_t          command,
                              spinel_prop_key_t key,
@@ -190,11 +191,10 @@ private:
     otError ParseRawStream(otRadioFrame *aFrame, const uint8_t *aBuffer, uint16_t aLength);
     void    ProcessCommand(uint32_t aCommand, const uint8_t *aBuffer, uint16_t aLength);
     void    ProcessValueIs(spinel_prop_key_t aKey, const uint8_t *aBuffer, uint16_t aLength);
-    void    ProcessValueInserted(spinel_prop_key_t key, const uint8_t *value_data_ptr, uint16_t value_data_len);
-    void    HandleResult(uint32_t command, spinel_prop_key_t key, const uint8_t *data, uint16_t dataLength);
-    void    HandleTransmitDone(uint32_t Command, spinel_prop_key_t Key, const uint8_t *Data, uint16_t DataLength);
+    void    HandleResult(uint32_t aCommand, spinel_prop_key_t aKey, const uint8_t *aBuffer, uint16_t aLength);
+    void    HandleTransmitDone(uint32_t aCommand, spinel_prop_key_t aKey, const uint8_t *aBuffer, uint16_t aLength);
     void    ProcessNotification(const uint8_t *aBuffer, uint16_t aLength);
-    void    ProcessReply(const uint8_t *aBuffer, uint16_t aLength);
+    void    ProcessResponse(const uint8_t *aBuffer, uint16_t aLength);
     void    ProcessCache(void);
 
     uint16_t     mCmdTidsInUse;

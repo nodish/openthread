@@ -233,6 +233,7 @@ NcpSpinel::NcpSpinel(void)
 
 void NcpSpinel::Init(const char *aNcpFile, const char *aNcpConfig)
 {
+    otError     error = OT_ERROR_NONE;
     struct stat st;
 
     mSockFd = -1;
@@ -252,12 +253,12 @@ void NcpSpinel::Init(const char *aNcpFile, const char *aNcpConfig)
         mSockFd = OpenPty(aNcpFile, aNcpConfig);
     }
 
-    otEXPECT(mSockFd != -1);
+    otEXPECT_ACTION(mSockFd != -1, error = OT_ERROR_INVALID_ARGS);
 
-    SendReset();
+    error = SendReset();
 
 exit:
-    if (mSockFd == -1)
+    if (error != OT_ERROR_NONE)
     {
         exit(EXIT_FAILURE);
     }
@@ -296,7 +297,7 @@ void NcpSpinel::HandleHdlcFrame(const uint8_t *aBuffer, uint16_t aLength)
     }
     else
     {
-        ProcessReply(aBuffer, aLength);
+        ProcessResponse(aBuffer, aLength);
     }
 
 exit:
@@ -353,7 +354,7 @@ exit:
     }
 }
 
-void NcpSpinel::ProcessReply(const uint8_t *aBuffer, uint16_t aLength)
+void NcpSpinel::ProcessResponse(const uint8_t *aBuffer, uint16_t aLength)
 {
     spinel_prop_key_t key;
     uint8_t *         data   = NULL;
@@ -381,20 +382,19 @@ void NcpSpinel::ProcessReply(const uint8_t *aBuffer, uint16_t aLength)
     }
     else
     {
-        assert(false);
+        otLogWarnPlat(mInstance, "Unexpected Spinel transaction message: %u", SPINEL_HEADER_GET_TID(header));
+        error = OT_ERROR_DROP;
     }
 
 exit:
     if (error != OT_ERROR_NONE)
     {
-        otLogWarnPlat(mInstance, "Error processing notification: %s", otThreadErrorToString(error));
+        otLogWarnPlat(mInstance, "Error processing response: %s", otThreadErrorToString(error));
     }
 }
 
 void NcpSpinel::HandleResult(uint32_t aCommand, spinel_prop_key_t aKey, const uint8_t *aBuffer, uint16_t aLength)
 {
-    otEXPECT_ACTION(aBuffer != NULL, mLastError = OT_ERROR_ABORT);
-
     if (aKey == SPINEL_PROP_LAST_STATUS)
     {
         spinel_status_t status;
@@ -416,8 +416,7 @@ void NcpSpinel::HandleResult(uint32_t aCommand, spinel_prop_key_t aKey, const ui
             spinel_ssize_t rval = spinel_datatype_vunpack_in_place(aBuffer, aLength, mFormat, mArgs);
             if (rval < 0 || static_cast<uint16_t>(rval) > aLength)
             {
-                mLastError = OT_ERROR_NO_BUFS;
-                assert(false);
+                mLastError = OT_ERROR_PARSE;
             }
             else
             {
@@ -432,26 +431,26 @@ void NcpSpinel::HandleResult(uint32_t aCommand, spinel_prop_key_t aKey, const ui
             }
             else
             {
-                mLastError = OT_ERROR_INVALID_ARGS;
-                assert(false);
+                mLastError = OT_ERROR_DROP;
             }
         }
     }
     else
     {
-        assert(false);
+        mLastError = OT_ERROR_DROP;
     }
 
-exit:
-    return;
+    if (mLastError != OT_ERROR_NONE)
+    {
+        otLogDebgPlat(mInstance, "Failed to process command result: %s", otThreadErrorToString(mLastError));
+    }
 }
 
-void NcpSpinel::ProcessValueIs(spinel_prop_key_t aKey, const uint8_t *value_data_ptr, uint16_t value_data_len)
+void NcpSpinel::ProcessValueIs(spinel_prop_key_t aKey, const uint8_t *aBuffer, uint16_t aLength)
 {
     if (aKey == SPINEL_PROP_STREAM_RAW)
     {
-        assert(mReceiveFrame);
-        assert(OT_ERROR_NONE == ParseRawStream(mReceiveFrame, value_data_ptr, (uint8_t)value_data_len));
+        otEXPECT(OT_ERROR_NONE == ParseRawStream(mReceiveFrame, aBuffer, aLength));
         mReceivedHandler(mInstance);
     }
     else if (aKey == SPINEL_PROP_MAC_ENERGY_SCAN_RESULT)
@@ -460,7 +459,7 @@ void NcpSpinel::ProcessValueIs(spinel_prop_key_t aKey, const uint8_t *value_data
         int8_t         maxRssi;
         spinel_ssize_t ret;
 
-        ret = spinel_datatype_unpack(value_data_ptr, value_data_len, "Cc", &scanChannel, &maxRssi);
+        ret = spinel_datatype_unpack(aBuffer, aLength, "Cc", &scanChannel, &maxRssi);
 
         if (ret > 0)
         {
@@ -475,7 +474,7 @@ void NcpSpinel::ProcessValueIs(spinel_prop_key_t aKey, const uint8_t *value_data
         uint32_t       length  = 0;
         spinel_ssize_t ret;
 
-        ret = spinel_datatype_unpack(value_data_ptr, value_data_len, SPINEL_DATATYPE_DATA_S, &message, &length);
+        ret = spinel_datatype_unpack(aBuffer, aLength, SPINEL_DATATYPE_DATA_S, &message, &length);
 
         if (ret > 0 && message && length <= static_cast<uint32_t>(ret))
         {
@@ -489,6 +488,9 @@ void NcpSpinel::ProcessValueIs(spinel_prop_key_t aKey, const uint8_t *value_data
             }
         }
     }
+
+exit:
+    return;
 }
 
 otError NcpSpinel::ParseRawStream(otRadioFrame *aFrame, const uint8_t *aBuffer, uint16_t aLength)
@@ -628,7 +630,7 @@ otError NcpSpinel::Remove(spinel_prop_key_t aKey, const char *aFormat, va_list a
     return error;
 }
 
-otError NcpSpinel::WaitReply(void)
+otError NcpSpinel::WaitResponse(void)
 {
     otError        error = OT_ERROR_NONE;
     struct timeval end;
@@ -650,14 +652,12 @@ otError NcpSpinel::WaitReply(void)
         int rval = select(mSockFd + 1, &read_fds, NULL, &error_fds, &timeout);
         if (rval > 0)
         {
-            assert(!FD_ISSET(mSockFd, &error_fds));
             if (FD_ISSET(mSockFd, &read_fds))
             {
                 Receive();
             }
             else if (FD_ISSET(mSockFd, &error_fds))
             {
-                assert(false);
                 exit(EXIT_FAILURE);
             }
             else
@@ -670,13 +670,11 @@ otError NcpSpinel::WaitReply(void)
         {
             FreeTid(mWaitingTid);
             mWaitingTid = 0;
-            assert(false);
             otEXIT_NOW(error = OT_ERROR_NO_FRAME_RECEIVED);
         }
         else if (errno != EINTR)
         {
             perror("select");
-            assert(false);
             exit(EXIT_FAILURE);
         }
 
@@ -730,6 +728,34 @@ otError NcpSpinel::Transmit(const otRadioFrame *aFrame, otRadioFrame *aAckFrame)
     return error;
 }
 
+otError NcpSpinel::SendAll(const uint8_t *aBuffer, uint16_t aLength)
+{
+    otError error = OT_ERROR_NONE;
+
+    while (aLength)
+    {
+        int rval = write(mSockFd, aBuffer, aLength);
+
+        if (rval > 0)
+        {
+            aLength -= static_cast<uint16_t>(rval);
+            aBuffer += static_cast<uint16_t>(rval);
+        }
+        else if (rval < 0)
+        {
+            perror("send command failed");
+            otEXIT_NOW(error = OT_ERROR_FAILED);
+        }
+        else
+        {
+            otEXIT_NOW(error = OT_ERROR_FAILED);
+        }
+    }
+
+exit:
+    return error;
+}
+
 otError NcpSpinel::SendReset(void)
 {
     otError        error = OT_ERROR_NONE;
@@ -753,12 +779,9 @@ otError NcpSpinel::SendReset(void)
     }
     mHdlcEncoder.Finalize(txBuffer);
 
-    rval = write(mSockFd, txBuffer.GetBuffer(), txBuffer.GetLength());
-    assert(rval == txBuffer.GetLength());
-    otEXPECT_ACTION(rval == txBuffer.GetLength(), error = OT_ERROR_FAILED);
-
+    error = SendAll(txBuffer.GetBuffer(), txBuffer.GetLength());
     sleep(1);
-exit:
+
     return error;
 }
 
@@ -803,20 +826,17 @@ otError NcpSpinel::SendCommand(uint32_t          aCommand,
     }
     mHdlcEncoder.Finalize(txBuffer);
 
-    rval = write(mSockFd, txBuffer.GetBuffer(), txBuffer.GetLength());
-    assert(rval == txBuffer.GetLength());
-    otEXPECT_ACTION(rval == txBuffer.GetLength(), error = OT_ERROR_FAILED);
+    error = SendAll(txBuffer.GetBuffer(), txBuffer.GetLength());
 
-exit:
     return error;
 }
 
-otError NcpSpinel::RequestV(bool aWait, uint32_t command, spinel_prop_key_t aKey, const char *aFormat, va_list args)
+otError NcpSpinel::RequestV(bool aWait, uint32_t command, spinel_prop_key_t aKey, const char *aFormat, va_list aArgs)
 {
     otError      error = OT_ERROR_NONE;
     spinel_tid_t tid   = (aWait ? GetNextTid() : 0);
 
-    error = SendCommand(command, aKey, tid, aFormat, args);
+    error = SendCommand(command, aKey, tid, aFormat, aArgs);
     otEXPECT(error == OT_ERROR_NONE);
 
     if (aKey == SPINEL_PROP_STREAM_RAW)
@@ -832,7 +852,7 @@ otError NcpSpinel::RequestV(bool aWait, uint32_t command, spinel_prop_key_t aKey
     {
         mWaitingKey = aKey;
         mWaitingTid = tid;
-        error       = WaitReply();
+        error       = WaitResponse();
         otEXPECT(error == OT_ERROR_NONE);
     }
 
@@ -858,37 +878,34 @@ void NcpSpinel::HandleTransmitDone(uint32_t aCommand, spinel_prop_key_t aKey, co
     {
         if (aKey == SPINEL_PROP_LAST_STATUS)
         {
-            spinel_status_t status = SPINEL_STATUS_OK;
-            spinel_ssize_t  packedLength =
-                spinel_datatype_unpack(aBuffer, aLength, SPINEL_DATATYPE_UINT_PACKED_S, &status);
-            if (packedLength > 0)
+            spinel_status_t status   = SPINEL_STATUS_OK;
+            spinel_ssize_t  unpacked = spinel_datatype_unpack(aBuffer, aLength, SPINEL_DATATYPE_UINT_PACKED_S, &status);
+            if (unpacked > 0)
             {
-                aBuffer += packedLength;
-                aLength -= static_cast<spinel_size_t>(packedLength);
+                aBuffer += unpacked;
+                aLength -= static_cast<spinel_size_t>(unpacked);
                 if (status == SPINEL_STATUS_OK)
                 {
-                    error        = OT_ERROR_NONE;
-                    packedLength = spinel_datatype_unpack(aBuffer, aLength, SPINEL_DATATYPE_BOOL_S, &framePending);
-                    assert(packedLength > 0);
+                    error    = OT_ERROR_NONE;
+                    unpacked = spinel_datatype_unpack(aBuffer, aLength, SPINEL_DATATYPE_BOOL_S, &framePending);
+                    otEXPECT_ACTION(unpacked > 0, error = OT_ERROR_PARSE);
                     otLogInfoPlat(mInstance, "Frame pending %d", framePending);
-                    aBuffer += packedLength;
-                    aLength -= static_cast<spinel_size_t>(packedLength);
+                    aBuffer += unpacked;
+                    aLength -= static_cast<spinel_size_t>(unpacked);
                     if (mAckFrame)
                     {
                         if (aLength)
                         {
-                            ParseRawStream(mAckFrame, aBuffer, static_cast<uint16_t>(aLength));
+                            ParseRawStream(mAckFrame, aBuffer, aLength);
                         }
                         else
                         {
-                            syslog(LOG_CRIT, "No ack frame.");
                             otLogWarnPlat(mInstance, "No ack frame.");
                         }
                     }
                 }
                 else
                 {
-                    syslog(LOG_CRIT, "Spinel status: %d.", status);
                     otLogWarnPlat(mInstance, "Spinel status: %d.", status);
                     error = SpinelStatusToOtError(status);
                 }
@@ -901,6 +918,9 @@ void NcpSpinel::HandleTransmitDone(uint32_t aCommand, spinel_prop_key_t aKey, co
     }
 
     mTransmittedHandler(mInstance, error);
+
+exit:
+    return;
 }
 
 } // namespace ot
@@ -912,7 +932,10 @@ int ncpOpen(void)
     otError error;
     sNcpSpinel.Init(NODE_FILE, NODE_CONFIG);
     error = ncpGet(SPINEL_PROP_HWADDR, SPINEL_DATATYPE_UINT64_S, &NODE_ID);
-    assert(error == OT_ERROR_NONE);
+    if (error != OT_ERROR_NONE)
+    {
+        exit(EXIT_FAILURE);
+    }
     return sNcpSpinel.GetFd();
 }
 
