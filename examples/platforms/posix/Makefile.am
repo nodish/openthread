@@ -88,6 +88,7 @@ if OPENTHREAD_BUILD_TESTS
 
 if OPENTHREAD_ENABLE_POSIX_RADIO_NCP
 noinst_PROGRAMS                           = frame-cache-test
+TESTS                                     = frame-cache-test
 endif
 
 frame_cache_test_SOURCES                  = ncp/frame_cache.cpp
@@ -97,8 +98,6 @@ frame_cache_test_CPPFLAGS                 = \
     -I$(top_srcdir)/include                 \
     -I$(top_srcdir)/src/core                \
     $(NULL)
-
-TESTS                                     = frame-cache-test
 
 if OPENTHREAD_BUILD_COVERAGE
 CLEANFILES                                = $(wildcard *.gcda *.gcno)
