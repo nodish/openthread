@@ -86,7 +86,10 @@ libopenthread_posix_a_LIBADD              = \
 
 if OPENTHREAD_BUILD_TESTS
 
+if OPENTHREAD_ENABLE_POSIX_RADIO_NCP
 noinst_PROGRAMS                           = frame-cache-test
+endif
+
 frame_cache_test_SOURCES                  = ncp/frame_cache.cpp
 frame_cache_test_CPPFLAGS                 = \
     -DSELF_TEST=1                           \
