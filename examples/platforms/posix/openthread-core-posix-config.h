@@ -81,15 +81,4 @@
  */
 #define OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER            1
 
-
-/**
- * @def OPENTHREAD_CONFIG_FRAME_CACHE_SIZE
- *
- * The size of a frame cache in bytes.
- *
- */
-#ifndef OPENTHREAD_CONFIG_FRAME_CACHE_SIZE
-#define OPENTHREAD_CONFIG_FRAME_CACHE_SIZE 2048
-#endif
-
 #endif  // OPENTHREAD_CORE_POSIX_CONFIG_H_
