@@ -31,6 +31,8 @@
 
 #include <stdint.h>
 
+#include "openthread-core-posix-config.h"
+
 namespace ot {
 
 class FrameCache
