@@ -106,7 +106,8 @@ public:
         , mRetransmissionTimeout(0)
         , mRetransmissionCount(0)
         , mAcknowledged(false)
-        , mConfirmable(false){};
+        , mConfirmable(false)
+        , mUserDataLength(0){};
 
     /**
      * This constructor initializes the object with specific values.
@@ -120,7 +121,8 @@ public:
     CoapMetadata(bool                    aConfirmable,
                  const Ip6::MessageInfo &aMessageInfo,
                  otCoapResponseHandler   aHandler,
-                 void *                  aContext);
+                 void *                  aContext,
+                 uint8_t                 aUserDataLength);
 
     /**
      * This method appends request data to the message.
@@ -190,6 +192,7 @@ private:
     uint8_t               mRetransmissionCount;   ///< Number of retransmissions.
     bool                  mAcknowledged : 1;      ///< Information that request was acknowledged.
     bool                  mConfirmable : 1;       ///< Information that message is confirmable.
+    uint8_t               mUserDataLength: 6;     ///< User data length.
 } OT_TOOL_PACKED_END;
 
 /**
@@ -521,6 +524,17 @@ public:
      *
      */
     Message *NewMessage(const Header &aHeader, uint8_t aPriority = kDefaultCoapMessagePriority);
+
+    /**
+     * This method creates a new message with a CoAP header.
+     *
+     * @param[in]  aHeader      A reference to a CoAP header that is used to create the message.
+     * @param[in]  aPrority     The message priority level.
+     *
+     * @returns A pointer to the message or NULL if failed to allocate message.
+     *
+     */
+    Message *NewResponse(const Message &aRequest, const Header &aHeader, uint8_t aPriority = kDefaultCoapMessagePriority);
 
     /**
      * This method sends a CoAP message.

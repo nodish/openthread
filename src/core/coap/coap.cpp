@@ -161,7 +161,9 @@ exit:
 otError CoapBase::SendMessage(Message &               aMessage,
                               const Ip6::MessageInfo &aMessageInfo,
                               otCoapResponseHandler   aHandler,
-                              void *                  aContext)
+                              void *                  aContext,
+                              uint8_t                 aUserDataLength,
+                              void *                  aUserData)
 {
     otError      error;
     Header       header;
