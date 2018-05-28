@@ -362,12 +362,20 @@ void CoapBase::FinalizeCoapTransaction(Message &               aRequest,
                                        const Ip6::MessageInfo *aMessageInfo,
                                        otError                 aResult)
 {
-    DequeueMessage(aRequest);
-
     if (aCoapMetadata.mResponseHandler != NULL)
     {
-        aCoapMetadata.mResponseHandler(aCoapMetadata.mResponseContext, aResponseHeader, aResponse, aMessageInfo,
+        Header aRequestHeader;
+        otError error;
+
+        error = aRequestHeader.FromMessage(aRequest, sizeof(CoapMetadata));
+        DequeueMessage(aRequest);
+
+        aCoapMetadata.mResponseHandler(aCoapMetadata.mResponseContext, (error ? NULL : &aRequestHeader), aResponseHeader, aResponse, aMessageInfo,
                                        aResult);
+    }
+    else
+    {
+        DequeueMessage(aRequest);
     }
 }
 
