@@ -187,11 +187,12 @@ typedef struct otCoapHeader
 /**
  * This function pointer is called when a CoAP response is received or on the request timeout.
  *
- * @param[in]  aContext      A pointer to application-specific context.
- * @param[in]  aHeader       A pointer to the received CoAP header. NULL if no response was received.
- * @param[in]  aMessage      A pointer to the message buffer containing the response. NULL if no response was received.
- * @param[in]  aMessageInfo  A pointer to the message info for @p aMessage. NULL if no response was received.
- * @param[in]  aResult       A result of the CoAP transaction.
+ * @param[in]  aContext         A pointer to application-specific context.
+ * @param[in]  aRequestHeader   A pointer to the request CoAP header. NULL if not stored.
+ * @param[in]  aResponseHeader  A pointer to the received CoAP header. NULL if no response was received.
+ * @param[in]  aMessage         A pointer to the message buffer containing the response. NULL if no response was received.
+ * @param[in]  aMessageInfo     A pointer to the message info for @p aMessage. NULL if no response was received.
+ * @param[in]  aResult          A result of the CoAP transaction.
  *
  * @retval  OT_ERROR_NONE              A response was received successfully.
  * @retval  OT_ERROR_ABORT             A CoAP transaction was reseted by peer.
@@ -199,7 +200,8 @@ typedef struct otCoapHeader
  *
  */
 typedef void (*otCoapResponseHandler)(void *               aContext,
-                                      otCoapHeader *       aHeader,
+                                      otCoapHeader *       aRequestHeader,
+                                      otCoapHeader *       aResponseHeader,
                                       otMessage *          aMessage,
                                       const otMessageInfo *aMessageInfo,
                                       otError              aResult);
