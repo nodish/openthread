@@ -165,7 +165,7 @@ void JoinerRouter::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &a
     ExtendedTlv            tlv;
     uint16_t               borderAgentRloc;
 
-    otLogInfoMeshCoP(GetInstance(), "JoinerRouter::HandleUdpReceive");
+    otLogInfoMeshCoP(GetInstance(), "JoinerRouter::HandleUdpReceive %u", aMessageInfo.GetPeerPort());
 
     SuccessOrExit(error = GetBorderAgentRloc(borderAgentRloc));
 
@@ -179,6 +179,7 @@ void JoinerRouter::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &a
     udpPort.Init();
     udpPort.SetUdpPort(aMessageInfo.GetPeerPort());
     SuccessOrExit(error = message->Append(&udpPort, sizeof(udpPort)));
+    otLogInfoMeshCoP(GetInstance(), "[BorderAgent] joiner udp port is %u %u", aMessageInfo.GetPeerPort(), udpPort.GetUdpPort());
 
     iid.Init();
     iid.SetIid(aMessageInfo.GetPeerAddr().mFields.m8 + 8);
@@ -246,6 +247,7 @@ void JoinerRouter::HandleRelayTransmit(Coap::Header &aHeader, Message &aMessage,
     Message *          message = NULL;
     Ip6::MessageInfo   messageInfo;
 
+    otLogInfoMeshCoP(GetInstance(), "[BorderAgent] joiner router Received tx");
     VerifyOrExit(aHeader.GetType() == OT_COAP_TYPE_NON_CONFIRMABLE && aHeader.GetCode() == OT_COAP_CODE_POST,
                  error = OT_ERROR_DROP);
 
@@ -287,8 +289,13 @@ void JoinerRouter::HandleRelayTransmit(Coap::Header &aHeader, Message &aMessage,
     messageInfo.SetPeerPort(joinerPort.GetUdpPort());
     messageInfo.SetInterfaceId(GetNetif().GetInterfaceId());
 
+    {
+        char ip6[80];
+        otLogInfoMeshCoP(GetInstance(), "[BorderAgent] joiner router sending to joiner %d %s", messageInfo.GetPeerPort(), messageInfo.GetPeerAddr().ToString(ip6, sizeof(ip6)));
+    }
     SuccessOrExit(error = mSocket.SendTo(*message, messageInfo));
 
+    otLogInfoMeshCoP(GetInstance(), "[BorderAgent] joiner router sent to joiner");
     if (Tlv::GetTlv(aMessage, Tlv::kJoinerRouterKek, sizeof(kek), kek) == OT_ERROR_NONE)
     {
         otLogInfoMeshCoP(GetInstance(), "Received kek");
@@ -299,6 +306,7 @@ void JoinerRouter::HandleRelayTransmit(Coap::Header &aHeader, Message &aMessage,
 exit:
     OT_UNUSED_VARIABLE(aMessageInfo);
 
+    otLogInfoMeshCoP(GetInstance(), "[BorderAgent] joiner router handled tx %d", error);
     if (error != OT_ERROR_NONE && message != NULL)
     {
         message->Free();

@@ -584,7 +584,7 @@ public:
      * @retval OT_ERROR_INVALID_ARGS  The @p aRequestHeader header is not of confirmable type.
      *
      */
-    otError SendAck(Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo)
+    otError SendAck(const Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo)
     {
         return SendEmptyMessage(OT_COAP_TYPE_ACKNOWLEDGMENT, aRequestHeader, aMessageInfo);
     };

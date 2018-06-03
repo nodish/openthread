@@ -298,10 +298,10 @@ protected:
 
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
 
-#if OPENTHREAD_FTD && OPENTHREAD_ENABLE_TMF_PROXY
-    static void HandleTmfProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort, void *aContext);
-    void HandleTmfProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort);
-#endif // OPENTHREAD_FTD && OPENTHREAD_ENABLE_TMF_PROXY
+#if OPENTHREAD_FTD && OPENTHREAD_ENABLE_UDP_PROXY
+    static void HandleUdpProxyStream(otMessage *aMessage, uint16_t aPeerPort, otIp6Address *aPeerAddr, uint16_t aSockPort, void *aContext);
+    void HandleUdpProxyStream(otMessage *aMessage, uint16_t aPeerPort, otIp6Address &aPeerAddr, uint16_t aPort);
+#endif // OPENTHREAD_FTD && OPENTHREAD_ENABLE_UDP_PROXY
 
     otError CommandHandler_NOOP(uint8_t aHeader);
     otError CommandHandler_RESET(uint8_t aHeader);
@@ -660,10 +660,10 @@ protected:
     NCP_GET_PROP_HANDLER(THREAD_COMMISSIONER_ENABLED);
     NCP_INSERT_PROP_HANDLER(THREAD_JOINERS);
 #endif
-#if OPENTHREAD_ENABLE_TMF_PROXY
-    NCP_GET_PROP_HANDLER(THREAD_TMF_PROXY_ENABLED);
-    NCP_SET_PROP_HANDLER(THREAD_TMF_PROXY_ENABLED);
-    NCP_SET_PROP_HANDLER(THREAD_TMF_PROXY_STREAM);
+#if OPENTHREAD_ENABLE_UDP_PROXY
+    NCP_GET_PROP_HANDLER(THREAD_UDP_PROXY_ENABLED);
+    NCP_SET_PROP_HANDLER(THREAD_UDP_PROXY_ENABLED);
+    NCP_SET_PROP_HANDLER(THREAD_UDP_PROXY_STREAM);
 #endif
     NCP_REMOVE_PROP_HANDLER(THREAD_ACTIVE_ROUTER_IDS);
     NCP_SET_PROP_HANDLER(THREAD_ACTIVE_DATASET);

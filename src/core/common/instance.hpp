@@ -59,6 +59,7 @@
 #include "thread/announce_sender.hpp"
 #include "thread/link_quality.hpp"
 #include "thread/thread_netif.hpp"
+#include "meshcop/border_agent.hpp"
 #if OPENTHREAD_ENABLE_CHANNEL_MANAGER
 #include "utils/channel_manager.hpp"
 #endif
@@ -347,6 +348,10 @@ public:
      *
      */
     MessagePool &GetMessagePool(void) { return mMessagePool; }
+
+#if OPENTHREAD_ENABLE_BORDER_AGENT
+    MeshCoP::BorderAgent &GetBorderAgent(void) { return mBorderAgent; }
+#endif
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
 
     /**
@@ -402,6 +407,9 @@ private:
 
     Ip6::Ip6    mIp6;
     ThreadNetif mThreadNetif;
+#if OPENTHREAD_ENABLE_BORDER_AGENT
+    MeshCoP::BorderAgent mBorderAgent;
+#endif
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
     Coap::ApplicationCoap mApplicationCoap;

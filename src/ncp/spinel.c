@@ -1473,12 +1473,12 @@ spinel_prop_key_to_cstr(spinel_prop_key_t prop_key)
         ret = "PROP_THREAD_COMMISSIONER_ENABLED";
         break;
 
-    case SPINEL_PROP_THREAD_TMF_PROXY_ENABLED:
-        ret = "PROP_THREAD_TMF_PROXY_ENABLED";
+    case SPINEL_PROP_THREAD_UDP_PROXY_ENABLED:
+        ret = "PROP_THREAD_UDP_PROXY_ENABLED";
         break;
 
-    case SPINEL_PROP_THREAD_TMF_PROXY_STREAM:
-        ret = "PROP_THREAD_TMF_PROXY_STREAM";
+    case SPINEL_PROP_THREAD_UDP_PROXY_STREAM:
+        ret = "PROP_THREAD_UDP_PROXY_STREAM";
         break;
 
     case SPINEL_PROP_THREAD_DISCOVERY_SCAN_JOINER_FLAG:
@@ -2218,8 +2218,8 @@ const char *spinel_capability_to_cstr(unsigned int capability)
         ret = "CAP_THREAD_COMMISSIONER";
         break;
 
-    case SPINEL_CAP_THREAD_TMF_PROXY:
-        ret = "CAP_THREAD_TMF_PROXY";
+    case SPINEL_CAP_THREAD_UDP_PROXY:
+        ret = "CAP_THREAD_UDP_PROXY";
         break;
 
     case SPINEL_CAP_NEST_LEGACY_INTERFACE:

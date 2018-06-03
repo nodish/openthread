@@ -242,6 +242,15 @@ public:
     otError HandleMessage(Message &aMessage, MessageInfo &aMessageInfo);
 
     /**
+     * This method handles a received UDP message with offset set to the payload.
+     *
+     * @param[in]  aMessage      A reference to the UDP message to process.
+     * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
+     *
+     */
+    void HandlePayload(Message &aMessage, MessageInfo &aMessageInfo);
+
+    /**
      * This method updates the UDP checksum.
      *
      * @param[in]  aMessage               A reference to the UDP message.
@@ -253,6 +262,19 @@ public:
      */
     otError UpdateChecksum(Message &aMessage, uint16_t aPseudoHeaderChecksum);
 
+#if OPENTHREAD_ENABLE_UDP_PROXY
+    bool IsUdpCallbackSet() const
+    {
+        return mUdpCallback != NULL;
+    }
+
+    void SetUdpCallback(otUdpProxyStreamHandler aCallback, void *aContext)
+    {
+        mUdpCallback = aCallback;
+        mUdpCallbackContext = aContext;
+    }
+#endif // OPENTHREAD_ENABLE_UDP_PROXY
+
 private:
     enum
     {
@@ -261,6 +283,10 @@ private:
     };
     uint16_t   mEphemeralPort;
     UdpSocket *mSockets;
+#if OPENTHREAD_ENABLE_UDP_PROXY
+    void      *mUdpCallbackContext;
+    otUdpProxyStreamHandler mUdpCallback;
+#endif
 };
 
 OT_TOOL_PACKED_BEGIN

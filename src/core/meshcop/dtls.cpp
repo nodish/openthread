@@ -248,7 +248,9 @@ otError Dtls::Send(Message &aMessage, uint16_t aLength)
 
     aMessage.Read(0, aLength, buffer);
 
+    otLogInfoMeshCoP(GetInstance(), "[BorderAgent] Dtls before write %u", aLength);
     SuccessOrExit(error = MapError(mbedtls_ssl_write(&mSsl, buffer, aLength)));
+    otLogInfoMeshCoP(GetInstance(), "[BorderAgent] Dtls before write ok");
 
     aMessage.Free();
 

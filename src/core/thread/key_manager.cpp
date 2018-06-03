@@ -96,7 +96,7 @@ void KeyManager::Stop(void)
     mKeyRotationTimer.Stop();
 }
 
-#if OPENTHREAD_FTD
+#if OPENTHREAD_MTD || OPENTHREAD_FTD
 const uint8_t *KeyManager::GetPSKc(void) const
 {
     return mPSKc;
@@ -110,7 +110,7 @@ void KeyManager::SetPSKc(const uint8_t *aPSKc)
         GetNotifier().SetFlags(OT_CHANGED_PSKC);
     }
 }
-#endif
+#endif // OPENTHREAD_MTD || OPENTHREAD_FTD
 
 const otMasterKey &KeyManager::GetMasterKey(void) const
 {

@@ -36,6 +36,7 @@
 #include <openthread/udp.h>
 
 #include "common/instance.hpp"
+#include "common/logging.hpp"
 
 using namespace ot;
 
@@ -102,3 +103,54 @@ otError otUdpSend(otUdpSocket *aSocket, otMessage *aMessage, const otMessageInfo
     Ip6::UdpSocket &socket = *static_cast<Ip6::UdpSocket *>(aSocket);
     return socket.SendTo(*static_cast<Message *>(aMessage), *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
+
+#if OPENTHREAD_ENABLE_UDP_PROXY
+otError otUdpProxyStart(otInstance *aInstance, otUdpProxyStreamHandler aUdpProxyCallback, void *aContext)
+{
+    Instance &instance = *static_cast<Instance *>(aInstance);
+    Ip6::Ip6 &ip6 = instance.Get<Ip6::Ip6>();
+
+    ip6.GetUdp().SetUdpCallback(aUdpProxyCallback, aContext);
+
+    return OT_ERROR_NONE;
+}
+
+otError otUdpProxyStop(otInstance *aInstance)
+{
+    Instance &instance = *static_cast<Instance *>(aInstance);
+    Ip6::Ip6 &ip6 = instance.Get<Ip6::Ip6>();
+
+    ip6.GetUdp().SetUdpCallback(NULL, NULL);
+
+    return OT_ERROR_NONE;
+}
+
+otError otUdpProxyReceive(otInstance *aInstance, otMessage *aMessage, uint16_t aPeerPort, const otIp6Address *aPeerAddr, uint16_t aSockPort)
+{
+    Ip6::MessageInfo messageInfo;
+    Instance &instance = *static_cast<Instance *>(aInstance);
+    Ip6::Ip6 &ip6 = instance.Get<Ip6::Ip6>();
+
+    memset(&messageInfo, 0, sizeof(messageInfo));
+    messageInfo.SetSockAddr(instance.GetThreadNetif().GetMle().GetMeshLocal16());
+    messageInfo.SetSockPort(aSockPort);
+    messageInfo.SetPeerAddr(*static_cast<const ot::Ip6::Address *>(aPeerAddr));
+    messageInfo.SetInterfaceId(OT_NETIF_INTERFACE_ID_HOST);
+    messageInfo.SetPeerPort(aPeerPort);
+
+    ip6.GetUdp().HandlePayload(*static_cast<ot::Message *>(aMessage), messageInfo);
+
+    static_cast<ot::Message *>(aMessage)->Free();
+
+    return OT_ERROR_NONE;
+}
+
+bool otUdpProxyIsEnabled(otInstance *aInstance)
+{
+    Instance &instance = *static_cast<Instance *>(aInstance);
+    Ip6::Ip6 &ip6 = instance.Get<Ip6::Ip6>();
+
+    return ip6.GetUdp().IsUdpCallbackSet();
+}
+
+#endif // OPENTHREAD_ENABLE_UDP_PROXY

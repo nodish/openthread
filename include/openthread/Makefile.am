@@ -77,7 +77,6 @@ openthread_headers                      = \
     tasklet.h                             \
     thread.h                              \
     thread_ftd.h                          \
-    tmf_proxy.h                           \
     types.h                               \
     udp.h                                 \
     $(NULL)

@@ -44,12 +44,9 @@
 #include <openthread/platform/misc.h>
 #include <openthread/thread_ftd.h>
 
-#if OPENTHREAD_ENABLE_TMF_PROXY
-#include <openthread/tmf_proxy.h>
-#endif
-
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
+#include "common/logging.hpp"
 #include "common/instance.hpp"
 #if OPENTHREAD_ENABLE_COMMISSIONER
 #include "meshcop/commissioner.hpp"
@@ -528,34 +525,36 @@ exit:
     return error;
 }
 
-#if OPENTHREAD_ENABLE_TMF_PROXY
-otError NcpBase::GetPropertyHandler_THREAD_TMF_PROXY_ENABLED(void)
+#if OPENTHREAD_ENABLE_UDP_PROXY
+otError NcpBase::GetPropertyHandler_THREAD_UDP_PROXY_ENABLED(void)
 {
-    return mEncoder.WriteBool(otTmfProxyIsEnabled(mInstance));
+    return mEncoder.WriteBool(otUdpProxyIsEnabled(mInstance));
 }
 
-otError NcpBase::SetPropertyHandler_THREAD_TMF_PROXY_STREAM(void)
+otError NcpBase::SetPropertyHandler_THREAD_UDP_PROXY_STREAM(void)
 {
     const uint8_t *framePtr = NULL;
     uint16_t frameLen = 0;
-    uint16_t locator;
-    uint16_t port;
+    const otIp6Address *peerAddr;
+    uint16_t peerPort;
+    uint16_t sockPort;
     otMessage *message;
     otError error = OT_ERROR_NONE;
 
-    // THREAD_TMF_PROXY_STREAM requires layer 2 security.
-    message = otIp6NewMessage(mInstance, true);
+    // THREAD_UDP_PROXY_STREAM requires layer 2 security.
+    message = otIp6NewMessage(mInstance, false);
     VerifyOrExit(message != NULL, error = OT_ERROR_NO_BUFS);
 
     SuccessOrExit(error = mDecoder.ReadDataWithLen(framePtr, frameLen));
-    SuccessOrExit(error = mDecoder.ReadUint16(locator));
-    SuccessOrExit(error = mDecoder.ReadUint16(port));
+    SuccessOrExit(error = mDecoder.ReadUint16(peerPort));
+    SuccessOrExit(error = mDecoder.ReadIp6Address(peerAddr));
+    SuccessOrExit(error = mDecoder.ReadUint16(sockPort));
 
     SuccessOrExit(error = otMessageAppend(message, framePtr, static_cast<uint16_t>(frameLen)));
 
-    error = otTmfProxySend(mInstance, message, locator, port);
+    error = otUdpProxyReceive(mInstance, message, peerPort, peerAddr, sockPort);
 
-    // `otTmfProxySend()` takes ownership of `message` (in both success
+    // `otUdpProxyReceive()` takes ownership of `message` (in both success
     // or failure cases). `message` is set to NULL so it is not freed at
     // exit.
     message = NULL;
@@ -569,7 +568,7 @@ exit:
     return error;
 }
 
-otError NcpBase::SetPropertyHandler_THREAD_TMF_PROXY_ENABLED(void)
+otError NcpBase::SetPropertyHandler_THREAD_UDP_PROXY_ENABLED(void)
 {
     bool enabled;
     otError error = OT_ERROR_NONE;
@@ -578,23 +577,23 @@ otError NcpBase::SetPropertyHandler_THREAD_TMF_PROXY_ENABLED(void)
 
     if (enabled)
     {
-        error = otTmfProxyStart(mInstance, &NcpBase::HandleTmfProxyStream, this);
+        error = otUdpProxyStart(mInstance, &NcpBase::HandleUdpProxyStream, this);
     }
     else
     {
-        error = otTmfProxyStop(mInstance);
+        error = otUdpProxyStop(mInstance);
     }
 
 exit:
     return error;
 }
 
-void NcpBase::HandleTmfProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort, void *aContext)
+void NcpBase::HandleUdpProxyStream(otMessage *aMessage, uint16_t aPeerPort, otIp6Address *aPeerAddr, uint16_t aSockPort, void *aContext)
 {
-    static_cast<NcpBase *>(aContext)->HandleTmfProxyStream(aMessage, aLocator, aPort);
+    static_cast<NcpBase *>(aContext)->HandleUdpProxyStream(aMessage, aPeerPort, *aPeerAddr, aSockPort);
 }
 
-void NcpBase::HandleTmfProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort)
+void NcpBase::HandleUdpProxyStream(otMessage *aMessage, uint16_t aPeerPort, otIp6Address &aPeerAddr, uint16_t aPort)
 {
     otError error = OT_ERROR_NONE;
     uint16_t length = otMessageGetLength(aMessage);
@@ -603,12 +602,13 @@ void NcpBase::HandleTmfProxyStream(otMessage *aMessage, uint16_t aLocator, uint1
     SuccessOrExit(error = mEncoder.BeginFrame(
                               header,
                               SPINEL_CMD_PROP_VALUE_IS,
-                              SPINEL_PROP_THREAD_TMF_PROXY_STREAM
+                              SPINEL_PROP_THREAD_UDP_PROXY_STREAM
                           ));
     SuccessOrExit(error = mEncoder.WriteUint16(length));
     SuccessOrExit(error = mEncoder.WriteMessage(aMessage));
 
-    SuccessOrExit(error = mEncoder.WriteUint16(aLocator));
+    SuccessOrExit(error = mEncoder.WriteUint16(aPeerPort));
+    SuccessOrExit(error = mEncoder.WriteIp6Address(aPeerAddr));
     SuccessOrExit(error = mEncoder.WriteUint16(aPort));
     SuccessOrExit(error = mEncoder.EndFrame());
 
@@ -631,7 +631,7 @@ exit:
         mUpdateChangedPropsTask.Post();
     }
 }
-#endif // OPENTHREAD_ENABLE_TMF_PROXY
+#endif // OPENTHREAD_ENABLE_UDP_PROXY
 
 otError NcpBase::DecodeOperationalDataset(otOperationalDataset &aDataset, const uint8_t **aTlvs, uint8_t *aTlvsLength)
 {

@@ -28,45 +28,26 @@
 
 /**
  * @file
- *   This file implements the OpenThread TMF proxy API.
+ * @brief
+ *   This file includes the OpenThread API for TMF Proxy feature.
  */
 
-#include "openthread-core-config.h"
+#ifndef OPENTHREAD_UDP_PROXY_H_
+#define OPENTHREAD_UDP_PROXY_H_
 
-#include <openthread/tmf_proxy.h>
+#include <openthread/types.h>
 
-#include "common/instance.hpp"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#if OPENTHREAD_FTD && OPENTHREAD_ENABLE_TMF_PROXY
+/**
+ * @}
+ *
+ */
 
-using namespace ot;
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
-otError otTmfProxyStart(otInstance *aInstance, otTmfProxyStreamHandler aTmfProxyCallback, void *aContext)
-{
-    Instance &instance = *static_cast<Instance *>(aInstance);
-
-    return instance.GetThreadNetif().GetTmfProxy().Start(aTmfProxyCallback, aContext);
-}
-
-otError otTmfProxyStop(otInstance *aInstance)
-{
-    Instance &instance = *static_cast<Instance *>(aInstance);
-
-    return instance.GetThreadNetif().GetTmfProxy().Stop();
-}
-
-otError otTmfProxySend(otInstance *aInstance, otMessage *aMessage, uint16_t aLocator, uint16_t aPort)
-{
-    Instance &instance = *static_cast<Instance *>(aInstance);
-
-    return instance.GetThreadNetif().GetTmfProxy().Send(*static_cast<ot::Message *>(aMessage), aLocator, aPort);
-}
-
-bool otTmfProxyIsEnabled(otInstance *aInstance)
-{
-    Instance &instance = *static_cast<Instance *>(aInstance);
-
-    return instance.GetThreadNetif().GetTmfProxy().IsEnabled();
-}
-
-#endif // OPENTHREAD_FTD && OPENTHREAD_ENABLE_TMF_PROXY
+#endif  // OPENTHREAD_UDP_PROXY_H_

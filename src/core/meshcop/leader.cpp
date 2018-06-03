@@ -113,6 +113,7 @@ void Leader::HandlePetition(Coap::Header &aHeader, Message &aMessage, const Ip6:
 
     state = StateTlv::kAccept;
     mTimer.Start(TimerMilli::SecToMsec(kTimeoutLeaderPetition));
+    otLogInfoMeshCoP(GetInstance(), "good petition");
 
 exit:
     OT_UNUSED_VARIABLE(aMessageInfo);
@@ -152,6 +153,7 @@ otError Leader::SendPetitionResponse(const Coap::Header &    aRequestHeader,
         SuccessOrExit(error = message->Append(&sessionId, sizeof(sessionId)));
     }
 
+    otLogInfoMeshCoP(GetInstance(), "sending petition response");
     SuccessOrExit(error = netif.GetCoap().SendMessage(*message, aMessageInfo));
 
     otLogInfoMeshCoP(GetInstance(), "sent petition response");
@@ -160,6 +162,7 @@ exit:
 
     if (error != OT_ERROR_NONE && message != NULL)
     {
+        otLogInfoMeshCoP(GetInstance(), "not sent petition response %s", otThreadErrorToString(error));
         message->Free();
     }
 

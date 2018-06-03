@@ -178,6 +178,84 @@ otError otUdpSend(otUdpSocket *aSocket, otMessage *aMessage, const otMessageInfo
  *
  */
 
+/**
+ * @addtogroup api-udp-proxy
+ *
+ * @brief
+ *   This module includes functions for UDP proxy feature.
+ *
+ *   The functions in this module are available when udp-proxy feature (`OPENTHREAD_ENABLE_UDP_PROXY`) is enabled.
+ *
+ * @{
+ *
+ */
+
+/**
+ * This function pointer is called when a UDP packet for host is received.
+ *
+ * @param[in]  aMessage  A pointer to the CoAP Message.
+ * @param[in]  aContext  A pointer to application-specific context.
+ *
+ */
+typedef void (*otUdpProxyStreamHandler)(otMessage *aMessage, uint16_t aPeerPort, otIp6Address *aPeerAddr,
+                                        uint16_t aSockPort, void *aContext);
+
+/**
+ * Start the UDP proxy.
+ *
+ * @param[in]  aInstance            A pointer to an OpenThread instance.
+ * @param[in]  aHandler             A pointer to a function called to deliver UDP packet to host.
+ * @param[in]  aContext             A pointer to application-specific context.
+ *
+ * @retval OT_ERROR_NONE        Successfully started the UDP proxy.
+ * @retval OT_ERROR_ALREADY     Border agent proxy has been started before.
+ *
+ */
+otError otUdpProxyStart(otInstance *aInstance, otUdpProxyStreamHandler aHandler, void *aContext);
+
+/**
+ * Stop the UDP proxy.
+ *
+ * @param[in]  aInstance            A pointer to an OpenThread instance.
+ *
+ * @retval OT_ERROR_NONE        Successfully stopped the UDP proxy.
+ * @retval OT_ERROR_ALREADY     Border agent proxy is already stopped.
+ *
+ */
+otError otUdpProxyStop(otInstance *aInstance);
+
+/**
+ * Send packet through UDP proxy.
+ *
+ * @param[in]  aInstance            A pointer to an OpenThread instance.
+ * @param[in]  aMessage             A pointer to the CoAP Message.
+ * @param[in]  aPeerPort            Port of source.
+ * @param[in]  aPeerAddr            A pointer to the source address.
+ * @param[in]  aSockPort            Port of destination.
+ *
+ * @retval OT_ERROR_NONE             Successfully send the message.
+ * @retval OT_ERROR_INVALID_STATE    Border agent proxy is not started.
+ *
+ * @warning No matter the call success or fail, the message is freed.
+ *
+ */
+otError otUdpProxyReceive(otInstance *aInstance, otMessage *aMessage,
+                          uint16_t aPeerPort, const otIp6Address *aPeerAddr, uint16_t aSockPort);
+
+/**
+ * Get the UDP proxy status (enabled/disabled)
+ *
+ * @param[in]  aInstance            A pointer to an OpenThread instance.
+ *
+ * @returns The UDP proxy status (true if enabled, false otherwise).
+ */
+bool otUdpProxyIsEnabled(otInstance *aInstance);
+
+/**
+ * @}
+ *
+ */
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
