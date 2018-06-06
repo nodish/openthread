@@ -1117,8 +1117,8 @@ typedef struct otNetifMulticastAddress
  *
  */
 typedef enum otNetifInterfaceId {
-    OT_NETIF_INTERFACE_ID_HOST   = -1,      ///< The Special Network interface ID for host interfaces.
-    OT_NETIF_INTERFACE_ID_THREAD = 1,       ///< The Thread Network interface ID.
+    OT_NETIF_INTERFACE_ID_HOST   = -1, ///< The Special Network interface ID for host interfaces.
+    OT_NETIF_INTERFACE_ID_THREAD = 1,  ///< The Thread Network interface ID.
 } otNetifInterfaceId;
 
 /**

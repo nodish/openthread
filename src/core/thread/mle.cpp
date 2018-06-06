@@ -312,7 +312,6 @@ void Mle::SetRole(otDeviceRole aRole)
     }
 #endif
 
-
 exit:
     return;
 }

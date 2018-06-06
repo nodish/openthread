@@ -208,8 +208,8 @@ otError Udp::SendDatagram(Message &aMessage, MessageInfo &aMessageInfo, IpProto 
     if (aMessageInfo.GetInterfaceId() == OT_NETIF_INTERFACE_ID_HOST)
     {
         VerifyOrExit(mUdpCallback != NULL, error = OT_ERROR_NO_ROUTE);
-        mUdpCallback(&aMessage, aMessageInfo.mPeerPort, &aMessageInfo.GetPeerAddr(),
-                     aMessageInfo.mSockPort, mUdpCallbackContext);
+        mUdpCallback(&aMessage, aMessageInfo.mPeerPort, &aMessageInfo.GetPeerAddr(), aMessageInfo.mSockPort,
+                     mUdpCallbackContext);
         // message is consumed by the callback
     }
     else

@@ -172,7 +172,7 @@ otError CoapBase::SendMessage(Message &               aMessage,
     SuccessOrExit(error = header.FromMessage(aMessage, 0));
 
     if ((header.GetType() == OT_COAP_TYPE_ACKNOWLEDGMENT || header.GetType() == OT_COAP_TYPE_RESET) &&
-		header.GetCode() != OT_COAP_CODE_EMPTY)
+        header.GetCode() != OT_COAP_CODE_EMPTY)
     {
         mResponsesQueue.EnqueueResponse(aMessage, aMessageInfo);
     }
@@ -198,11 +198,9 @@ otError CoapBase::SendMessage(Message &               aMessage,
 
     if (copyLength > 0)
     {
-        otLogInfoCoap(GetNetif().GetInstance(), "[BorderAgent] copy message");
         coapMetadata = CoapMetadata(header.IsConfirmable(), aMessageInfo, aHandler, aContext);
         VerifyOrExit((storedCopy = CopyAndEnqueueMessage(aMessage, copyLength, coapMetadata)) != NULL,
                      error = OT_ERROR_NO_BUFS);
-        otLogInfoCoap(GetNetif().GetInstance(), "[BorderAgent] copy message ok");
     }
 
     SuccessOrExit(error = Send(aMessage, aMessageInfo));

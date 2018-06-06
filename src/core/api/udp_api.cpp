@@ -108,7 +108,7 @@ otError otUdpSend(otUdpSocket *aSocket, otMessage *aMessage, const otMessageInfo
 otError otUdpProxyStart(otInstance *aInstance, otUdpProxyStreamHandler aUdpProxyCallback, void *aContext)
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
-    Ip6::Ip6 &ip6 = instance.Get<Ip6::Ip6>();
+    Ip6::Ip6 &ip6      = instance.Get<Ip6::Ip6>();
 
     ip6.GetUdp().SetUdpCallback(aUdpProxyCallback, aContext);
 
@@ -118,18 +118,22 @@ otError otUdpProxyStart(otInstance *aInstance, otUdpProxyStreamHandler aUdpProxy
 otError otUdpProxyStop(otInstance *aInstance)
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
-    Ip6::Ip6 &ip6 = instance.Get<Ip6::Ip6>();
+    Ip6::Ip6 &ip6      = instance.Get<Ip6::Ip6>();
 
     ip6.GetUdp().SetUdpCallback(NULL, NULL);
 
     return OT_ERROR_NONE;
 }
 
-otError otUdpProxyReceive(otInstance *aInstance, otMessage *aMessage, uint16_t aPeerPort, const otIp6Address *aPeerAddr, uint16_t aSockPort)
+otError otUdpProxyReceive(otInstance *        aInstance,
+                          otMessage *         aMessage,
+                          uint16_t            aPeerPort,
+                          const otIp6Address *aPeerAddr,
+                          uint16_t            aSockPort)
 {
     Ip6::MessageInfo messageInfo;
-    Instance &instance = *static_cast<Instance *>(aInstance);
-    Ip6::Ip6 &ip6 = instance.Get<Ip6::Ip6>();
+    Instance &       instance = *static_cast<Instance *>(aInstance);
+    Ip6::Ip6 &       ip6      = instance.Get<Ip6::Ip6>();
 
     memset(&messageInfo, 0, sizeof(messageInfo));
     messageInfo.SetSockAddr(instance.GetThreadNetif().GetMle().GetMeshLocal16());
@@ -148,7 +152,7 @@ otError otUdpProxyReceive(otInstance *aInstance, otMessage *aMessage, uint16_t a
 bool otUdpProxyIsEnabled(otInstance *aInstance)
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
-    Ip6::Ip6 &ip6 = instance.Get<Ip6::Ip6>();
+    Ip6::Ip6 &ip6      = instance.Get<Ip6::Ip6>();
 
     return ip6.GetUdp().IsUdpCallbackSet();
 }

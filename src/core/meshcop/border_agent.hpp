@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2018, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -36,19 +36,8 @@
 
 #include "openthread-core-config.h"
 
-#include <openthread/commissioner.h>
-
 #include "coap/coap.hpp"
-#include "coap/coap_secure.hpp"
 #include "common/locator.hpp"
-#include "common/timer.hpp"
-#include "mac/mac_frame.hpp"
-#include "meshcop/announce_begin_client.hpp"
-#include "meshcop/dtls.hpp"
-#include "meshcop/energy_scan_client.hpp"
-#include "meshcop/panid_query_client.hpp"
-#include "net/udp6.hpp"
-#include "thread/mle.hpp"
 
 namespace ot {
 

@@ -55,11 +55,11 @@
 #endif
 #include "common/notifier.hpp"
 #include "common/settings.hpp"
+#include "meshcop/border_agent.hpp"
 #include "net/ip6.hpp"
 #include "thread/announce_sender.hpp"
 #include "thread/link_quality.hpp"
 #include "thread/thread_netif.hpp"
-#include "meshcop/border_agent.hpp"
 #if OPENTHREAD_ENABLE_CHANNEL_MANAGER
 #include "utils/channel_manager.hpp"
 #endif

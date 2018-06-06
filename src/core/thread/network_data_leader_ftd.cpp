@@ -209,11 +209,8 @@ void Leader::HandleCommissioningSet(Coap::Header &aHeader, Message &aMessage, co
     MeshCoP::Tlv *cur;
     MeshCoP::Tlv *end;
 
-    otLogInfoMeshCoP(GetInstance(), "handle commissioning step 0");
     VerifyOrExit(length <= sizeof(tlvs));
-    VerifyOrExit(GetNetif().GetMle().GetRole() == OT_DEVICE_ROLE_LEADER);
 
-    otLogInfoMeshCoP(GetInstance(), "handle commissioning step 1");
     aMessage.Read(offset, length, tlvs);
 
     // Session Id and Border Router Locator MUST NOT be set, but accept including unexpected or
@@ -221,7 +218,6 @@ void Leader::HandleCommissioningSet(Coap::Header &aHeader, Message &aMessage, co
     cur = reinterpret_cast<MeshCoP::Tlv *>(tlvs);
     end = reinterpret_cast<MeshCoP::Tlv *>(tlvs + length);
 
-    otDumpInfoNetData(GetInstance(), "handle commissioning data", tlvs, length);
     while (cur < end)
     {
         MeshCoP::Tlv::Type type;
@@ -254,11 +250,9 @@ void Leader::HandleCommissioningSet(Coap::Header &aHeader, Message &aMessage, co
         cur = cur->GetNext();
     }
 
-    otLogInfoMeshCoP(GetInstance(), "handle commissioning step 2");
     // verify whether or not commissioner session id TLV is included
     VerifyOrExit(hasSessionId);
 
-    otLogInfoMeshCoP(GetInstance(), "handle commissioning step 3");
     // verify whether or not MGMT_COMM_SET.req includes at least one valid TLV
     VerifyOrExit(hasValidTlv);
 
@@ -287,7 +281,6 @@ void Leader::HandleCommissioningSet(Coap::Header &aHeader, Message &aMessage, co
             }
         }
     }
-    otLogInfoMeshCoP(GetInstance(), "handle commissioning step 4");
 
     SetCommissioningData(tlvs, static_cast<uint8_t>(length));
 
@@ -429,7 +422,7 @@ void Leader::SendCommissioningSetResponse(const Coap::Header &     aRequestHeade
 
     SuccessOrExit(error = netif.GetCoap().SendMessage(*message, aMessageInfo));
 
-    otLogInfoMeshCoP(GetInstance(), "sent commissioning dataset set response %d", aState);
+    otLogInfoMeshCoP(GetInstance(), "sent commissioning dataset set response");
 
 exit:
 

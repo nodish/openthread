@@ -191,14 +191,17 @@ otError otUdpSend(otUdpSocket *aSocket, otMessage *aMessage, const otMessageInfo
  */
 
 /**
- * This function pointer is called when a UDP packet for host is received.
+ * This function pointer is called to deliver a UDP packet to host.
  *
  * @param[in]  aMessage  A pointer to the CoAP Message.
  * @param[in]  aContext  A pointer to application-specific context.
  *
  */
-typedef void (*otUdpProxyStreamHandler)(otMessage *aMessage, uint16_t aPeerPort, otIp6Address *aPeerAddr,
-                                        uint16_t aSockPort, void *aContext);
+typedef void (*otUdpProxyStreamHandler)(otMessage *   aMessage,
+                                        uint16_t      aPeerPort,
+                                        otIp6Address *aPeerAddr,
+                                        uint16_t      aSockPort,
+                                        void *        aContext);
 
 /**
  * Start the UDP proxy.
@@ -239,8 +242,11 @@ otError otUdpProxyStop(otInstance *aInstance);
  * @warning No matter the call success or fail, the message is freed.
  *
  */
-otError otUdpProxyReceive(otInstance *aInstance, otMessage *aMessage,
-                          uint16_t aPeerPort, const otIp6Address *aPeerAddr, uint16_t aSockPort);
+otError otUdpProxyReceive(otInstance *        aInstance,
+                          otMessage *         aMessage,
+                          uint16_t            aPeerPort,
+                          const otIp6Address *aPeerAddr,
+                          uint16_t            aSockPort);
 
 /**
  * Get the UDP proxy status (enabled/disabled)

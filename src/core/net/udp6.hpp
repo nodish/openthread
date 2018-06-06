@@ -263,14 +263,11 @@ public:
     otError UpdateChecksum(Message &aMessage, uint16_t aPseudoHeaderChecksum);
 
 #if OPENTHREAD_ENABLE_UDP_PROXY
-    bool IsUdpCallbackSet() const
-    {
-        return mUdpCallback != NULL;
-    }
+    bool IsUdpCallbackSet() const { return mUdpCallback != NULL; }
 
     void SetUdpCallback(otUdpProxyStreamHandler aCallback, void *aContext)
     {
-        mUdpCallback = aCallback;
+        mUdpCallback        = aCallback;
         mUdpCallbackContext = aContext;
     }
 #endif // OPENTHREAD_ENABLE_UDP_PROXY
@@ -284,7 +281,7 @@ private:
     uint16_t   mEphemeralPort;
     UdpSocket *mSockets;
 #if OPENTHREAD_ENABLE_UDP_PROXY
-    void      *mUdpCallbackContext;
+    void *                  mUdpCallbackContext;
     otUdpProxyStreamHandler mUdpCallback;
 #endif
 };
