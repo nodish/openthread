@@ -191,7 +191,7 @@ otError otUdpSend(otUdpSocket *aSocket, otMessage *aMessage, const otMessageInfo
  */
 
 /**
- * This function pointer is called to deliver a UDP packet to host.
+ * This function pointer deliver the UDP packet to host, which should send the packet through its own network stack.
  *
  * @param[in]  aMessage  A pointer to the CoAP Message.
  * @param[in]  aContext  A pointer to application-specific context.
@@ -204,31 +204,18 @@ typedef void (*otUdpProxyStreamHandler)(otMessage *   aMessage,
                                         void *        aContext);
 
 /**
- * Start the UDP proxy.
+ * Set UDP proxy callback to deliever UDP packets to host.
  *
  * @param[in]  aInstance            A pointer to an OpenThread instance.
  * @param[in]  aHandler             A pointer to a function called to deliver UDP packet to host.
  * @param[in]  aContext             A pointer to application-specific context.
  *
- * @retval OT_ERROR_NONE        Successfully started the UDP proxy.
- * @retval OT_ERROR_ALREADY     Border agent proxy has been started before.
- *
  */
-otError otUdpProxyStart(otInstance *aInstance, otUdpProxyStreamHandler aHandler, void *aContext);
+void otUdpProxySetCallback(otInstance *aInstance, otUdpProxyStreamHandler aHandler, void *aContext);
+
 
 /**
- * Stop the UDP proxy.
- *
- * @param[in]  aInstance            A pointer to an OpenThread instance.
- *
- * @retval OT_ERROR_NONE        Successfully stopped the UDP proxy.
- * @retval OT_ERROR_ALREADY     Border agent proxy is already stopped.
- *
- */
-otError otUdpProxyStop(otInstance *aInstance);
-
-/**
- * Send packet through UDP proxy.
+ * Handle a UDP packet received from host.
  *
  * @param[in]  aInstance            A pointer to an OpenThread instance.
  * @param[in]  aMessage             A pointer to the CoAP Message.
@@ -236,26 +223,14 @@ otError otUdpProxyStop(otInstance *aInstance);
  * @param[in]  aPeerAddr            A pointer to the source address.
  * @param[in]  aSockPort            Port of destination.
  *
- * @retval OT_ERROR_NONE             Successfully send the message.
- * @retval OT_ERROR_INVALID_STATE    Border agent proxy is not started.
- *
  * @warning No matter the call success or fail, the message is freed.
  *
  */
-otError otUdpProxyReceive(otInstance *        aInstance,
+void otUdpProxyReceive(otInstance *        aInstance,
                           otMessage *         aMessage,
                           uint16_t            aPeerPort,
                           const otIp6Address *aPeerAddr,
                           uint16_t            aSockPort);
-
-/**
- * Get the UDP proxy status (enabled/disabled)
- *
- * @param[in]  aInstance            A pointer to an OpenThread instance.
- *
- * @returns The UDP proxy status (true if enabled, false otherwise).
- */
-bool otUdpProxyIsEnabled(otInstance *aInstance);
 
 /**
  * @}

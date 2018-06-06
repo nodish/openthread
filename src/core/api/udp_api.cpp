@@ -105,31 +105,19 @@ otError otUdpSend(otUdpSocket *aSocket, otMessage *aMessage, const otMessageInfo
 }
 
 #if OPENTHREAD_ENABLE_UDP_PROXY
-otError otUdpProxyStart(otInstance *aInstance, otUdpProxyStreamHandler aUdpProxyCallback, void *aContext)
+void otUdpProxySetCallback(otInstance *aInstance, otUdpProxyStreamHandler aUdpProxyCallback, void *aContext)
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
     Ip6::Ip6 &ip6      = instance.Get<Ip6::Ip6>();
 
-    ip6.GetUdp().SetUdpCallback(aUdpProxyCallback, aContext);
-
-    return OT_ERROR_NONE;
+    ip6.GetUdp().SetProxyCallback(aUdpProxyCallback, aContext);
 }
 
-otError otUdpProxyStop(otInstance *aInstance)
-{
-    Instance &instance = *static_cast<Instance *>(aInstance);
-    Ip6::Ip6 &ip6      = instance.Get<Ip6::Ip6>();
-
-    ip6.GetUdp().SetUdpCallback(NULL, NULL);
-
-    return OT_ERROR_NONE;
-}
-
-otError otUdpProxyReceive(otInstance *        aInstance,
-                          otMessage *         aMessage,
-                          uint16_t            aPeerPort,
-                          const otIp6Address *aPeerAddr,
-                          uint16_t            aSockPort)
+void otUdpProxyReceive(otInstance *        aInstance,
+                       otMessage *         aMessage,
+                       uint16_t            aPeerPort,
+                       const otIp6Address *aPeerAddr,
+                       uint16_t            aSockPort)
 {
     Ip6::MessageInfo messageInfo;
     Instance &       instance = *static_cast<Instance *>(aInstance);
@@ -145,16 +133,5 @@ otError otUdpProxyReceive(otInstance *        aInstance,
     ip6.GetUdp().HandlePayload(*static_cast<ot::Message *>(aMessage), messageInfo);
 
     static_cast<ot::Message *>(aMessage)->Free();
-
-    return OT_ERROR_NONE;
 }
-
-bool otUdpProxyIsEnabled(otInstance *aInstance)
-{
-    Instance &instance = *static_cast<Instance *>(aInstance);
-    Ip6::Ip6 &ip6      = instance.Get<Ip6::Ip6>();
-
-    return ip6.GetUdp().IsUdpCallbackSet();
-}
-
 #endif // OPENTHREAD_ENABLE_UDP_PROXY

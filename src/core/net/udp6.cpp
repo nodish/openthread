@@ -207,9 +207,9 @@ otError Udp::SendDatagram(Message &aMessage, MessageInfo &aMessageInfo, IpProto 
 #if OPENTHREAD_ENABLE_UDP_PROXY
     if (aMessageInfo.GetInterfaceId() == OT_NETIF_INTERFACE_ID_HOST)
     {
-        VerifyOrExit(mUdpCallback != NULL, error = OT_ERROR_NO_ROUTE);
-        mUdpCallback(&aMessage, aMessageInfo.mPeerPort, &aMessageInfo.GetPeerAddr(), aMessageInfo.mSockPort,
-                     mUdpCallbackContext);
+        VerifyOrExit(mProxyCallback != NULL, error = OT_ERROR_NO_ROUTE);
+        mProxyCallback(&aMessage, aMessageInfo.mPeerPort, &aMessageInfo.GetPeerAddr(), aMessageInfo.mSockPort,
+                       mProxyCallbackContext);
         // message is consumed by the callback
     }
     else

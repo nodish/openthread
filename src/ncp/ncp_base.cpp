@@ -235,9 +235,6 @@ const NcpBase::PropertyHandlerEntry NcpBase::mGetPropertyHandlerTable[] =
 #if OPENTHREAD_ENABLE_COMMISSIONER
     NCP_GET_PROP_HANDLER_ENTRY(THREAD_COMMISSIONER_ENABLED),
 #endif
-#if OPENTHREAD_ENABLE_UDP_PROXY
-    NCP_GET_PROP_HANDLER_ENTRY(THREAD_UDP_PROXY_ENABLED),
-#endif
 #if OPENTHREAD_CONFIG_ENABLE_STEERING_DATA_SET_OOB
     NCP_GET_PROP_HANDLER_ENTRY(THREAD_STEERING_DATA),
 #endif
@@ -340,7 +337,6 @@ const NcpBase::PropertyHandlerEntry NcpBase::mSetPropertyHandlerTable[] =
     NCP_SET_PROP_HANDLER_ENTRY(THREAD_STEERING_DATA),
 #endif
 #if OPENTHREAD_ENABLE_UDP_PROXY
-    NCP_SET_PROP_HANDLER_ENTRY(THREAD_UDP_PROXY_ENABLED),
     NCP_SET_PROP_HANDLER_ENTRY(THREAD_UDP_PROXY_STREAM),
 #endif
     NCP_SET_PROP_HANDLER_ENTRY(THREAD_ACTIVE_DATASET),
@@ -605,11 +601,15 @@ NcpBase::NcpBase(Instance *aInstance):
 
     memset(&mResponseQueue, 0, sizeof(mResponseQueue));
 
+
 #if OPENTHREAD_MTD || OPENTHREAD_FTD
     otMessageQueueInit(&mMessageQueue);
     otSetStateChangedCallback(mInstance, &NcpBase::HandleStateChanged, this);
     otIp6SetReceiveCallback(mInstance, &NcpBase::HandleDatagramFromStack, this);
     otIp6SetReceiveFilterEnabled(mInstance, true);
+#if OPENTHREAD_ENABLE_UDP_PROXY
+    otUdpProxySetCallback(mInstance, &NcpBase::HandleUdpProxyStream, this);
+#endif
     otLinkSetPcapCallback(mInstance, &NcpBase::HandleRawFrame, static_cast<void *>(this));
     otIcmp6SetEchoMode(mInstance, OT_ICMP6_ECHO_HANDLER_DISABLED);
 #if OPENTHREAD_FTD
