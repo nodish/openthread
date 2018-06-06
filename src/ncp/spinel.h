@@ -1154,13 +1154,6 @@ typedef enum
     SPINEL_PROP_THREAD_COMMISSIONER_ENABLED
                                         = SPINEL_PROP_THREAD_EXT__BEGIN + 16,
 
-    /// Thread TMF proxy enable
-    /** Format `b`
-     *
-     * Default value is `false`.
-     */
-    SPINEL_PROP_THREAD_UDP_PROXY_ENABLED
-                                        = SPINEL_PROP_THREAD_EXT__BEGIN + 17,
 
     /// Thread TMF proxy stream
     /** Format `dSS`
