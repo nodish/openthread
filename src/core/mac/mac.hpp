@@ -1013,12 +1013,16 @@ private:
     Frame *mOobFrame;
 
     otMacCounters mCounters;
-    uint32_t      mKeyIdMode2FrameCounter;
 
     SuccessRateTracker mCcaSuccessRateTracker;
     uint16_t           mCcaSampleCount;
     bool               mEnabled;
 };
+
+class ThreadMac: public Mac
+{
+    uint32_t      mKeyIdMode2FrameCounter;
+}
 
 /**
  * @}

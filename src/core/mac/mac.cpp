@@ -190,7 +190,6 @@ Mac::Mac(Instance &aInstance)
 #if OPENTHREAD_ENABLE_MAC_FILTER
     , mFilter()
 #endif // OPENTHREAD_ENABLE_MAC_FILTER
-    , mTxFrame(static_cast<Frame *>(otPlatRadioGetTransmitBuffer(&aInstance)))
     , mOobFrame(NULL)
     , mKeyIdMode2FrameCounter(0)
     , mCcaSuccessRateTracker()
@@ -1062,7 +1061,7 @@ Frame *Mac::GetOperationFrame(void)
         break;
 
     default:
-        frame = mTxFrame;
+        frame = static_cast<Frame *>(otPlatRadioGetTransmitBuffer(&aInstance));
         break;
     }
 
@@ -1539,8 +1538,8 @@ void Mac::HandleMacTimer(void)
 
     case kOperationTransmitData:
         otLogDebgMac(GetInstance(), "Ack timer fired");
-        RadioReceive(mTxFrame->mChannel);
-        HandleTransmitDone(mTxFrame, NULL, OT_ERROR_NO_ACK);
+        RadioReceive(mRadioChannel);
+        HandleTransmitDone(otPlatRadioGetTransmitBuffer(&mInstance), NULL, OT_ERROR_NO_ACK);
         break;
 
     default:
