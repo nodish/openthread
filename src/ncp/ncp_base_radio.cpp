@@ -336,7 +336,7 @@ exit:
     return error;
 }
 
-otError NcpBase::HandlePropertySet_SPINEL_PROP_STREAM_RAW(uint8_t aHeader)
+template <> otError NcpBase::HandleSpecialPropertySet<SPINEL_PROP_STREAM_RAW>(uint8_t aHeader)
 {
     const uint8_t *frameBuffer = NULL;
     otRadioFrame * frame;

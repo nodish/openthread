@@ -397,7 +397,7 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_COMMISSIONER_E
     return mEncoder.WriteBool(otCommissionerGetState(mInstance) == OT_COMMISSIONER_STATE_ACTIVE);
 }
 
-otError NcpBase::HandlePropertySet_SPINEL_PROP_THREAD_COMMISSIONER_ENABLED(uint8_t aHeader)
+template <> otError NcpBase::HandleSpecialPropertySet<SPINEL_PROP_THREAD_COMMISSIONER_ENABLED>(uint8_t aHeader)
 {
     bool    enabled = false;
     otError error   = OT_ERROR_NONE;

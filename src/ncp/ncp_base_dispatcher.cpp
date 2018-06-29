@@ -988,5 +988,43 @@ NcpBase::PropertyHandler NcpBase::FindRemovePropertyHandler(spinel_prop_key_t aK
     return handler;
 }
 
+// Returns `true` and updates the `aError` on success.
+bool NcpBase::HandlePropertySetForSpecialProperties(uint8_t aHeader, spinel_prop_key_t aKey, otError &aError)
+{
+    bool didHandle = true;
+
+    // Here the properties that require special treatment are handled.
+    // These properties are expected to form/write the response from
+    // their set handler directly.
+
+    switch (aKey)
+    {
+    case SPINEL_PROP_HOST_POWER_STATE:
+        ExitNow(aError = HandleSpecialPropertySet<SPINEL_PROP_HOST_POWER_STATE>(aHeader));
+
+#if OPENTHREAD_ENABLE_DIAG
+    case SPINEL_PROP_NEST_STREAM_MFG:
+        ExitNow(aError = HandleSpecialPropertySet<SPINEL_PROP_NEST_STREAM_MFG>(aHeader));
+#endif
+
+#if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
+    case SPINEL_PROP_THREAD_COMMISSIONER_ENABLED:
+        ExitNow(aError = HandleSpecialPropertySet<SPINEL_PROP_THREAD_COMMISSIONER_ENABLED>(aHeader));
+#endif
+
+#if OPENTHREAD_RADIO || OPENTHREAD_ENABLE_RAW_LINK_API
+    case SPINEL_PROP_STREAM_RAW:
+        ExitNow(aError = HandleSpecialPropertySet<SPINEL_PROP_STREAM_RAW>(aHeader));
+#endif
+
+    default:
+        didHandle = false;
+        break;
+    }
+
+exit:
+    return didHandle;
+}
+
 } // namespace Ncp
 } // namespace ot
