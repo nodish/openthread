@@ -334,6 +334,23 @@ static int OpenUart(const char *aRadioFile, const char *aRadioConfig)
     }
 
     rval = tcflush(fd, TCIOFLUSH);
+    //{
+    //    struct termios tios;
+    //    rval= tcgetattr(fd, &tios);
+
+    //    for (int i=0; i < NCCS; i++) {
+    //        tios.c_cc[i] = _POSIX_VDISABLE;
+    //    }
+
+    //    tios.c_cflag = (CS8|HUPCL|CREAD|CLOCAL);
+    //    tios.c_iflag = 0;
+    //    tios.c_oflag = 0;
+    //    tios.c_lflag = 0;
+
+    //    cfmakeraw(&tios);
+    //    cfsetspeed(&tios, B115200);
+    //    rval = tcsetattr(fd, TCSANOW, &tios);
+    //}
     VerifyOrExit(rval == 0, otLogCritPlat(mInstance, "Unable to flush serial port"));
 
 exit:
@@ -969,7 +986,6 @@ otError RadioSpinel::Remove(spinel_prop_key_t aKey, const char *aFormat, ...)
 
 otError RadioSpinel::WaitResponse(void)
 {
-    otError        error = OT_ERROR_NONE;
     struct timeval end;
     struct timeval now;
     struct timeval timeout = {kMaxWaitTime / 1000, (kMaxWaitTime % 1000) * 1000};
@@ -1030,13 +1046,11 @@ otError RadioSpinel::WaitResponse(void)
         }
     } while (mWaitingTid || !mIsReady);
 
-    error = mError;
-
 exit:
-    LogIfFail(mInstance, "Error waiting response", error);
+    LogIfFail(mInstance, "Error waiting response", mError);
     // This indicates end of waiting repsonse.
     mWaitingKey = SPINEL_PROP_LAST_STATUS;
-    return error;
+    return mError;
 }
 
 spinel_tid_t RadioSpinel::GetNextTid(void)
@@ -1099,6 +1113,13 @@ void RadioSpinel::RadioTransmit(void)
 otError RadioSpinel::WriteAll(const uint8_t *aBuffer, uint16_t aLength)
 {
     otError error = OT_ERROR_NONE;
+
+    printf("%s:", __func__);
+    for (uint16_t i = 0; i < aLength; ++i)
+    {
+        printf("%02x", aBuffer[i]);
+    }
+    printf("\r\n");
 
     while (aLength)
     {
@@ -1192,6 +1213,7 @@ otError RadioSpinel::SendCommand(uint32_t          aCommand,
     mHdlcEncoder.Finalize(txBuffer);
 
     error = WriteAll(txBuffer.GetBuffer(), txBuffer.GetLength());
+    sleep(0);
 
 exit:
     return error;
@@ -1412,13 +1434,13 @@ void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *aA
 
 void otPlatRadioSetShortAddress(otInstance *aInstance, uint16_t aAddress)
 {
-    sRadioSpinel.SetShortAddress(aAddress);
+    SuccessOrDie(sRadioSpinel.SetShortAddress(aAddress));
     OT_UNUSED_VARIABLE(aInstance);
 }
 
 void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
 {
-    sRadioSpinel.SetPromiscuous(aEnable);
+    SuccessOrDie(sRadioSpinel.SetPromiscuous(aEnable));
     OT_UNUSED_VARIABLE(aInstance);
 }
 
