@@ -229,6 +229,7 @@ static otError addSetting(otInstance *   aInstance,
 
     addBlock.block.flag = 0xff;
     addBlock.block.key  = aKey;
+    addBlock.block.reserved = 0;
 
     if (aIndex0)
     {
