@@ -30,10 +30,10 @@
 
 #if OPENTHREAD_POSIX_VIRTUAL_TIME == 0
 
+#include <errno.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <errno.h>
 
 #include <openthread/platform/alarm-micro.h>
 #include <openthread/platform/alarm-milli.h>
@@ -385,7 +385,7 @@ void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
 
 void platformRadioInit(void)
 {
-    char *             offset;
+    char *      offset;
     struct stat st;
     char        fileName[20];
 
@@ -567,19 +567,19 @@ void handleRadioFrame(void *aContext, const uint8_t *aBuffer, uint16_t aLength)
         sState   = OT_RADIO_STATE_RECEIVE;
         sAckWait = false;
 
-        otPlatRadioTxDone((otInstance*)aContext, &sTransmitFrame, &sReceiveFrame, OT_ERROR_NONE);
+        otPlatRadioTxDone((otInstance *)aContext, &sTransmitFrame, &sReceiveFrame, OT_ERROR_NONE);
     }
     else if ((sState == OT_RADIO_STATE_RECEIVE || sState == OT_RADIO_STATE_TRANSMIT) &&
              (sReceiveFrame.mChannel == sReceiveMessage.mChannel))
     {
-        radioProcessFrame((otInstance*)aContext);
+        radioProcessFrame((otInstance *)aContext);
     }
 }
 
 void radioReceive(otInstance *aInstance)
 {
     const size_t kMaxSpinelFrame = 2048;
-    uint8_t buffer[kMaxSpinelFrame];
+    uint8_t      buffer[kMaxSpinelFrame];
 
     int rval = read(sSockFd, buffer, sizeof(buffer));
 
@@ -677,17 +677,18 @@ void platformRadioProcess(otInstance *aInstance)
     }
 }
 
-#define FLOCK(fd, op)                               \
-    do {                                            \
-        int rval = flock(fd, op);                   \
-        if (rval == 0) break;                       \
-        else if (rval == EBADF || rval == EINVAL)   \
-        {                                           \
-            assert(false);                          \
-            exit(EXIT_FAILURE);                     \
-        }                                           \
-    }                                               \
-    while (true)                                    \
+#define FLOCK(fd, op)                             \
+    do                                            \
+    {                                             \
+        int rval = flock(fd, op);                 \
+        if (rval == 0)                            \
+            break;                                \
+        else if (rval == EBADF || rval == EINVAL) \
+        {                                         \
+            assert(false);                        \
+            exit(EXIT_FAILURE);                   \
+        }                                         \
+    } while (true)
 
 void writeAll(const uint8_t *aBuffer, size_t aSize)
 {
@@ -712,7 +713,7 @@ void writeAll(const uint8_t *aBuffer, size_t aSize)
 
 void radioTransmit(struct RadioMessage *aMessage, const struct otRadioFrame *aFrame)
 {
-    uint32_t           i;
+    uint32_t i;
 
     uint16_t crc        = 0;
     uint16_t crc_offset = aFrame->mLength - sizeof(uint16_t);
@@ -725,7 +726,7 @@ void radioTransmit(struct RadioMessage *aMessage, const struct otRadioFrame *aFr
     aMessage->mPsdu[crc_offset]     = crc & 0xff;
     aMessage->mPsdu[crc_offset + 1] = crc >> 8;
 
-    hdlcEncode((const uint8_t*)aMessage, 1 + aFrame->mLength, writeAll);
+    hdlcEncode((const uint8_t *)aMessage, 1 + aFrame->mLength, writeAll);
 }
 
 void radioSendAck(void)
