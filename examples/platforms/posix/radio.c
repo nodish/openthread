@@ -719,6 +719,11 @@ void radioTransmit(struct RadioMessage *aMessage, const struct otRadioFrame *aFr
             perror("sendto");
             exit(EXIT_FAILURE);
         }
+        else if (rval != 1 + aFrame->mLength)
+        {
+            assert(false);
+            exit(EXIT_FAILURE);
+        }
     }
 }
 

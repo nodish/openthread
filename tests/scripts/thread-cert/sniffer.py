@@ -47,7 +47,7 @@ class Sniffer:
 
     logger = logging.getLogger("sniffer.Sniffer")
 
-    RECV_BUFFER_SIZE = 4096
+    RECV_BUFFER_SIZE = 256
 
     def __init__(self, nodeid, message_factory):
         """

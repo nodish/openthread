@@ -988,6 +988,8 @@ class UdpBasedOnSrcDstPortsPayloadFactory:
             factory = self._factories[message_info.src_port]
 
         if factory is None:
+            print(message_info)
+            repr(message_info)
             raise RuntimeError("Could not find factory to build UDP payload.")
 
         return factory.parse(data, message_info)
