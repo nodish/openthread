@@ -30,6 +30,11 @@
 
 #if OPENTHREAD_POSIX_VIRTUAL_TIME == 0
 
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+
 #include <openthread/platform/alarm-micro.h>
 #include <openthread/platform/alarm-milli.h>
 #include <openthread/platform/diag.h>
@@ -37,6 +42,7 @@
 #include <openthread/platform/random.h>
 #include <openthread/platform/time.h>
 
+#include "hdlc_stream.h"
 #include "utils/code_utils.h"
 
 enum
@@ -119,7 +125,6 @@ static otRadioIeInfo sReceivedIeInfo;
 static uint8_t  sExtendedAddress[OT_EXT_ADDRESS_SIZE];
 static uint16_t sShortAddress;
 static uint16_t sPanid;
-static uint16_t sPortOffset = 0;
 static int      sSockFd;
 static bool     sPromiscuous = false;
 static bool     sAckWait     = false;
@@ -380,52 +385,33 @@ void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
 
 void platformRadioInit(void)
 {
-    struct sockaddr_in sockaddr;
     char *             offset;
-    memset(&sockaddr, 0, sizeof(sockaddr));
-    sockaddr.sin_family = AF_INET;
+    struct stat st;
+    char        fileName[20];
 
     offset = getenv("PORT_OFFSET");
 
-    if (offset)
+    if (stat("tmp", &st) == -1)
     {
-        char *endptr;
-
-        sPortOffset = (uint16_t)strtol(offset, &endptr, 0);
-
-        if (*endptr != '\0')
-        {
-            fprintf(stderr, "Invalid PORT_OFFSET: %s\n", offset);
-            exit(EXIT_FAILURE);
-        }
-
-        sPortOffset *= WELLKNOWN_NODE_ID;
+        mkdir("tmp", 0777);
     }
 
-    if (sPromiscuous)
+    if (offset == NULL)
     {
-        sockaddr.sin_port = htons(9000 + sPortOffset + WELLKNOWN_NODE_ID);
-    }
-    else
-    {
-        sockaddr.sin_port = htons(9000 + sPortOffset + NODE_ID);
+        offset = "0";
     }
 
-    sockaddr.sin_addr.s_addr = INADDR_ANY;
+    snprintf(fileName, sizeof(fileName), "tmp/%s.radio", offset);
 
-    sSockFd = (int)socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    sSockFd = open(fileName, O_RDWR | O_CREAT | O_APPEND | O_SYNC, 0666);
 
     if (sSockFd == -1)
     {
-        perror("socket");
+        perror("open");
         exit(EXIT_FAILURE);
     }
 
-    if (bind(sSockFd, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) == -1)
-    {
-        perror("bind");
-        exit(EXIT_FAILURE);
-    }
+    unlink(fileName);
 
     sReceiveFrame.mPsdu  = sReceiveMessage.mPsdu;
     sTransmitFrame.mPsdu = sTransmitMessage.mPsdu;
@@ -559,15 +545,9 @@ bool otPlatRadioGetPromiscuous(otInstance *aInstance)
     return sPromiscuous;
 }
 
-void radioReceive(otInstance *aInstance)
+void handleRadioFrame(void *aContext, const uint8_t *aBuffer, uint16_t aLength)
 {
-    ssize_t rval = recvfrom(sSockFd, (char *)&sReceiveMessage, sizeof(sReceiveMessage), 0, NULL, NULL);
-
-    if (rval < 0)
-    {
-        perror("recvfrom");
-        exit(EXIT_FAILURE);
-    }
+    memcpy((char *)&sReceiveFrame, aBuffer, aLength);
 
 #if OPENTHREAD_ENABLE_RAW_LINK_API
     // Timestamp
@@ -579,7 +559,7 @@ void radioReceive(otInstance *aInstance)
     sReceiveFrame.mIeInfo->mTimestamp = otPlatTimeGet();
 #endif
 
-    sReceiveFrame.mLength = (uint8_t)(rval - 1);
+    sReceiveFrame.mLength = (uint8_t)(aLength - 1);
 
     if (sAckWait && sTransmitFrame.mChannel == sReceiveMessage.mChannel && isFrameTypeAck(sReceiveFrame.mPsdu) &&
         getDsn(sReceiveFrame.mPsdu) == getDsn(sTransmitFrame.mPsdu))
@@ -587,13 +567,29 @@ void radioReceive(otInstance *aInstance)
         sState   = OT_RADIO_STATE_RECEIVE;
         sAckWait = false;
 
-        otPlatRadioTxDone(aInstance, &sTransmitFrame, &sReceiveFrame, OT_ERROR_NONE);
+        otPlatRadioTxDone((otInstance*)aContext, &sTransmitFrame, &sReceiveFrame, OT_ERROR_NONE);
     }
     else if ((sState == OT_RADIO_STATE_RECEIVE || sState == OT_RADIO_STATE_TRANSMIT) &&
              (sReceiveFrame.mChannel == sReceiveMessage.mChannel))
     {
-        radioProcessFrame(aInstance);
+        radioProcessFrame((otInstance*)aContext);
     }
+}
+
+void radioReceive(otInstance *aInstance)
+{
+    const size_t kMaxSpinelFrame = 2048;
+    uint8_t buffer[kMaxSpinelFrame];
+
+    int rval = read(sSockFd, buffer, sizeof(buffer));
+
+    if (rval < 0)
+    {
+        perror("read");
+        exit(EXIT_FAILURE);
+    }
+
+    hdlcDecode(buffer, rval, handleRadioFrame, aInstance);
 }
 
 void radioSendMessage(otInstance *aInstance)
@@ -681,10 +677,42 @@ void platformRadioProcess(otInstance *aInstance)
     }
 }
 
+#define FLOCK(fd, op)                               \
+    do {                                            \
+        int rval = flock(fd, op);                   \
+        if (rval == 0) break;                       \
+        else if (rval == EBADF || rval == EINVAL)   \
+        {                                           \
+            assert(false);                          \
+            exit(EXIT_FAILURE);                     \
+        }                                           \
+    }                                               \
+    while (true)                                    \
+
+void writeAll(const uint8_t *aBuffer, size_t aSize)
+{
+    FLOCK(sSockFd, LOCK_EX);
+
+    while (aSize)
+    {
+        int rval = write(sSockFd, aBuffer, aSize);
+
+        if (rval < 0)
+        {
+            perror("sendto");
+            exit(EXIT_FAILURE);
+        }
+
+        aBuffer = (uint8_t *)aBuffer + rval;
+        aSize -= rval;
+    }
+
+    FLOCK(sSockFd, LOCK_UN);
+}
+
 void radioTransmit(struct RadioMessage *aMessage, const struct otRadioFrame *aFrame)
 {
     uint32_t           i;
-    struct sockaddr_in sockaddr;
 
     uint16_t crc        = 0;
     uint16_t crc_offset = aFrame->mLength - sizeof(uint16_t);
@@ -697,29 +725,7 @@ void radioTransmit(struct RadioMessage *aMessage, const struct otRadioFrame *aFr
     aMessage->mPsdu[crc_offset]     = crc & 0xff;
     aMessage->mPsdu[crc_offset + 1] = crc >> 8;
 
-    memset(&sockaddr, 0, sizeof(sockaddr));
-    sockaddr.sin_family = AF_INET;
-    inet_pton(AF_INET, "127.0.0.1", &sockaddr.sin_addr);
-
-    for (i = 1; i <= WELLKNOWN_NODE_ID; i++)
-    {
-        ssize_t rval;
-
-        if (NODE_ID == i)
-        {
-            continue;
-        }
-
-        sockaddr.sin_port = htons(9000 + sPortOffset + i);
-        rval = sendto(sSockFd, (const char *)aMessage, 1 + aFrame->mLength, 0, (struct sockaddr *)&sockaddr,
-                      sizeof(sockaddr));
-
-        if (rval < 0)
-        {
-            perror("sendto");
-            exit(EXIT_FAILURE);
-        }
-    }
+    hdlcEncode((const uint8_t*)aMessage, 1 + aFrame->mLength, writeAll);
 }
 
 void radioSendAck(void)

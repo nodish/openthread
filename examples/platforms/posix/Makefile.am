@@ -47,6 +47,8 @@ PLATFORM_SOURCES                          = \
     random.c                                \
     uart-posix.c                            \
     flash.c                                 \
+    hdlc.cpp                                \
+    hdlc_stream.cpp                         \
     spi-stubs.c                             \
     sim/alarm-sim.c                         \
     sim/platform-sim.c                      \
