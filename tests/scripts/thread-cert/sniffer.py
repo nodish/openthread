@@ -112,7 +112,7 @@ class Sniffer:
         self._thread_alive.clear()
 
         self._transport.close()
-        
+
         self._thread.join()
         self._thread = None
 

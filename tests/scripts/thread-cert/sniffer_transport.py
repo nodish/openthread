@@ -32,6 +32,134 @@ import os
 import socket
 import sys
 
+HDLC_FLAG = 0x7e
+HDLC_ESCAPE = 0x7d
+
+# RFC 1662 Appendix C
+
+HDLC_FCS_INIT = 0xFFFF
+HDLC_FCS_POLY = 0x8408
+HDLC_FCS_GOOD = 0xF0B8
+
+
+class Hdlc(object):
+    """ Utility class for HDLC encoding and decoding. """
+
+    def __init__(self, stream):
+        self.stream = stream
+        self.fcstab = self.mkfcstab()
+
+    @classmethod
+    def mkfcstab(cls):
+        """ Make a static lookup table for byte value to FCS16 result. """
+        polynomial = HDLC_FCS_POLY
+
+        def valiter():
+            """ Helper to yield FCS16 table entries for each byte value. """
+            for byte in range(256):
+                fcs = byte
+                i = 8
+                while i:
+                    fcs = (fcs >> 1) ^ polynomial if fcs & 1 else fcs >> 1
+                    i -= 1
+
+                yield fcs & 0xFFFF
+
+        return tuple(valiter())
+
+    def fcs16(self, byte, fcs):
+        """
+        Return the next iteration of an fcs16 calculation
+        given the next data byte and current fcs accumulator.
+        """
+        fcs = (fcs >> 8) ^ self.fcstab[(fcs ^ byte) & 0xff]
+        return fcs
+
+    def collect(self):
+        """ Return the next valid packet to pass HDLC decoding on the stream. """
+        fcs = HDLC_FCS_INIT
+        packet = []
+        raw = []
+
+        # Synchronize
+        while 1:
+            byte = self.stream.read()
+            if CONFIG.DEBUG_HDLC:
+                raw.append(byte)
+            if byte == HDLC_FLAG:
+                break
+
+        # Read packet, updating fcs, and escaping bytes as needed
+        while 1:
+            byte = self.stream.read()
+            if CONFIG.DEBUG_HDLC:
+                raw.append(byte)
+            if byte == HDLC_FLAG:
+                if len(packet) != 0:
+                    break
+                else:
+                    # If multiple FLAG bytes in a row, keep looking for data.
+                    continue
+            if byte == HDLC_ESCAPE:
+                byte = self.stream.read()
+                if CONFIG.DEBUG_HDLC:
+                    raw.append(byte)
+                byte ^= 0x20
+            packet.append(byte)
+            fcs = self.fcs16(byte, fcs)
+
+        if CONFIG.DEBUG_HDLC:
+            logging.debug("RX Hdlc: " + str(map(hexify_int, raw)))
+
+        if fcs != HDLC_FCS_GOOD:
+            packet = None
+        else:
+            packet = packet[:-2]        # remove FCS16 from end
+
+        return packet
+
+    @classmethod
+    def encode_byte(cls, byte, packet=[]):
+        """ HDLC encode and append a single byte to the given packet. """
+        if (byte == HDLC_ESCAPE) or (byte == HDLC_FLAG):
+            packet.append(HDLC_ESCAPE)
+            packet.append(byte ^ 0x20)
+        else:
+            packet.append(byte)
+        return packet
+
+    def encode(self, payload=""):
+        """ Return the HDLC encoding of the given packet. """
+        fcs = HDLC_FCS_INIT
+        packet = []
+        packet.append(HDLC_FLAG)
+        for byte in payload:
+            byte = ord(byte)
+            fcs = self.fcs16(byte, fcs)
+            packet = self.encode_byte(byte, packet)
+
+        fcs ^= 0xffff
+        byte = fcs & 0xFF
+        packet = self.encode_byte(byte, packet)
+        byte = fcs >> 8
+        packet = self.encode_byte(byte, packet)
+        packet.append(HDLC_FLAG)
+        packet = pack("%dB" % len(packet), *packet)
+
+        if CONFIG.DEBUG_HDLC:
+            logging.debug("TX Hdlc: " + hexify_bytes(packet))
+        return packet
+
+    def write(self, data):
+        """ HDLC encode and write the given data to this stream. """
+        pkt = self.encode(data)
+        self.stream.write(pkt)
+
+    def read(self, _size=None):
+        """ Read and HDLC decode the next packet from this stream. """
+        pkt = self.collect()
+        return pkt
+
 class SnifferTransport(object):
     """ Interface for transport that allows eavesdrop other nodes. """
 
@@ -94,7 +222,7 @@ class SnifferSocketTransport(SnifferTransport):
 
     WELLKNOWN_NODE_ID = 34
 
-    PORT_OFFSET = int(os.getenv('PORT_OFFSET', "0"))
+    PORT_OFFSET = os.getenv('PORT_OFFSET', "0")
 
     def __init__(self, nodeid):
         self._nodeid = nodeid
@@ -117,12 +245,14 @@ class SnifferSocketTransport(SnifferTransport):
         if self.is_opened:
             raise RuntimeError("Transport is already opened.")
 
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            os.mkdir('tmp')
+        except:
+            pass
+        self._socket = open('tmp/%s.radio' % self.PORT_OFFSET, 'w+b')
 
         if not self.is_opened:
             raise RuntimeError("Transport opening failed.")
-
-        self._socket.bind(self._nodeid_to_address(self._nodeid))
 
     def close(self):
         if not self.is_opened:
@@ -135,13 +265,13 @@ class SnifferSocketTransport(SnifferTransport):
     def is_opened(self):
         return bool(self._socket is not None)
 
-    def send(self, data, nodeid):
+    def send2(self, data, nodeid):
         address = self._nodeid_to_address(nodeid)
 
         return self._socket.sendto(data, address)
 
     def recv(self, bufsize):
-        data, address = self._socket.recvfrom(bufsize)
+        data, address = self._socket.read(bufsize)
 
         nodeid = self._address_to_nodeid(address)
 

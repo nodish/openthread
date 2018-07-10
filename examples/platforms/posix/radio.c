@@ -100,6 +100,7 @@ enum
 OT_TOOL_PACKED_BEGIN
 struct RadioMessage
 {
+    uint8_t mNodeId;
     uint8_t mChannel;
     uint8_t mPsdu[OT_RADIO_FRAME_MAX_SIZE];
 } OT_TOOL_PACKED_END;
@@ -403,7 +404,8 @@ void platformRadioInit(void)
 
     snprintf(fileName, sizeof(fileName), "tmp/%s.radio", offset);
 
-    sSockFd = open(fileName, O_RDWR | O_CREAT | O_APPEND | O_SYNC, 0666);
+inotify_add_watch();
+    sSockFd = open(fileName, O_RDWR | O_CREAT | O_APPEND, 0666);
 
     if (sSockFd == -1)
     {
@@ -411,7 +413,7 @@ void platformRadioInit(void)
         exit(EXIT_FAILURE);
     }
 
-    unlink(fileName);
+    //unlink(fileName);
 
     sReceiveFrame.mPsdu  = sReceiveMessage.mPsdu;
     sTransmitFrame.mPsdu = sTransmitMessage.mPsdu;
@@ -547,8 +549,9 @@ bool otPlatRadioGetPromiscuous(otInstance *aInstance)
 
 void handleRadioFrame(void *aContext, const uint8_t *aBuffer, uint16_t aLength)
 {
-    memcpy((char *)&sReceiveFrame, aBuffer, aLength);
+    memcpy((char *)&sReceiveMessage, aBuffer, aLength);
 
+    printf("received a frame\r\n");
 #if OPENTHREAD_ENABLE_RAW_LINK_API
     // Timestamp
     sReceiveFrame.mInfo.mRxInfo.mMsec = otPlatAlarmMilliGetNow();
@@ -559,7 +562,7 @@ void handleRadioFrame(void *aContext, const uint8_t *aBuffer, uint16_t aLength)
     sReceiveFrame.mIeInfo->mTimestamp = otPlatTimeGet();
 #endif
 
-    sReceiveFrame.mLength = (uint8_t)(aLength - 1);
+    sReceiveFrame.mLength = (uint8_t)(aLength - 2);
 
     if (sAckWait && sTransmitFrame.mChannel == sReceiveMessage.mChannel && isFrameTypeAck(sReceiveFrame.mPsdu) &&
         getDsn(sReceiveFrame.mPsdu) == getDsn(sTransmitFrame.mPsdu))
@@ -589,6 +592,7 @@ void radioReceive(otInstance *aInstance)
         exit(EXIT_FAILURE);
     }
 
+    printf("reading %d\r\n", rval);
     hdlcDecode(buffer, rval, handleRadioFrame, aInstance);
 }
 
@@ -614,6 +618,7 @@ void radioSendMessage(otInstance *aInstance)
 #endif
 
     sTransmitMessage.mChannel = sTransmitFrame.mChannel;
+    sTransmitMessage.mNodeId = NODE_ID;
 
     otPlatRadioTxStarted(aInstance, &sTransmitFrame);
     radioTransmit(&sTransmitMessage, &sTransmitFrame);
@@ -694,6 +699,7 @@ void writeAll(const uint8_t *aBuffer, size_t aSize)
 {
     FLOCK(sSockFd, LOCK_EX);
 
+    printf("write\r\n");
     while (aSize)
     {
         int rval = write(sSockFd, aBuffer, aSize);
@@ -726,7 +732,7 @@ void radioTransmit(struct RadioMessage *aMessage, const struct otRadioFrame *aFr
     aMessage->mPsdu[crc_offset]     = crc & 0xff;
     aMessage->mPsdu[crc_offset + 1] = crc >> 8;
 
-    hdlcEncode((const uint8_t *)aMessage, 1 + aFrame->mLength, writeAll);
+    hdlcEncode((const uint8_t *)aMessage, 2 + aFrame->mLength, writeAll);
 }
 
 void radioSendAck(void)
@@ -743,6 +749,7 @@ void radioSendAck(void)
     sAckMessage.mPsdu[2] = getDsn(sReceiveFrame.mPsdu);
 
     sAckMessage.mChannel = sReceiveFrame.mChannel;
+    sAckMessage.mNodeId = NODE_ID;
 
     radioTransmit(&sAckMessage, &sAckFrame);
 }
