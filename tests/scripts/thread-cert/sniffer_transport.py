@@ -96,18 +96,15 @@ class Hdlc(object):
         fcs = HDLC_FCS_INIT
         packet = []
 
-        print('starting to sync *********')
         # Synchronize
         while 1:
             byte = self.stream.read()
             if byte == HDLC_FLAG:
                 break
 
-        print('synced *********')
         # Read packet, updating fcs, and escaping bytes as needed
         while 1:
             byte = self.stream.read()
-            print('new byte *********')
             if byte == HDLC_FLAG:
                 if len(packet) != 0:
                     break
@@ -120,7 +117,6 @@ class Hdlc(object):
             packet.append(byte)
             fcs = self.fcs16(byte, fcs)
 
-        print('good end *********')
         if fcs != HDLC_FCS_GOOD:
             packet = None
         else:
