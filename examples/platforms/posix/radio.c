@@ -32,6 +32,7 @@
 
 #include <errno.h>
 #include <sys/file.h>
+#include <sys/inotify.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -127,6 +128,8 @@ static uint8_t  sExtendedAddress[OT_EXT_ADDRESS_SIZE];
 static uint16_t sShortAddress;
 static uint16_t sPanid;
 static int      sSockFd;
+static int      sWatchFd;
+static int      sInotifyFd;
 static bool     sPromiscuous = false;
 static bool     sAckWait     = false;
 
@@ -404,7 +407,6 @@ void platformRadioInit(void)
 
     snprintf(fileName, sizeof(fileName), "tmp/%s.radio", offset);
 
-inotify_add_watch();
     sSockFd = open(fileName, O_RDWR | O_CREAT | O_APPEND, 0666);
 
     if (sSockFd == -1)
@@ -413,7 +415,8 @@ inotify_add_watch();
         exit(EXIT_FAILURE);
     }
 
-    //unlink(fileName);
+    sInotifyFd = inotify_init1(IN_NONBLOCK);
+    sWatchFd   = inotify_add_watch(sInotifyFd, fileName, IN_MODIFY);
 
     sReceiveFrame.mPsdu  = sReceiveMessage.mPsdu;
     sTransmitFrame.mPsdu = sTransmitMessage.mPsdu;
@@ -430,6 +433,8 @@ inotify_add_watch();
 
 void platformRadioDeinit(void)
 {
+    inotify_rm_watch(sInotifyFd, sWatchFd);
+    close(sInotifyFd);
     close(sSockFd);
 }
 
@@ -551,7 +556,6 @@ void handleRadioFrame(void *aContext, const uint8_t *aBuffer, uint16_t aLength)
 {
     memcpy((char *)&sReceiveMessage, aBuffer, aLength);
 
-    printf("received a frame\r\n");
 #if OPENTHREAD_ENABLE_RAW_LINK_API
     // Timestamp
     sReceiveFrame.mInfo.mRxInfo.mMsec = otPlatAlarmMilliGetNow();
@@ -583,8 +587,19 @@ void radioReceive(otInstance *aInstance)
 {
     const size_t kMaxSpinelFrame = 2048;
     uint8_t      buffer[kMaxSpinelFrame];
+    int          rval;
 
-    int rval = read(sSockFd, buffer, sizeof(buffer));
+    do
+    {
+        rval = read(sInotifyFd, buffer, sizeof(buffer));
+        if (rval == -1 && errno != EAGAIN)
+        {
+            perror("read");
+            exit(EXIT_FAILURE);
+        }
+    } while (rval > 0);
+
+    rval = read(sSockFd, buffer, sizeof(buffer));
 
     if (rval < 0)
     {
@@ -592,7 +607,6 @@ void radioReceive(otInstance *aInstance)
         exit(EXIT_FAILURE);
     }
 
-    printf("reading %d\r\n", rval);
     hdlcDecode(buffer, rval, handleRadioFrame, aInstance);
 }
 
@@ -618,7 +632,7 @@ void radioSendMessage(otInstance *aInstance)
 #endif
 
     sTransmitMessage.mChannel = sTransmitFrame.mChannel;
-    sTransmitMessage.mNodeId = NODE_ID;
+    sTransmitMessage.mNodeId  = NODE_ID;
 
     otPlatRadioTxStarted(aInstance, &sTransmitFrame);
     radioTransmit(&sTransmitMessage, &sTransmitFrame);
@@ -647,11 +661,11 @@ void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMax
 {
     if (aReadFdSet != NULL && (sState != OT_RADIO_STATE_TRANSMIT || sAckWait))
     {
-        FD_SET(sSockFd, aReadFdSet);
+        FD_SET(sInotifyFd, aReadFdSet);
 
-        if (aMaxFd != NULL && *aMaxFd < sSockFd)
+        if (aMaxFd != NULL && *aMaxFd < sInotifyFd)
         {
-            *aMaxFd = sSockFd;
+            *aMaxFd = sInotifyFd;
         }
     }
 
@@ -669,7 +683,7 @@ void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMax
 void platformRadioProcess(otInstance *aInstance)
 {
     const int     flags  = POLLIN | POLLRDNORM | POLLERR | POLLNVAL | POLLHUP;
-    struct pollfd pollfd = {sSockFd, flags, 0};
+    struct pollfd pollfd = {sInotifyFd, flags, 0};
 
     if (POLL(&pollfd, 1, 0) > 0 && (pollfd.revents & flags) != 0)
     {
@@ -699,7 +713,7 @@ void writeAll(const uint8_t *aBuffer, size_t aSize)
 {
     FLOCK(sSockFd, LOCK_EX);
 
-    printf("write\r\n");
+    off_t cur = lseek(sSockFd, 0, SEEK_CUR);
     while (aSize)
     {
         int rval = write(sSockFd, aBuffer, aSize);
@@ -713,6 +727,7 @@ void writeAll(const uint8_t *aBuffer, size_t aSize)
         aBuffer = (uint8_t *)aBuffer + rval;
         aSize -= rval;
     }
+    lseek(sSockFd, cur, SEEK_SET);
 
     FLOCK(sSockFd, LOCK_UN);
 }
@@ -749,7 +764,7 @@ void radioSendAck(void)
     sAckMessage.mPsdu[2] = getDsn(sReceiveFrame.mPsdu);
 
     sAckMessage.mChannel = sReceiveFrame.mChannel;
-    sAckMessage.mNodeId = NODE_ID;
+    sAckMessage.mNodeId  = NODE_ID;
 
     radioTransmit(&sAckMessage, &sAckFrame);
 }

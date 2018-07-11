@@ -31,6 +31,7 @@ import ctypes
 import os
 import socket
 import sys
+import inotify_simple
 
 HDLC_FLAG = 0x7e
 HDLC_ESCAPE = 0x7d
@@ -42,11 +43,26 @@ HDLC_FCS_POLY = 0x8408
 HDLC_FCS_GOOD = 0xF0B8
 
 
+class FileStream(object):
+    def __init__(self, fname):
+        open(fname, 'w+b').close()
+        self.stream = open(fname, 'rb')
+        self.inotify = inotify_simple.INotify()
+        self.inotify.add_watch(fname, inotify_simple.flags.MODIFY)
+
+    def read(self):
+        while 1:
+            byte = self.stream.read(1)
+            if byte != '':
+                return ord(byte)
+            else:
+                self.inotify.read()
+
 class Hdlc(object):
     """ Utility class for HDLC encoding and decoding. """
 
-    def __init__(self, stream):
-        self.stream = stream
+    def __init__(self, fname):
+        self.stream = FileStream(fname)
         self.fcstab = self.mkfcstab()
 
     @classmethod
@@ -79,21 +95,19 @@ class Hdlc(object):
         """ Return the next valid packet to pass HDLC decoding on the stream. """
         fcs = HDLC_FCS_INIT
         packet = []
-        raw = []
 
+        print('starting to sync *********')
         # Synchronize
         while 1:
             byte = self.stream.read()
-            if CONFIG.DEBUG_HDLC:
-                raw.append(byte)
             if byte == HDLC_FLAG:
                 break
 
+        print('synced *********')
         # Read packet, updating fcs, and escaping bytes as needed
         while 1:
             byte = self.stream.read()
-            if CONFIG.DEBUG_HDLC:
-                raw.append(byte)
+            print('new byte *********')
             if byte == HDLC_FLAG:
                 if len(packet) != 0:
                     break
@@ -102,15 +116,11 @@ class Hdlc(object):
                     continue
             if byte == HDLC_ESCAPE:
                 byte = self.stream.read()
-                if CONFIG.DEBUG_HDLC:
-                    raw.append(byte)
                 byte ^= 0x20
             packet.append(byte)
             fcs = self.fcs16(byte, fcs)
 
-        if CONFIG.DEBUG_HDLC:
-            logging.debug("RX Hdlc: " + str(map(hexify_int, raw)))
-
+        print('good end *********')
         if fcs != HDLC_FCS_GOOD:
             packet = None
         else:
@@ -164,7 +174,7 @@ class SnifferTransport(object):
     """ Interface for transport that allows eavesdrop other nodes. """
 
     def open(self):
-        """ Open transport. 
+        """ Open transport.
 
         Raises:
             RuntimeError: when transport is already opened or when transport opening failed.
@@ -172,7 +182,7 @@ class SnifferTransport(object):
         raise NotImplementedError
 
     def close(self):
-        """ Close transport. 
+        """ Close transport.
 
         Raises:
             RuntimeError: when transport is already closed.
@@ -181,7 +191,7 @@ class SnifferTransport(object):
 
     @property
     def is_opened(self):
-        """ Check if transport is opened. 
+        """ Check if transport is opened.
 
         Returns:
             bool: True if the transport is opened, False in otherwise
@@ -207,7 +217,7 @@ class SnifferTransport(object):
             bufsize (int): size of buffer for incoming data.
 
         Returns:
-            A tuple contains data and node id. 
+            A tuple contains data and node id.
 
             For example:
             (bytearray([0x00, 0x01...], 1)
@@ -217,10 +227,6 @@ class SnifferTransport(object):
 
 class SnifferSocketTransport(SnifferTransport):
     """ Socket based implementation of sniffer transport. """
-
-    BASE_PORT = 9000
-
-    WELLKNOWN_NODE_ID = 34
 
     PORT_OFFSET = os.getenv('PORT_OFFSET', "0")
 
@@ -234,13 +240,6 @@ class SnifferSocketTransport(SnifferTransport):
 
         self.close()
 
-    def _nodeid_to_address(self, nodeid, ip_address=""):
-        return ip_address, self.BASE_PORT + (self.PORT_OFFSET * self.WELLKNOWN_NODE_ID) + nodeid
-
-    def _address_to_nodeid(self, address):
-        _, port = address
-        return (port - self.BASE_PORT - (self.PORT_OFFSET * self.WELLKNOWN_NODE_ID))
-
     def open(self):
         if self.is_opened:
             raise RuntimeError("Transport is already opened.")
@@ -249,7 +248,9 @@ class SnifferSocketTransport(SnifferTransport):
             os.mkdir('tmp')
         except:
             pass
-        self._socket = open('tmp/%s.radio' % self.PORT_OFFSET, 'w+b')
+
+        fname = 'tmp/%s.radio' % self.PORT_OFFSET
+        self._socket = Hdlc(fname)
 
         if not self.is_opened:
             raise RuntimeError("Transport opening failed.")
@@ -271,9 +272,10 @@ class SnifferSocketTransport(SnifferTransport):
         return self._socket.sendto(data, address)
 
     def recv(self, bufsize):
-        data, address = self._socket.read(bufsize)
+        data = self._socket.read()
 
-        nodeid = self._address_to_nodeid(address)
+        nodeid = data[0]
+        data = data[1:]
 
         return bytearray(data), nodeid
 
