@@ -70,6 +70,7 @@ class Sniffer:
 
         self._buckets = collections.defaultdict(Queue.Queue)
         self._pcap = pcap.PcapCodec()
+        self.index = 0
 
     def __del__(self):
         del self._transport
@@ -89,12 +90,15 @@ class Sniffer:
 
                 if msg is not None:
                     self.logger.debug("Received message: {}".format(msg))
+                    print('putting index %d' % self.index)
                     self._buckets[nodeid].put(msg)
 
             except Exception as e:
                 # Just print the exception to the console
                 print("EXCEPTION: %s" % e)
                 pass
+
+            self.index += 1
 
         self.logger.debug("Sniffer stopped.")
 
