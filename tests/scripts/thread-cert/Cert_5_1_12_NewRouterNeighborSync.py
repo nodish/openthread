@@ -70,6 +70,7 @@ class Cert_5_1_12_NewRouterSync(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
+        self.simulator.dump()
         del self.simulator
 
     def verify_step_4(self, router1_messages, router2_messages, req_receiver, accept_receiver):

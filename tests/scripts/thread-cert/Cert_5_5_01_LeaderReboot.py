@@ -65,6 +65,7 @@ class Cert_5_5_1_LeaderReboot(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
+        self.simulator.dump()
         del self.simulator
 
     def test(self):

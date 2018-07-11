@@ -87,6 +87,7 @@ class Cert_5_3_3_AddressQuery(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
+        self.simulator.dump()
         del self.simulator
 
     def test(self):
