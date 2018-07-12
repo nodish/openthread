@@ -59,5 +59,7 @@ class PcapCodec(object):
         self.packets.append(pkt)
 
     def dump(self):
-        for pkt in self.packets:
-            print(''.join('%02x' % x for x in pkt))
+        fname = 'current'
+        with open('%s.pcap' % fname, 'wb') as output:
+            for pkt in self.packets:
+                output.write(pkt)
