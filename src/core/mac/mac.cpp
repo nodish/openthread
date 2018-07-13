@@ -1849,6 +1849,7 @@ void Mac::HandleReceivedFrame(Frame *aFrame, otError aError)
 
     mCounters.mRxTotal++;
 
+    assert(aFrame->GetType() != kFcfFrameAck);
     VerifyOrExit(error == OT_ERROR_NONE);
     VerifyOrExit(aFrame != NULL, error = OT_ERROR_NO_FRAME_RECEIVED);
     VerifyOrExit(mEnabled, error = OT_ERROR_INVALID_STATE);

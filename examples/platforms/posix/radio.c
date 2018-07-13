@@ -795,6 +795,7 @@ exit:
         }
         else
 #endif
+        if (!isFrameTypeAck(sReceiveFrame.mPsdu) || sPromiscuous)
         {
             otPlatRadioReceiveDone(aInstance, error == OT_ERROR_NONE ? &sReceiveFrame : NULL, error);
         }
