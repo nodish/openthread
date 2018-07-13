@@ -48,9 +48,6 @@ class RealTime:
     def set_lowpan_context(self, cid, prefix):
         self._sniffer.set_lowpan_context(cid, prefix)
 
-    def dump(self):
-        self._sniffer.dump()
-
     def get_messages_sent_by(self, nodeid):
         return self._sniffer.get_messages_sent_by(nodeid)
 

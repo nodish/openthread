@@ -61,7 +61,6 @@ class Cert_6_5_2_ChildResetReattach(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        self.simulator.dump()
         del self.simulator
 
     def test(self):

@@ -31,7 +31,6 @@ import collections
 import io
 import logging
 import threading
-import pcap
 
 try:
     import Queue
@@ -69,8 +68,6 @@ class Sniffer:
         self._thread_alive.clear()
 
         self._buckets = collections.defaultdict(Queue.Queue)
-        self._pcap = pcap.PcapCodec()
-        self.index = 0
 
     def __del__(self):
         del self._transport
@@ -82,7 +79,6 @@ class Sniffer:
 
         while self._thread_alive.is_set():
             data, nodeid = self._transport.recv(self.RECV_BUFFER_SIZE)
-            self._pcap.append(data)
 
             # Ignore any exceptions
             try:
@@ -90,15 +86,12 @@ class Sniffer:
 
                 if msg is not None:
                     self.logger.debug("Received message: {}".format(msg))
-                    #print('putting index %d' % self.index)
                     self._buckets[nodeid].put(msg)
 
             except Exception as e:
                 # Just print the exception to the console
                 print("EXCEPTION: %s" % e)
                 pass
-
-            self.index += 1
 
         self.logger.debug("Sniffer stopped.")
 
@@ -119,7 +112,7 @@ class Sniffer:
         self._thread_alive.clear()
 
         self._transport.close()
-
+        
         self._thread.join()
         self._thread = None
 
@@ -144,6 +137,3 @@ class Sniffer:
             messages.append(bucket.get_nowait())
 
         return message.MessagesSet(messages)
-
-    def dump(self):
-        self._pcap.dump()

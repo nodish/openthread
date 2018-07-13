@@ -92,7 +92,6 @@ class Cert_5_3_7_DuplicateAddress(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        self.simulator.dump()
         del self.simulator
 
     def test(self):

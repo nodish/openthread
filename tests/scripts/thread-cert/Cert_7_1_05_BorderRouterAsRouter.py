@@ -76,7 +76,6 @@ class Cert_7_1_5_BorderRouterAsRouter(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        self.simulator.dump()
         del self.simulator
 
     def test(self):

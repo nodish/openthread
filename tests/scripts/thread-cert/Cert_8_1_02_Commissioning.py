@@ -56,7 +56,6 @@ class Cert_8_1_02_Commissioning(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        self.simulator.dump()
         del self.simulator
 
     def test(self):

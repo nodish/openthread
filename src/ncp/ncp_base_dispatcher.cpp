@@ -31,7 +31,6 @@
  */
 
 #include "ncp_base.hpp"
-#include "common/logging.hpp"
 
 namespace ot {
 namespace Ncp {
@@ -40,7 +39,6 @@ NcpBase::PropertyHandler NcpBase::FindGetPropertyHandler(spinel_prop_key_t aKey)
 {
     NcpBase::PropertyHandler handler;
 
-    otLogCritCli(mInstance, "Get property %s", spinel_prop_key_to_cstr(aKey));
     switch (aKey)
     {
         // --------------------------------------------------------------------------
@@ -611,7 +609,6 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
 {
     NcpBase::PropertyHandler handler;
 
-    otLogCritCli(mInstance, "Set property %s", spinel_prop_key_to_cstr(aKey));
     switch (aKey)
     {
         // --------------------------------------------------------------------------
@@ -897,7 +894,6 @@ NcpBase::PropertyHandler NcpBase::FindInsertPropertyHandler(spinel_prop_key_t aK
 {
     NcpBase::PropertyHandler handler;
 
-    otLogCritCli(mInstance, "Insert property %s", spinel_prop_key_to_cstr(aKey));
     switch (aKey)
     {
         // --------------------------------------------------------------------------
@@ -975,7 +971,6 @@ NcpBase::PropertyHandler NcpBase::FindRemovePropertyHandler(spinel_prop_key_t aK
 {
     NcpBase::PropertyHandler handler;
 
-    otLogCritCli(mInstance, "Remove property %s", spinel_prop_key_to_cstr(aKey));
     switch (aKey)
     {
         // --------------------------------------------------------------------------

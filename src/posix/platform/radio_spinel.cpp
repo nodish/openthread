@@ -508,10 +508,6 @@ void RadioSpinel::HandleNotification(const uint8_t *aBuffer, uint16_t aLength)
     }
 
 exit:
-    if (error == OT_ERROR_NO_BUFS)
-    {
-        otLogWarnPlat(mInstance, "Waiting key is %s", spinel_prop_key_to_cstr(mWaitingKey));
-    }
     LogIfFail(mInstance, "Error processing notification", error);
 }
 
@@ -602,7 +598,6 @@ void RadioSpinel::HandleValueIs(spinel_prop_key_t aKey, const uint8_t *aBuffer, 
     if (aKey == SPINEL_PROP_STREAM_RAW)
     {
         SuccessOrExit(error = ParseRadioFrame(mRxRadioFrame, aBuffer, aLength));
-        VerifyOrExit();
         RadioReceive();
     }
     else if (aKey == SPINEL_PROP_LAST_STATUS)
@@ -760,10 +755,6 @@ exit:
     else
 #endif
     {
-        if (error != OT_ERROR_NONE)
-        {
-            otLogWarnPlat(mInstance, "failed to receive frame mState=%d", mState);
-        }
         otPlatRadioReceiveDone(mInstance, error == OT_ERROR_NONE ? &mRxRadioFrame : NULL, error);
     }
 }
@@ -931,13 +922,11 @@ otError RadioSpinel::Get(spinel_prop_key_t aKey, const char *aFormat, ...)
 
     assert(mWaitingTid == 0);
 
-    otLogInfoPlat(mInstance, "Get here %s", spinel_prop_key_to_cstr(aKey));
     mPropertyFormat = aFormat;
     va_start(mPropertyArgs, aFormat);
     error = RequestV(true, SPINEL_CMD_PROP_VALUE_GET, aKey, NULL, mPropertyArgs);
     va_end(mPropertyArgs);
     mPropertyFormat = NULL;
-    otLogInfoPlat(mInstance, "Get done %s", spinel_prop_key_to_cstr(aKey));
 
     return error;
 }
@@ -948,13 +937,11 @@ otError RadioSpinel::Set(spinel_prop_key_t aKey, const char *aFormat, ...)
 
     assert(mWaitingTid == 0);
 
-    otLogInfoPlat(mInstance, "Set here %s", spinel_prop_key_to_cstr(aKey));
     mExpectedCommand = SPINEL_CMD_PROP_VALUE_IS;
     va_start(mPropertyArgs, aFormat);
     error = RequestV(true, SPINEL_CMD_PROP_VALUE_SET, aKey, aFormat, mPropertyArgs);
     va_end(mPropertyArgs);
     mExpectedCommand = SPINEL_CMD_NOOP;
-    otLogInfoPlat(mInstance, "Set done %s", spinel_prop_key_to_cstr(aKey));
 
     return error;
 }
@@ -965,13 +952,11 @@ otError RadioSpinel::Insert(spinel_prop_key_t aKey, const char *aFormat, ...)
 
     assert(mWaitingTid == 0);
 
-    otLogInfoPlat(mInstance, "Insert here %s", spinel_prop_key_to_cstr(aKey));
     mExpectedCommand = SPINEL_CMD_PROP_VALUE_INSERTED;
     va_start(mPropertyArgs, aFormat);
     error = RequestV(true, SPINEL_CMD_PROP_VALUE_INSERT, aKey, aFormat, mPropertyArgs);
     va_end(mPropertyArgs);
     mExpectedCommand = SPINEL_CMD_NOOP;
-    otLogInfoPlat(mInstance, "Insert done %s", spinel_prop_key_to_cstr(aKey));
 
     return error;
 }
@@ -982,13 +967,11 @@ otError RadioSpinel::Remove(spinel_prop_key_t aKey, const char *aFormat, ...)
 
     assert(mWaitingTid == 0);
 
-    otLogInfoPlat(mInstance, "Remove here %s", spinel_prop_key_to_cstr(aKey));
     mExpectedCommand = SPINEL_CMD_PROP_VALUE_REMOVED;
     va_start(mPropertyArgs, aFormat);
     error = RequestV(true, SPINEL_CMD_PROP_VALUE_REMOVE, aKey, aFormat, mPropertyArgs);
     va_end(mPropertyArgs);
     mExpectedCommand = SPINEL_CMD_NOOP;
-    otLogInfoPlat(mInstance, "Remove done %s", spinel_prop_key_to_cstr(aKey));
 
     return error;
 }

@@ -65,7 +65,6 @@ class Cert_8_2_02_JoinerRouter(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        self.simulator.dump()
         del self.simulator
 
     def test(self):

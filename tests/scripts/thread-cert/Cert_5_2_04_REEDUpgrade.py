@@ -82,7 +82,6 @@ class Cert_5_2_4_REEDUpgrade(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        self.simulator.dump()
         del self.simulator
 
     def test(self):

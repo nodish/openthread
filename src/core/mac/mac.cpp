@@ -1475,7 +1475,6 @@ void Mac::HandleTransmitDone(otRadioFrame *aFrame, otRadioFrame *aAckFrame, otEr
             if (mEnabled && framePending)
             {
                 mReceiveTimer.Start(kDataPollTimeout);
-                otLogInfoMac(GetInstance(), "Wait for pending data");
                 StartOperation(kOperationWaitingForData);
             }
 
@@ -1663,7 +1662,7 @@ void Mac::HandleReceiveTimer(void)
     }
     else
     {
-        otLogInfoMac(GetInstance(), "Sleep delay timeout expired");
+        otLogDebgMac(GetInstance(), "Sleep delay timeout expired");
 
         UpdateIdleMode();
     }

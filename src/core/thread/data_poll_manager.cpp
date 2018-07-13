@@ -349,7 +349,6 @@ void DataPollManager::ScheduleNextPoll(PollPeriodSelector aPollPeriodSelector)
         mPollPeriod = CalculatePollPeriod();
     }
 
-    otLogInfoMac(GetInstance(), "%s mPollPeriod=%u", __func__, mPollPeriod);
     if (mTimer.IsRunning())
     {
         mTimer.StartAt(mTimerStartTime, mPollPeriod);
