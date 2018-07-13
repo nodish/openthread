@@ -229,6 +229,17 @@ void BorderAgent::HandleRequest<&BorderAgent::mRelayReceive>(void *             
                                                              *static_cast<Message *>(aMessage));
 }
 
+template <>
+void BorderAgent::HandleRequest<&BorderAgent::mProxyTransmit>(void *               aContext,
+                                                              otCoapHeader *       aHeader,
+                                                              otMessage *          aMessage,
+                                                              const otMessageInfo *aMessageInfo)
+{
+    OT_UNUSED_VARIABLE(aMessageInfo);
+    static_cast<BorderAgent *>(aContext)->HandleProxyTransmit(*static_cast<Coap::Header *>(aHeader),
+                                                             *static_cast<Message *>(aMessage));
+}
+
 BorderAgent::BorderAgent(Instance &aInstance)
     : InstanceLocator(aInstance)
     , mCommissionerPetition(OT_URI_PATH_COMMISSIONER_PETITION,
@@ -237,6 +248,8 @@ BorderAgent::BorderAgent(Instance &aInstance)
     , mCommissionerKeepAlive(OT_URI_PATH_COMMISSIONER_KEEP_ALIVE,
                              BorderAgent::HandleRequest<&BorderAgent::mCommissionerKeepAlive>,
                              this)
+    , mProxyReceive(OT_URI_PATH_PROXY_RX, BorderAgent::HandleRequest<&BorderAgent::mProxyReceive>, this)
+    , mProxyTransmit(OT_URI_PATH_PROXY_TX, BorderAgent::HandleRequest<&BorderAgent::mProxyTransmit>, this)
     , mRelayTransmit(OT_URI_PATH_RELAY_TX, BorderAgent::HandleRequest<&BorderAgent::mRelayTransmit>, this)
     , mRelayReceive(OT_URI_PATH_RELAY_RX, BorderAgent::HandleRequest<&BorderAgent::mRelayReceive>, this)
     , mCommissionerGet(OT_URI_PATH_COMMISSIONER_GET, BorderAgent::HandleRequest<&BorderAgent::mCommissionerGet>, this)
@@ -248,6 +261,21 @@ BorderAgent::BorderAgent(Instance &aInstance)
     , mTimer(aInstance, HandleTimeout, this)
     , mIsStarted(false)
 {
+}
+
+void BorderAgent::HandleProxyTransmit(const Coap::Header &aHeader, const Message &aMessage)
+{
+    Message *              message = NULL;
+    Ip6::MessageInfo       messageInfo;
+    uint16_t offset;
+    UdpEncapsulationTlv tlv;
+
+    SuccessOrExit(error = Tlv::GetOffset(aMessage, ExtendedTlv::kUdpEncapsulation, offset));
+    aMessage.Read(offset, sizeof(tlv), &tlv);
+
+    VerifyOrExit((message = GetInstance().GetIp6().GetUdp().NewMessage(0)) != NULL);
+    message->SetLength(tlv.GetUdpLength());
+    message->CopyTo();
 }
 
 void BorderAgent::HandleRelayReceive(const Coap::Header &aHeader, const Message &aMessage)

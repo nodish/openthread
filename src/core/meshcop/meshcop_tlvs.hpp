@@ -95,6 +95,7 @@ public:
         kVendorSwVersion         = OT_MESHCOP_TLV_VENDOR_SW_VERSION_TLV,    ///< meshcop Vendor SW Version TLV
         kVendorData              = OT_MESHCOP_TLV_VENDOR_DATA_TLV,          ///< meshcop Vendor Data TLV
         kVendorStackVersion      = OT_MESHCOP_TLV_VENDOR_STACK_VERSION_TLV, ///< meshcop Vendor Stack Version TLV
+        kIPv6Address             = OT_MESHCOP_TLV_IPV6_ADDRESS_TLV,         ///< meshcop IPv6 address TLV
         kPendingTimestamp        = OT_MESHCOP_TLV_PENDINGTIMESTAMP,         ///< Pending Timestamp TLV
         kDelayTimer              = OT_MESHCOP_TLV_DELAYTIMER,               ///< Delay Timer TLV
         kChannelMask             = OT_MESHCOP_TLV_CHANNELMASK,              ///< Channel Mask TLV
@@ -164,6 +165,95 @@ public:
     static otError GetValueOffset(const Message &aMessage, Type aType, uint16_t &aOffset, uint16_t &aLength)
     {
         return ot::Tlv::GetValueOffset(aMessage, static_cast<uint8_t>(aType), aOffset, aLength);
+    }
+
+    /**
+     * This static method indicates whether a TLV appears to be well-formed.
+     *
+     * @param[in]  aTlv  A reference to the TLV.
+     *
+     * @returns TRUE if the TLV appears to be well-formed, FALSE otherwise.
+     *
+     */
+    static bool IsValid(const Tlv &aTlv);
+
+} OT_TOOL_PACKED_END;
+
+/**
+ * This class implements extended MeshCoP TLV generation and parsing.
+ *
+ */
+OT_TOOL_PACKED_BEGIN
+class ExtendedTlv : public ot::ExtendedTlv
+{
+public:
+    /**
+     * MeshCoP TLV Types.
+     *
+     */
+    enum Type
+    {
+        kUdpEncapsulation        = OT_MESHCOP_TLV_UDP_ENCAPSULATION_TLV,    ///< meshcop UDP encapsulation TLV
+    };
+
+    /**
+     * This method returns the Type value.
+     *
+     * @returns The Type value.
+     *
+     */
+    Type GetType(void) const { return static_cast<Type>(ot::ExtendedTlv::GetType()); }
+
+    /**
+     * This method sets the Type value.
+     *
+     * @param[in]  aType  The Type value.
+     *
+     */
+    void SetType(Type aType) { ot::ExtendedTlv::SetType(static_cast<uint8_t>(aType)); }
+
+    /**
+     * This method returns a pointer to the next TLV.
+     *
+     * @returns A pointer to the next TLV.
+     *
+     */
+    Tlv *GetNext(void) { return static_cast<Tlv *>(ot::ExtendedTlv::GetNext()); }
+
+    const Tlv *GetNext(void) const { return static_cast<const Tlv *>(ot::Tlv::GetNext()); }
+
+    /**
+     * This static method reads the requested TLV out of @p aMessage.
+     *
+     * @param[in]   aMessage    A reference to the message.
+     * @param[in]   aType       The Type value to search for.
+     * @param[in]   aMaxLength  Maximum number of bytes to read.
+     * @param[out]  aTlv        A reference to the TLV that will be copied to.
+     *
+     * @retval OT_ERROR_NONE       Successfully copied the TLV.
+     * @retval OT_ERROR_NOT_FOUND  Could not find the TLV with Type @p aType.
+     *
+     */
+    static otError GetTlv(const Message &aMessage, Type aType, uint16_t aMaxLength, Tlv &aTlv)
+    {
+        return ot::ExtendedTlv::Get(aMessage, static_cast<uint8_t>(aType), aMaxLength, aTlv);
+    }
+
+    /**
+     * This static method finds the offset and length of a given TLV type.
+     *
+     * @param[in]   aMessage    A reference to the message.
+     * @param[in]   aType       The Type value to search for.
+     * @param[out]  aOffset     The offset where the value starts.
+     * @param[out]  aLength     The length of the value.
+     *
+     * @retval OT_ERROR_NONE       Successfully found the TLV.
+     * @retval OT_ERROR_NOT_FOUND  Could not find the TLV with Type @p aType.
+     *
+     */
+    static otError GetValueOffset(const Message &aMessage, Type aType, uint16_t &aOffset, uint16_t &aLength)
+    {
+        return ot::ExtendedTlv::GetValueOffset(aMessage, static_cast<uint8_t>(aType), aOffset, aLength);
     }
 
     /**
@@ -2027,6 +2117,242 @@ public:
      *
      */
     VendorStackVersionTlv(void)
+        : mBuildRevision(0)
+        , mMinorMajor(0)
+    {
+    }
+
+    /**
+     * This method initializes the TLV.
+     *
+     */
+    void Init(void)
+    {
+        SetType(kVendorStackVersion);
+        SetLength(sizeof(*this) - sizeof(Tlv));
+    }
+
+    /**
+     * This method indicates whether or not the TLV appears to be well-formed.
+     *
+     * @retval TRUE   If the TLV appears to be well-formed.
+     * @retval FALSE  If the TLV does not appear to be well-formed.
+     *
+     */
+    bool IsValid(void) const { return GetLength() == sizeof(*this) - sizeof(Tlv); }
+
+    /**
+     * This method returns the Stack Vendor OUI value.
+     *
+     * @returns The Vendor Stack Vendor OUI value.
+     *
+     */
+    uint32_t GetOui(void) const
+    {
+        return (static_cast<uint32_t>(mOui[0]) << 16) | (static_cast<uint32_t>(mOui[1]) << 8) |
+               static_cast<uint32_t>(mOui[2]);
+    }
+
+    /**
+     * This method returns the Stack Vendor OUI value.
+     *
+     * @param[in]  aOui  The Vendor Stack Vendor OUI value.
+     *
+     */
+    void SetOui(uint32_t aOui)
+    {
+        mOui[0] = (aOui >> 16) & 0xff;
+        mOui[1] = (aOui >> 8) & 0xff;
+        mOui[2] = aOui & 0xff;
+    }
+
+    /**
+     * This method returns the Build value.
+     *
+     * @returns The Build value.
+     *
+     */
+    uint16_t GetBuild(void) const { return (HostSwap16(mBuildRevision) & kBuildMask) >> kBuildOffset; }
+
+    /**
+     * This method sets the Build value.
+     *
+     * @param[in]  aBuild  The Build value.
+     *
+     */
+    void SetBuild(uint16_t aBuild)
+    {
+        mBuildRevision =
+            HostSwap16((HostSwap16(mBuildRevision) & ~kBuildMask) | ((aBuild << kBuildOffset) & kBuildMask));
+    }
+
+    /**
+     * This method returns the Revision value.
+     *
+     * @returns The Revision value.
+     *
+     */
+    uint8_t GetRevision(void) const { return (HostSwap16(mBuildRevision) & kRevMask) >> kRevOffset; }
+
+    /**
+     * This method sets the Revision value.
+     *
+     * @param[in]  aRevision  The Revision value.
+     *
+     */
+    void SetRevision(uint8_t aRevision)
+    {
+        mBuildRevision = HostSwap16((HostSwap16(mBuildRevision) & ~kRevMask) | ((aRevision << kRevOffset) & kRevMask));
+    }
+
+    /**
+     * This method returns the Minor value.
+     *
+     * @returns The Minor value.
+     *
+     */
+    uint8_t GetMinor(void) const { return (mMinorMajor & kMinorMask) >> kMinorOffset; }
+
+    /**
+     * This method sets the Minor value.
+     *
+     * @param[in]  aMinor  The Minor value.
+     *
+     */
+    void SetMinor(uint8_t aMinor)
+    {
+        mMinorMajor = (mMinorMajor & ~kMinorMask) | ((aMinor << kMinorOffset) & kMinorMask);
+    }
+
+    /**
+     * This method returns the Major value.
+     *
+     * @returns The Major value.
+     *
+     */
+    uint8_t GetMajor(void) const { return (mMinorMajor & kMajorMask) >> kMajorOffset; }
+
+    /**
+     * This method sets the Major value.
+     *
+     * @param[in] aMajor  The Major value.
+     *
+     */
+    void SetMajor(uint8_t aMajor)
+    {
+        mMinorMajor = (mMinorMajor & ~kMajorMask) | ((aMajor << kMajorOffset) & kMajorMask);
+    }
+
+private:
+    uint8_t mOui[3];
+
+    enum
+    {
+        kBuildOffset = 4,
+        kBuildMask   = 0xfff << kBuildOffset,
+        kRevOffset   = 0,
+        kRevMask     = 0xf << kBuildOffset,
+    };
+    uint16_t mBuildRevision;
+
+    enum
+    {
+        kMinorOffset = 4,
+        kMinorMask   = 0xf << kMinorOffset,
+        kMajorOffset = 0,
+        kMajorMask   = 0xf << kMajorOffset,
+    };
+    uint8_t mMinorMajor;
+} OT_TOOL_PACKED_END;
+
+/**
+ * This class implements Udp Encapsulation TLV generation and parsing.
+ *
+ */
+OT_TOOL_PACKED_BEGIN
+class UdpEncapsulationTlv : public ExtendedTlv
+{
+public:
+    /**
+     * Default constructor.
+     *
+     */
+    UdpEncapsulationTlv(void)
+    {
+        SetType(kUdpEncapsulation);
+    }
+
+    /**
+     * This method indicates whether or not the TLV appears to be well-formed.
+     *
+     * @retval TRUE   If the TLV appears to be well-formed.
+     * @retval FALSE  If the TLV does not appear to be well-formed.
+     *
+     */
+    bool IsValid(void) const { return GetLength() == sizeof(*this) - sizeof(Tlv); }
+
+    /**
+     * This method returns the source port.
+     *
+     * @returns The source port.
+     *
+     */
+    uint16_t GetSourcePort(void) const
+    {
+        return HostSwap16(mSourcePort);
+    }
+
+    /**
+     * This method updates the source port.
+     *
+     * @param[in]  aOui  The source port.
+     *
+     */
+    void SetSourcePort(uint32_t aSourcePort)
+    {
+        mSourcePort = HostSwap16(aSourcePort);
+    }
+
+    /**
+     * This method returns the destination port.
+     *
+     * @returns The destination port.
+     *
+     */
+    uint16_t GetDestinationPort(void) const
+    {
+        return HostSwap16(mDestinationPort);
+    }
+
+    /**
+     * This method updates the destination port.
+     *
+     * @param[in]  aOui  The destination port.
+     *
+     */
+    void SetDestinationPort(uint32_t aDestinationPort)
+    {
+        mDestinationPort = HostSwap16(aDestinationPort);
+    }
+
+private:
+    uint16_t mSourcePort;
+    uint16_t mDestinationPort;
+} OT_TOOL_PACKED_END;
+
+/**
+ * This class implements Vendor Stack Version TLV generation and parsing.
+ *
+ */
+OT_TOOL_PACKED_BEGIN
+class IPv6AddressTlv : public Tlv
+{
+public:
+    /**
+     * Default constructor.
+     *
+     */
+    IPv6AddressTlv(void)
         : mBuildRevision(0)
         , mMinorMajor(0)
     {
