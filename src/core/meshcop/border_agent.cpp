@@ -268,14 +268,43 @@ void BorderAgent::HandleProxyTransmit(const Coap::Header &aHeader, const Message
     Message *              message = NULL;
     Ip6::MessageInfo       messageInfo;
     uint16_t offset;
-    UdpEncapsulationTlv tlv;
 
-    SuccessOrExit(error = Tlv::GetOffset(aMessage, ExtendedTlv::kUdpEncapsulation, offset));
-    aMessage.Read(offset, sizeof(tlv), &tlv);
+    {
+        UdpEncapsulationTlv tlv;
 
-    VerifyOrExit((message = GetInstance().GetIp6().GetUdp().NewMessage(0)) != NULL);
-    message->SetLength(tlv.GetUdpLength());
-    message->CopyTo();
+        SuccessOrExit(error = Tlv::GetOffset(aMessage, ExtendedTlv::kUdpEncapsulation, offset));
+        aMessage.Read(offset, sizeof(tlv), &tlv);
+
+        VerifyOrExit((message = GetInstance().GetIp6().GetUdp().NewMessage(0)) != NULL);
+        SuccessOrExit(error = message->SetLength(tlv.GetUdpLength()));
+        message->CopyTo(offset + sizeof(tlv), 0, tlv.GetUdpLength());
+
+        messageInfo.SetSockPort(0);
+        messageInfo.SetSockAddr(netif.GetMle().GetMeshLocal16());
+        messageInfo.SetPeerPort(tlv.GetDestinationPort());
+    }
+
+    {
+        Ipv6Tlv tlv;
+
+        SuccessOrExit(error = Tlv::Get(aMessage, Tlv::kIPv6Address, sizeof(tlv), tlv));
+        messageInfo.SetPeerAddr(tlv.GetAddress());
+    }
+
+    SuccessOrExit(error = GetInstance().GetIp6().GetUdp().SendDatagram(*message, messageInfo));
+    otLogInfoMeshCoP(GetInstance(), "Proxy stream sent");
+
+exit:
+    if (error != OT_ERROR_NONE)
+    {
+        otLogWarnMeshCoP(GetInstance(), "Failed to send proxy stream: %s", otThreadErrorToString(error));
+        if (message != NULL)
+        {
+            message->Free();
+        }
+    }
+
+    return error;
 }
 
 void BorderAgent::HandleRelayReceive(const Coap::Header &aHeader, const Message &aMessage)

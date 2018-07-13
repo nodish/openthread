@@ -849,13 +849,26 @@ public:
     /**
      * This method retrieves the Leader's ALOC.
      *
+     * @param[out]  aAddress        A reference to the Leader's ALOC.
+     * @param[in]   aAllocation     Aloc allocation.
+     *
+     * @retval OT_ERROR_NONE      Successfully retrieved the Leader's ALOC.
+     * @retval OT_ERROR_DETACHED  The Thread interface is not currently attached to a Thread Partition.
+     *
+     */
+    otError GetAlocAddress(Ip6::Address &aAddress, AlocAllocation aAllocation) const;
+
+
+    /**
+     * This method retrieves the Leader's ALOC.
+     *
      * @param[out]  aAddress  A reference to the Leader's ALOC.
      *
      * @retval OT_ERROR_NONE      Successfully retrieved the Leader's ALOC.
      * @retval OT_ERROR_DETACHED  The Thread interface is not currently attached to a Thread Partition.
      *
      */
-    otError GetLeaderAloc(Ip6::Address &aAddress) const;
+    otError GetCommissionerAloc(Ip6::Address &aAddress) const;
 
 #if OPENTHREAD_ENABLE_SERVICE
     /**

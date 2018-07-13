@@ -130,6 +130,7 @@ private:
     Coap::Resource mActiveSet;
     Coap::Resource mPendingGet;
     Coap::Resource mPendingSet;
+    Coap::Resource mProxyTransmit;
 
     TimerMilli mTimer;
     bool       mIsStarted;
