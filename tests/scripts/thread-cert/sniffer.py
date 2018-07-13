@@ -90,7 +90,7 @@ class Sniffer:
 
                 if msg is not None:
                     self.logger.debug("Received message: {}".format(msg))
-                    print('putting index %d' % self.index)
+                    #print('putting index %d' % self.index)
                     self._buckets[nodeid].put(msg)
 
             except Exception as e:

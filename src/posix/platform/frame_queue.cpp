@@ -79,16 +79,7 @@ exit:
     return error;
 }
 
-void FrameQueue::Shift(void)
-{
-    if (mHead != mTail)
-    {
-        mHead += 1 + mBuffer[mHead];
-        mHead %= sizeof(mBuffer);
-    }
-}
-
-const uint8_t *FrameQueue::Peek(uint8_t *aFrame, uint8_t &aLength)
+const uint8_t *FrameQueue::Shift(uint8_t *aFrame, uint8_t &aLength)
 {
     const uint8_t *frame = NULL;
     uint16_t       next;
@@ -97,18 +88,19 @@ const uint8_t *FrameQueue::Peek(uint8_t *aFrame, uint8_t &aLength)
 
     aLength = mBuffer[mHead];
     next    = mHead + 1 + aLength;
-
     if (next >= sizeof(mBuffer))
     {
         uint16_t half = sizeof(mBuffer) - mHead - 1;
         memcpy(aFrame, mBuffer + mHead + 1, half);
         memcpy(aFrame + half, mBuffer, aLength - half);
         frame = aFrame;
+        next -= sizeof(mBuffer);
     }
     else
     {
         frame = mBuffer + mHead + 1;
     }
+    mHead = next;
 
 exit:
     return frame;

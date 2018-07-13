@@ -71,7 +71,7 @@ public:
      * @retval false  Promiscuous mode is disabled.
      *
      */
-    bool GetPromiscuous(void) const { return mPromiscuous; }
+    bool IsPromiscuous(void) const { return mIsPromiscuous; }
 
     /**
      * This method sets the status of promiscuous mode.
@@ -482,9 +482,10 @@ private:
 
     int          mSockFd;
     otRadioState mState;
-    bool         mAckWait;
-    bool         mPromiscuous;
-    bool         mIsReady;
+    bool         mIsAckRequested : 1; ///< Ack requested.
+    bool         mIsDecoding: 1; ///< Decoding hdlc frames.
+    bool         mIsPromiscuous : 1; ///< Promiscuous mode.
+    bool         mIsReady : 1; ///< NCP ready.
 };
 
 } // namespace ot
