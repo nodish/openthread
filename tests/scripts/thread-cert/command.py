@@ -153,13 +153,13 @@ def check_icmp_path(sniffer, path, nodes, icmp_type = ipv6.ICMP_ECHO_REQUEST):
 def check_id_set(command_msg, router_id):
     """Check the command_msg's Route64 tlv to verify router_id is an active router.
     """
-    tlv = command_msg.assertMleMessageContainsTlv(mle.Route64)
+    tlv = command_msg.get_mle_message_tlv(mle.Route64)
     return ((tlv.router_id_mask >> (63 - router_id)) & 1)
 
 def get_routing_cost(command_msg, router_id):
     """Check the command_msg's Route64 tlv to get the routing cost to router.
     """
-    tlv = command_msg.assertMleMessageContainsTlv(mle.Route64)
+    tlv = command_msg.get_mle_message_tlv(mle.Route64)
 
     # Get router's mask pos
     # Turn the number into binary string. Need to consider the preceding 0 omitted during conversion.

@@ -28,7 +28,6 @@
 #
 
 import time
-import unittest
 
 import config
 import mle
@@ -59,12 +58,6 @@ class Cert_5_1_01_RouterAttach(unittest.TestCase):
         self.nodes[ROUTER].enable_whitelist()
         self.nodes[ROUTER].set_router_selection_jitter(1)
 
-    def tearDown(self):
-        for node in list(self.nodes.values()):
-            node.stop()
-        del self.nodes
-        del self.simulator
-
     def test(self):
         self.nodes[LEADER].start()
         self.simulator.go(5)
@@ -79,11 +72,12 @@ class Cert_5_1_01_RouterAttach(unittest.TestCase):
 
         # 1 - Leader
         msg = leader_messages.next_mle_message(mle.CommandType.ADVERTISEMENT)
-        msg.assertSentWithHopLimit(255)
-        msg.assertSentToDestinationAddress("ff02::1")
-        msg.assertMleMessageContainsTlv(mle.SourceAddress)
-        msg.assertMleMessageContainsTlv(mle.LeaderData)
-        msg.assertMleMessageContainsTlv(mle.Route64)
+        self.check_message(msg)
+            .with_hop_limit(255)
+            .is_sent_to("ff02::1")
+            .mle_with_tlv(mle.SourceAddress)
+            .mle_with_tlv(mle.LeaderData)
+            .mle_with_tlv(mle.Route64)
 
         # 2 - Router
         msg = router_messages.next_mle_message(mle.CommandType.PARENT_REQUEST)
