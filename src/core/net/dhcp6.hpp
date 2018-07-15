@@ -617,6 +617,62 @@ public:
     }
 } OT_TOOL_PACKED_END;
 
+OT_TOOL_PACKED_BEGIN
+class VendorSpecificInformation : public Dhcp6Option
+{
+public:
+    /**
+     * This method initializes the DHCPv6 Option.
+     *
+     */
+    void Init(void)
+    {
+        SetCode(kOptionRapidCommit);
+        SetLength(sizeof(*this) - sizeof(Dhcp6Option));
+    }
+
+    uint32_t GetEnterpriseNumber(void) const
+    {
+        return HostSwap32(mEnterpriseNumber);
+    }
+
+    void GetEnterpriseNumber(uint32_t aEnterpriseNumber)
+    {
+        mEnterpriseNumber = HostSwap32(aEnterpriseNumber);
+    }
+
+    void GetVenderSpecificOption(Dhcp6Option )
+    {
+    }
+
+private:
+    uint32_t mEnterpriseNumber;
+} OT_TOOL_PACKED_END;
+
+OT_TOOL_PACKED_BEGIN
+class OpenThreadSpecificOption : public Dhcp6Option
+{
+    enum Code {
+        kNat64Prefix = 0, ///< The NAT64 prefix option
+    };
+
+    /**
+     * This method returns the OpenThread specific DHCPv6 option code.
+     *
+     * @returns The DHCPv6 option code.
+     *
+     */
+    Code GetCode(void) const { return static_cast<Code>(HostSwap16(mCode)); }
+
+    /**
+     * This method sets the OpenThread specific DHCPv6 option code.
+     *
+     * @param[in]  aCode  The DHCPv6 option code.
+     *
+     */
+    void SetCode(Code aCode) { mCode = HostSwap16(static_cast<uint16_t>(aCode)); }
+} OT_TOOL_PACKED_END;
+
 } // namespace Dhcp6
 } // namespace ot
 
