@@ -110,6 +110,26 @@ extern "C" void otPlatUartReceived(const uint8_t *aBuf, uint16_t aBufLength)
 
 void Uart::ReceiveTask(const uint8_t *aBuf, uint16_t aBufLength)
 {
+#if OPENTHREAD_POSIX
+    if (aBufLength >= sizeof(mRxBuffer))
+    {
+        mRxLength = 0;
+        ProcessCommand();
+    }
+    else
+    {
+        mRxLength = aBufLength - 1;
+    }
+
+    if (mRxLength > 0)
+    {
+        memcpy(mRxBuffer, aBuf, mRxLength);
+        mRxBuffer[mRxLength] = '\0';
+        ProcessCommand();
+    }
+
+    Output(sCommandPrompt, sizeof(sCommandPrompt));
+#else
     const uint8_t *end;
 
     end = aBuf + aBufLength;
@@ -132,13 +152,6 @@ void Uart::ReceiveTask(const uint8_t *aBuf, uint16_t aBufLength)
 
             break;
 
-#if OPENTHREAD_POSIX
-
-        case 0x04: // ASCII for Ctrl-D
-            exit(EXIT_SUCCESS);
-            break;
-#endif
-
         case '\b':
         case 127:
             if (mRxLength > 0)
@@ -159,7 +172,8 @@ void Uart::ReceiveTask(const uint8_t *aBuf, uint16_t aBufLength)
             break;
         }
     }
-}
+#endif // OPENTHREAD_POSIX
+} // namespace Cli
 
 otError Uart::ProcessCommand(void)
 {

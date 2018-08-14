@@ -51,11 +51,15 @@ int   unlockpt(int fd);
 char *ptsname(int fd);
 #endif // OPENTHREAD_TARGET_LINUX
 
+#define OT_CLI_PREFIX "ot-cli"
+
 static uint8_t        s_receive_buffer[128];
 static const uint8_t *s_write_buffer;
 static uint16_t       s_write_length;
 static int            s_in_fd;
 static int            s_out_fd;
+static bool           sRawMode = false;
+extern const char **  gArguments;
 
 static struct termios original_stdin_termios;
 static struct termios original_stdout_termios;
@@ -72,29 +76,18 @@ static void restore_stdout_termios(void)
 
 void platformUartRestore(void)
 {
-    restore_stdin_termios();
-    restore_stdout_termios();
+    if (sRawMode)
+    {
+        restore_stdin_termios();
+        restore_stdout_termios();
+    }
     dup2(s_out_fd, STDOUT_FILENO);
 }
 
-otError otPlatUartEnable(void)
+static otError platformUartEnableRaw()
 {
     otError        error = OT_ERROR_NONE;
     struct termios termios;
-
-#ifdef OPENTHREAD_TARGET_LINUX
-    // Ensure we terminate this process if the
-    // parent process dies.
-    prctl(PR_SET_PDEATHSIG, SIGHUP);
-#endif
-
-    s_in_fd  = dup(STDIN_FILENO);
-    s_out_fd = dup(STDOUT_FILENO);
-    dup2(STDERR_FILENO, STDOUT_FILENO);
-
-    // We need this signal to make sure that this
-    // process terminates properly.
-    signal(SIGPIPE, SIG_DFL);
 
     if (isatty(s_in_fd))
     {
@@ -155,11 +148,42 @@ otError otPlatUartEnable(void)
         otEXPECT_ACTION(tcsetattr(s_out_fd, TCSANOW, &termios) == 0, perror("tcsetattr"); error = OT_ERROR_GENERIC);
     }
 
+exit:
     return error;
+}
+
+otError otPlatUartEnable(void)
+{
+    otError error = OT_ERROR_NONE;
+
+    // Enter raw mode when in non-cli mode.
+    sRawMode = (strstr(gArguments[0], OT_CLI_PREFIX) == NULL);
+
+#ifdef OPENTHREAD_TARGET_LINUX
+    // Ensure we terminate this process if the
+    // parent process dies.
+    prctl(PR_SET_PDEATHSIG, SIGHUP);
+#endif
+
+    s_in_fd  = dup(STDIN_FILENO);
+    s_out_fd = dup(STDOUT_FILENO);
+    dup2(STDERR_FILENO, STDOUT_FILENO);
+
+    // We need this signal to make sure that this
+    // process terminates properly.
+    signal(SIGPIPE, SIG_DFL);
+
+    if (sRawMode)
+    {
+        otEXPECT((error = platformUartEnableRaw()) == OT_ERROR_NONE);
+    }
 
 exit:
-    close(s_in_fd);
-    close(s_out_fd);
+    if (error != OT_ERROR_NONE)
+    {
+        close(s_in_fd);
+        close(s_out_fd);
+    }
     return error;
 }
 
