@@ -123,9 +123,6 @@ class otCli:
         self.pexpect.send(cmd + '\n')
         sys.stdout.flush()
 
-        if isinstance(self.simulator, simulator.VirtualTime):
-            self.simulator.receive_events()
-
     def get_commands(self):
         self.send_command('?')
         self.pexpect.expect('Commands:')

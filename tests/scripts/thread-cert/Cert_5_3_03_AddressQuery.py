@@ -152,8 +152,8 @@ class Cert_5_3_3_AddressQuery(unittest.TestCase):
         self.nodes[ROUTER3].stop()
 
         # Wait for the Leader to expire its Router ID.
-        # MAX_NEIGHBOR_AGE + INFINITE_COST_TIMEOUT + ID_REUSE_DELAY + propagation time + transmission time ~ 580s.
-        self.simulator.go(580)
+        # MAX_NEIGHBOR_AGE(100) + INFINITE_COST_TIMEOUT(90) + ID_REUSE_DELAY(100) + propagation time(32 * 16) + transmission time() ~ 802s.
+        self.simulator.go(802)
 
         # Flush the message queue to avoid possible impact on follow-up verification.
         dut_messages = self.simulator.get_messages_sent_by(DUT_ROUTER2)

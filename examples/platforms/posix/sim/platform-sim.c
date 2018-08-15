@@ -47,6 +47,7 @@
 
 #include <openthread/tasklet.h>
 #include <openthread/platform/alarm-milli.h>
+#include <openthread/platform/uart.h>
 
 uint32_t NODE_ID           = 1;
 uint32_t WELLKNOWN_NODE_ID = 34;
@@ -79,6 +80,10 @@ static void receiveEvent(otInstance *aInstance)
 
     case OT_SIM_EVENT_RADIO_RECEIVED:
         platformRadioReceive(aInstance, event.mData, event.mDataLength);
+        break;
+
+    case OT_SIM_EVENT_UART_RECEIVED:
+        otPlatUartReceived(event.mData, event.mDataLength);
         break;
     }
 }
@@ -229,7 +234,6 @@ void otSysProcessDrivers(otInstance *aInstance)
     max_fd = sSockFd;
 
     platformUartUpdateFdSet(&read_fds, &write_fds, &error_fds, &max_fd);
-
     if (!otTaskletsArePending(aInstance) && platformAlarmGetNext() > 0)
     {
         platformSendSleepEvent();
@@ -247,7 +251,6 @@ void otSysProcessDrivers(otInstance *aInstance)
 
     platformAlarmProcess(aInstance);
     platformRadioProcess(aInstance);
-    platformUartProcess();
 }
 
 #endif // OPENTHREAD_POSIX_VIRTUAL_TIME

@@ -28,6 +28,8 @@
 
 #include "platform-posix.h"
 
+#if OPENTHREAD_POSIX_VIRTUAL_TIME == 0 || OPENTHREAD_POSIX_VIRTUAL_TIME_NCP == 0
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -330,3 +332,5 @@ int otPlatDebugUart_getc(void)
 }
 
 #endif
+
+#endif // OPENTHREAD_POSIX_VIRTUAL_TIME == 0 || OPENTHREAD_POSIX_VIRTUAL_TIME_NCP == 0

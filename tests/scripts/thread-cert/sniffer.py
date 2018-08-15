@@ -94,7 +94,6 @@ class Sniffer:
             except Exception as e:
                 # Just print the exception to the console
                 print("EXCEPTION: %s" % e)
-                pass
 
         self.logger.debug("Sniffer stopped.")
 

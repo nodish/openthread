@@ -27,18 +27,34 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
+import binascii
 import bisect
 import cmd
+import exceptions
 import os
 import socket
 import struct
 import time
 import sys
+import threading
 
 import io
 import config
 import message
 import pcap
+
+OT_SIM_EVENT_ALARM_FIRED    = 0
+OT_SIM_EVENT_RADIO_RECEIVED = 1
+OT_SIM_EVENT_UART_RECEIVED  = 2
+OT_SIM_EVENT_UART_SENT      = 3
+OT_SIM_EVENT_UART_DONE      = 4
+OT_SIM_EVENT_GO             = 5
+
+EVENT_TIME = 0
+EVENT_SEQUENCE = 1
+EVENT_ADDR = 2
+EVENT_DATA_LENGTH = 3
+EVENT_DATA = 4
 
 class RealTime:
 
@@ -62,22 +78,32 @@ class VirtualTime:
 
     BASE_PORT = 9000
     MAX_NODES = 34
-    PORT_OFFSET = int(os.getenv('PORT_OFFSET', "0"))
+    END_OF_TIME = 0x7fffffff
+    PORT_OFFSET = int(os.getenv('PORT_OFFSET', '0'))
 
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         ip = '127.0.0.1'
         self.port = self.BASE_PORT + (self.PORT_OFFSET * self.MAX_NODES)
-        self.sock.bind((ip, self.port))
+        self.addr = (ip, self.port)
+        self.sock.bind(self.addr)
 
         self.devices = {}
         self.event_queue = []
         self.event_count = 0
+        self.event_sequence = 0 # there could be events scheduled at exactly the same time
         self.current_time = 0
-        self.current_event = None;
+        self.current_event = None
 
         self._pcap = pcap.PcapCodec(os.getenv('TEST_NAME', 'current'))
+        self._pause_time = 0
+        self._paused = threading.Event()
+
+        self._coordinator_alive = False
+        self._coordinator_thread = threading.Thread(target=self._coordinator_main_loop)
+        self._coordinator_thread.daemon = True
+        self._coordinator_thread.start()
 
         self._message_factory = config.create_default_thread_message_factory()
 
@@ -86,8 +112,12 @@ class VirtualTime:
             self.stop()
 
     def stop(self):
+        self._coordinator_alive = False
+        self._go(0)
         self.sock.close()
         self.sock = None
+        self._coordinator_thread.join()
+        self._pcap.save_to_file(os.getenv('TEST_NAME', 'current'))
 
     def _add_message(self, nodeid, message):
         addr = ('127.0.0.1', self.port + nodeid)
@@ -102,7 +132,6 @@ class VirtualTime:
         except Exception as e:
             # Just print the exception to the console
             print("EXCEPTION: %s" % e)
-            pass
 
     def set_lowpan_context(self, cid, prefix):
         self._message_factory.set_lowpan_context(cid, prefix)
@@ -125,20 +154,52 @@ class VirtualTime:
 
         return message.MessagesSet(messages)
 
-    def receive_events(self):
-
-        if self.current_event is None:
-            self.sock.setblocking(0)
+    def _next_event_time(self):
+        if len(self.event_queue) == 0:
+            return self.END_OF_TIME
         else:
+            return self.event_queue[0][0]
+
+    def recvfrom(self, blocking=False):
+        if blocking:
             self.sock.setblocking(1)
+        else:
+            self.sock.setblocking(0)
 
+        try:
+            return self.sock.recvfrom(1024)
+        except socket.error:
+            pass
+
+
+    def receive_events(self):
         while True:
-            try:
-                msg, addr = self.sock.recvfrom(1024)
-            except socket.error:
-                break
+            packet = self.recvfrom(self.current_event)
+            if not packet:
+                # we are waiting for response of an event
+                if self.current_event:
+                    break
 
-            if addr not in self.devices:
+                # we should process all events ahead of pause time
+                if self._next_event_time() <= self._pause_time:
+                    break
+
+                # no events indicates nothing happened yet
+                if self._next_event_time() < self.END_OF_TIME and not self._paused.is_set():
+                    self.current_time = self._pause_time
+                    self.sync_devices()
+                    self._paused.set()
+
+                packet = self.recvfrom(True)
+                if not packet:
+                    break
+
+            msg, addr = packet
+
+            if addr[1] > self.BASE_PORT * 2:
+                addr = (addr[0], addr[1] - self.BASE_PORT)
+
+            if addr != self.addr and addr not in self.devices:
                 self.devices[addr] = {}
                 self.devices[addr]['alarm'] = None
                 self.devices[addr]['msgs'] = []
@@ -150,7 +211,9 @@ class VirtualTime:
 
             event_time = self.current_time + delay
 
-            if type == 0:
+            #print "New event:", type, addr
+
+            if type == OT_SIM_EVENT_ALARM_FIRED:
                 # remove any existing alarm event for device
                 try:
                     self.event_queue.remove(self.devices[addr]['alarm'])
@@ -160,21 +223,23 @@ class VirtualTime:
                     pass
 
                 # add alarm event to event queue
-                event = (event_time, addr, type, datalen)
+                event = (event_time, self.event_sequence, addr, type, datalen)
+                self.event_sequence += 1
                 #print "-- Enqueue\t", event, delay, self.current_time
                 bisect.insort(self.event_queue, event)
                 self.devices[addr]['alarm'] = event
 
-                if self.current_event is not None and self.current_event[1] == addr:
+                if self.current_event is not None and self.current_event[EVENT_ADDR] == addr:
                     #print "Done\t", self.current_event
                     self.current_event = None
                     return
 
-            elif type == 1:
+            elif type == OT_SIM_EVENT_RADIO_RECEIVED:
                 # add radio receive events event queue
                 for device in self.devices:
                     if device != addr:
-                        event = (event_time, device, type, datalen, data)
+                        event = (event_time, self.event_sequence, device, type, datalen, data)
+                        self.event_sequence += 1
                         #print "-- Enqueue\t", event
                         bisect.insort(self.event_queue, event)
 
@@ -182,12 +247,36 @@ class VirtualTime:
                 self._add_message(addr[1] - self.port, data)
 
                 # add radio transmit done events to event queue
-                event = (event_time, addr, type, datalen, data)
+                event = (event_time, self.event_sequence, addr, type, datalen, data)
+                self.event_sequence += 1
                 bisect.insort(self.event_queue, event)
+
+            elif type == OT_SIM_EVENT_UART_RECEIVED:
+                event = (event_time, self.event_sequence, addr, type, datalen, data)
+                self.event_sequence += 1
+                bisect.insort(self.event_queue, event)
+
+            elif type == OT_SIM_EVENT_UART_SENT:
+                event = (event_time, self.event_sequence, addr, type, datalen, data)
+                self.event_sequence += 1
+                bisect.insort(self.event_queue, event)
+
+            elif type == OT_SIM_EVENT_UART_DONE:
+                if self.current_event is not None and self.current_event[EVENT_ADDR] == addr:
+                    self.current_event = None
+                    return
+
+            elif type == OT_SIM_EVENT_GO:
+                assert(addr[1] == self.port)
+                self._pause_time = event_time
+                return
 
     def process_next_event(self):
 
         if self.current_event != None:
+            return
+
+        if self._next_event_time() > self._pause_time:
             return
 
         #print "Events", len(self.event_queue)
@@ -204,10 +293,13 @@ class VirtualTime:
 
         #print "Pop\t", event
 
-        if len(event) == 4:
-            event_time, addr, type, datalen = event
+        if len(event) == 5:
+            event_time, sequence, addr, type, datalen = event
         else:
-            event_time, addr, type, datalen, data = event
+            event_time, sequence, addr, type, datalen, data = event
+
+        if event_time == self.END_OF_TIME:
+            return
 
         self.event_count += 1
         self.current_event = event
@@ -220,12 +312,20 @@ class VirtualTime:
 
         message = struct.pack('=QBH', elapsed, type, datalen)
 
-        if type == 0:
+        self.sock.setblocking(1)
+
+        if type == OT_SIM_EVENT_ALARM_FIRED:
             self.devices[addr]['alarm'] = None
-            self.sock.sendto(message, addr)
-        elif type == 1:
+            sent = self.sock.sendto(message, addr)
+        elif type == OT_SIM_EVENT_RADIO_RECEIVED:
             message += data
-            self.sock.sendto(message, addr)
+            sent = self.sock.sendto(message, addr)
+        elif type == OT_SIM_EVENT_UART_RECEIVED:
+            message += data
+            sent = self.sock.sendto(message, addr)
+        elif type == OT_SIM_EVENT_UART_SENT:
+            message += data
+            sent = self.sock.sendto(message, (addr[0], addr[1] + self.BASE_PORT))
 
     def sync_devices(self):
         for addr in self.devices:
@@ -234,19 +334,28 @@ class VirtualTime:
             message = struct.pack('=QBH', elapsed, 0, 0)
             self.sock.sendto(message, addr)
 
+    def _coordinator_main_loop(self):
+        self._coordinator_alive = True
+        try:
+            while self._coordinator_alive:
+                self.process_next_event()
+                self.receive_events()
+        except socket.error as e:
+            print('EXCEPTION:' % e)
+
+    def _go(self, duration):
+        message = struct.pack('=QBH', duration, OT_SIM_EVENT_GO, 0)
+        self.sock.sendto(message, self.addr)
+
     def go(self, duration):
-
+        self._paused.clear()
         duration = int(duration) * 1000000
-
-        start_time = self.current_time
-        self.current_event = None
-
         print "running for %d us" % duration
+        self._go(duration)
+        while not self._paused.wait(1):
+            pass
 
-        self.receive_events()
 
-        while (self.current_time - start_time) < duration:
-            self.process_next_event()
-            self.receive_events()
-
-        self.sync_devices()
+if __name__ == '__main__':
+    simulator = VirtualTime()
+    simulator.go(100)

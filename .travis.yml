@@ -70,7 +70,7 @@ matrix:
     - env: BUILD_TARGET="posix-32-bit" VERBOSE=1 VIRTUAL_TIME=1
       os: linux
       compiler: gcc
-    - env: BUILD_TARGET="posix-ncp" VERBOSE=1 VIRTUAL_TIME=1
+    - env: BUILD_TARGET="posix-ncp" VERBOSE=1 VIRTUAL_TIME=1 VIRTUAL_TIME_NCP=1
       os: linux
       compiler: gcc
     - env: BUILD_TARGET="posix-mtd" VERBOSE=1 VIRTUAL_TIME=1
