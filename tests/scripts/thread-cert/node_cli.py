@@ -112,13 +112,13 @@ class otCli:
 
     def destroy(self):
         if self.pexpect and self.pexpect.isalive():
-            self.send_command('exit')
+            self.send_command('exit', wait=False)
             self.pexpect.expect(pexpect.EOF)
             self.pexpect.terminate()
             self.pexpect.close(force=True)
             self.pexpect = None
 
-    def send_command(self, cmd):
+    def send_command(self, cmd, wait=True):
         print("%d: %s" % (self.nodeid, cmd))
         self.pexpect.send(cmd + '\n')
         sys.stdout.flush()
@@ -141,7 +141,7 @@ class otCli:
         self.pexpect.expect('Done')
 
     def debug(self, level):
-        self.send_command('debug '+str(level))
+        self.send_command('debug '+str(level), wait=False)
 
     def interface_up(self):
         self.send_command('ifconfig up')
@@ -592,10 +592,8 @@ class otCli:
 
         self.send_command(cmd)
 
-        try:
-            self.pexpect.expect('Done', timeout=0.01)
-        except pexpect.TIMEOUT:
-            pass
+        if self.node_type == 'ncp-sim':
+            self.pexpect.expect('Done')
 
         if isinstance(self.simulator, simulator.VirtualTime):
             self.simulator.go(timeout)

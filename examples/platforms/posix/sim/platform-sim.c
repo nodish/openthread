@@ -62,8 +62,8 @@ uint16_t sPortOffset;
 
 static void receiveEvent(otInstance *aInstance)
 {
-    struct Event event;
-    ssize_t      rval = recvfrom(sSockFd, (char *)&event, sizeof(event), 0, NULL, NULL);
+    struct Event event = {0};
+    ssize_t      rval  = recvfrom(sSockFd, (char *)&event, sizeof(event), 0, NULL, NULL);
 
     if (rval < 0 || (uint16_t)rval < offsetof(struct Event, mData))
     {
@@ -73,6 +73,7 @@ static void receiveEvent(otInstance *aInstance)
 
     platformAlarmAdvanceNow(event.mDelay);
 
+    // fprintf(stderr, "ncp[%d] got event %u size %hu rval %zd\r\n", NODE_ID, event.mEvent, event.mDataLength, rval);
     switch (event.mEvent)
     {
     case OT_SIM_EVENT_ALARM_FIRED:

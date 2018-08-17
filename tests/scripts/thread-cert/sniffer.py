@@ -33,6 +33,7 @@ import logging
 import os
 import pcap
 import threading
+import traceback
 
 try:
     import Queue
@@ -92,8 +93,7 @@ class Sniffer:
                     self._buckets[nodeid].put(msg)
 
             except Exception as e:
-                # Just print the exception to the console
-                print("EXCEPTION: %s" % e)
+                traceback.print_exc()
 
         self.logger.debug("Sniffer stopped.")
 
