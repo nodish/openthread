@@ -45,6 +45,8 @@
 extern int      sSockFd;
 extern uint16_t sPortOffset;
 
+void sendEvent(struct Event *aEvent, size_t aLength);
+
 void platformUartRestore(void)
 {
 }
@@ -61,28 +63,14 @@ otError otPlatUartDisable(void)
 
 otError otPlatUartSend(const uint8_t *aBuf, uint16_t aBufLength)
 {
-    struct sockaddr_in sockaddr;
-    struct Event       event;
-    ssize_t            rval;
+    struct Event event;
 
     event.mDelay      = 0; // 1us for now
     event.mEvent      = OT_SIM_EVENT_UART_SENT;
     event.mDataLength = aBufLength;
     memcpy(event.mData, aBuf, aBufLength);
 
-    memset(&sockaddr, 0, sizeof(sockaddr));
-    sockaddr.sin_family = AF_INET;
-    inet_pton(AF_INET, "127.0.0.1", &sockaddr.sin_addr);
-    sockaddr.sin_port = htons(9000 + sPortOffset);
-
-    rval = sendto(sSockFd, (const char *)&event, offsetof(struct Event, mData) + event.mDataLength, 0,
-                  (struct sockaddr *)&sockaddr, sizeof(sockaddr));
-
-    if (rval < 0)
-    {
-        perror("sendto");
-        exit(EXIT_FAILURE);
-    }
+    sendEvent(&event, offsetof(struct Event, mData) + event.mDataLength);
 
     otPlatUartSendDone();
 

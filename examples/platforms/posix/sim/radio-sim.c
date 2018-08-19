@@ -119,6 +119,8 @@ static uint16_t     sShortAddressMatchTable[POSIX_MAX_SRC_MATCH_ENTRIES];
 static otExtAddress sExtAddressMatchTable[POSIX_MAX_SRC_MATCH_ENTRIES];
 static bool         sSrcMatchEnabled = false;
 
+void sendEvent(struct Event *aEvent, size_t aLength);
+
 static bool findShortAddress(uint16_t aShortAddress)
 {
     uint8_t i;
@@ -550,9 +552,7 @@ void platformRadioProcess(otInstance *aInstance)
 
 void radioTransmit(struct RadioMessage *aMessage, const struct otRadioFrame *aFrame)
 {
-    struct sockaddr_in sockaddr;
-    struct Event       event;
-    ssize_t            rval;
+    struct Event event;
 
     uint16_t crc        = 0;
     uint16_t crc_offset = aFrame->mLength - sizeof(uint16_t);
@@ -570,19 +570,7 @@ void radioTransmit(struct RadioMessage *aMessage, const struct otRadioFrame *aFr
     event.mDataLength = 1 + aFrame->mLength; // include channel in first byte
     memcpy(event.mData, aMessage, event.mDataLength);
 
-    memset(&sockaddr, 0, sizeof(sockaddr));
-    sockaddr.sin_family = AF_INET;
-    inet_pton(AF_INET, "127.0.0.1", &sockaddr.sin_addr);
-    sockaddr.sin_port = htons(9000 + sPortOffset);
-
-    rval = sendto(sSockFd, (const char *)&event, offsetof(struct Event, mData) + event.mDataLength, 0,
-                  (struct sockaddr *)&sockaddr, sizeof(sockaddr));
-
-    if (rval < 0)
-    {
-        perror("sendto");
-        exit(EXIT_FAILURE);
-    }
+    sendEvent(&event, offsetof(struct Event, mData) + event.mDataLength);
 }
 
 void radioSendAck(void)

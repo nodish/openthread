@@ -38,6 +38,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <libgen.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -60,6 +61,28 @@ char **gArguments      = NULL;
 int      sSockFd;
 uint16_t sPortOffset;
 
+void sendEvent(struct Event *aEvent, size_t aLength)
+{
+    ssize_t            rval;
+    struct sockaddr_in sockaddr;
+
+    memset(&sockaddr, 0, sizeof(sockaddr));
+    sockaddr.sin_family = AF_INET;
+    inet_pton(AF_INET, "127.0.0.1", &sockaddr.sin_addr);
+    sockaddr.sin_port = htons(9000 + sPortOffset);
+
+    rval = sendto(sSockFd, aEvent, aLength, 0, (struct sockaddr *)&sockaddr, sizeof(sockaddr));
+
+    if (rval < 0)
+    {
+        perror("sendto");
+        exit(EXIT_FAILURE);
+    }
+
+    // fprintf(stderr, "ncp[%d] sent event %u delay %" PRIu64 " size %hu rval %zd\r\n", NODE_ID, aEvent->mEvent,
+    //        aEvent->mDelay, aEvent->mDataLength, rval);
+}
+
 static void receiveEvent(otInstance *aInstance)
 {
     struct Event event = {0};
@@ -73,7 +96,9 @@ static void receiveEvent(otInstance *aInstance)
 
     platformAlarmAdvanceNow(event.mDelay);
 
-    // fprintf(stderr, "ncp[%d] got event %u size %hu rval %zd\r\n", NODE_ID, event.mEvent, event.mDataLength, rval);
+    // fprintf(stderr, "ncp[%d] got event %u delay %" PRIu64 " size %hu rval %zd\r\n", NODE_ID, event.mEvent,
+    // event.mDelay, event.mDataLength, rval);
+
     switch (event.mEvent)
     {
     case OT_SIM_EVENT_ALARM_FIRED:
@@ -106,9 +131,7 @@ static bool processEvent(otInstance *aInstance)
 
 static void platformSendSleepEvent(void)
 {
-    struct sockaddr_in sockaddr;
-    struct Event       event;
-    ssize_t            rval;
+    struct Event event;
 
     assert(platformAlarmGetNext() > 0);
 
@@ -116,19 +139,7 @@ static void platformSendSleepEvent(void)
     event.mEvent      = OT_SIM_EVENT_ALARM_FIRED;
     event.mDataLength = 0;
 
-    memset(&sockaddr, 0, sizeof(sockaddr));
-    sockaddr.sin_family = AF_INET;
-    inet_pton(AF_INET, "127.0.0.1", &sockaddr.sin_addr);
-    sockaddr.sin_port = htons(9000 + sPortOffset);
-
-    rval = sendto(sSockFd, (const char *)&event, offsetof(struct Event, mData), 0, (struct sockaddr *)&sockaddr,
-                  sizeof(sockaddr));
-
-    if (rval < 0)
-    {
-        perror("sendto");
-        exit(EXIT_FAILURE);
-    }
+    sendEvent(&event, offsetof(struct Event, mData));
 }
 
 static void socket_init(void)
