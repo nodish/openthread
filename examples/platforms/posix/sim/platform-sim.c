@@ -85,8 +85,8 @@ void sendEvent(struct Event *aEvent, size_t aLength)
 
 static void receiveEvent(otInstance *aInstance)
 {
-    struct Event event = {0};
-    ssize_t      rval  = recvfrom(sSockFd, (char *)&event, sizeof(event), 0, NULL, NULL);
+    struct Event event;
+    ssize_t      rval = recvfrom(sSockFd, (char *)&event, sizeof(event), 0, NULL, NULL);
 
     if (rval < 0 || (uint16_t)rval < offsetof(struct Event, mData))
     {
