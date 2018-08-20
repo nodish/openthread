@@ -186,7 +186,6 @@ class VirtualTime:
         while self.current_event or self._awake or self._pause_if_empty():
             #print '%u: awake %u paused %u next_event_time %u pause_time %u' % (self.current_time, self._awake, self._paused.is_set(), self._next_event_time(), self._pause_time)
             #print self.current_event
-            # blocking
             msg, addr = self.sock.recvfrom(self.MAX_MESSAGE)
 
             if addr[1] > self.BASE_PORT * 2:
@@ -319,13 +318,6 @@ class VirtualTime:
         elif type == self.OT_SIM_EVENT_UART_SENT:
             message += data
             sent = self.sock.sendto(message, (addr[0], addr[1] + self.BASE_PORT))
-
-    def sync_devices(self):
-        for addr in self.devices:
-            elapsed = self.current_time - self.devices[addr]['time']
-            self.devices[addr]['time'] = self.current_time
-            message = struct.pack('=QBH', elapsed, 0, 0)
-            self.sock.sendto(message, addr)
 
     def _coordinator_main_loop(self):
         self._coordinator_alive = True
