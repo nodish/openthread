@@ -104,6 +104,7 @@ class VirtualTime:
         self._pcap = pcap.PcapCodec(os.getenv('TEST_NAME', 'current'))
         self._pause_time = 0
         self._paused = threading.Event()
+        self._go_ack = threading.Event()
 
         self._coordinator_alive = False
         self._coordinator_thread = threading.Thread(target=self._coordinator_main_loop)
@@ -265,7 +266,20 @@ class VirtualTime:
                 assert(addr[1] == self.port)
                 if not self._coordinator_alive:
                     break
+                self._paused.clear()
+                self._go_ack.set()
                 self._pause_time = event_time
+
+    def _send_message(self, message, addr):
+        while True:
+            try:
+                sent = self.sock.sendto(message, addr)
+            except socket.error:
+                traceback.print_exc()
+                time.sleep(0)
+            else:
+                break
+        assert sent == len(message)
 
     def process_next_event(self):
         assert self.current_event is None
@@ -305,19 +319,19 @@ class VirtualTime:
 
         if type == self.OT_SIM_EVENT_ALARM_FIRED:
             self.devices[addr]['alarm'] = None
-            sent = self.sock.sendto(message, addr)
+            self._send_message(message, addr)
             self._awake += 1
         elif type == self.OT_SIM_EVENT_RADIO_RECEIVED:
             message += data
-            sent = self.sock.sendto(message, addr)
+            self._send_message(message, addr)
             self._awake += 1
         elif type == self.OT_SIM_EVENT_UART_RECEIVED:
             message += data
-            sent = self.sock.sendto(message, addr)
+            self._send_message(message, addr)
             self._awake += 1
         elif type == self.OT_SIM_EVENT_UART_SENT:
             message += data
-            sent = self.sock.sendto(message, (addr[0], addr[1] + self.BASE_PORT))
+            self._send_message(message, (addr[0], addr[1] + self.BASE_PORT))
 
     def _coordinator_main_loop(self):
         self._coordinator_alive = True
@@ -337,10 +351,12 @@ class VirtualTime:
         self.sock.sendto(message, addr)
 
     def go(self, duration):
-        self._paused.clear()
         duration = int(duration) * 1000000
         print "running for %d us" % duration
+        self._go_ack.clear()
         self._go(duration)
+        while not self._go_ack.wait(1):
+            pass
         while not self._paused.wait(1):
             pass
 
