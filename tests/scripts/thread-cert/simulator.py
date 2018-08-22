@@ -215,7 +215,7 @@ class VirtualTime:
                     self.event_queue.remove(self.devices[addr]['alarm'])
                     #print "-- Remove\t", self.devices[addr]['alarm']
 
-                self._awake.remove(addr)
+                self._awake.discard(addr)
 
                 # add alarm event to event queue
                 event = (event_time, self.event_sequence, addr, type, datalen)
