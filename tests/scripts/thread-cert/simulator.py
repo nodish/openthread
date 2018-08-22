@@ -93,7 +93,7 @@ class VirtualTime:
         self.addr = (ip, self.port)
         self.sock.bind(self.addr)
 
-        self._awake = 0
+        self._awake = set()
         self.devices = {}
         self.event_queue = []
         self.event_count = 0
@@ -184,9 +184,10 @@ class VirtualTime:
             2. current event is done.
             3. zero delay event occurred. this will only happen when simulator is paused.
         """
-        while self.current_event or self._awake or self._pause_if_empty():
-            #print '%u: awake %u paused %u next_event_time %u pause_time %u' % (self.current_time, self._awake, self._paused.is_set(), self._next_event_time(), self._pause_time)
+        while self.current_event or len(self._awake) or self._pause_if_empty():
+            #print '%u: awake %u paused %u next_event_time %u pause_time %u' % (self.current_time, len(self._awake), self._paused.is_set(), self._next_event_time(), self._pause_time)
             #print self.current_event
+            assert len(self._awake) >= 0
             msg, addr = self.sock.recvfrom(self.MAX_MESSAGE)
 
             if addr[1] > self.BASE_PORT * 2:
@@ -198,7 +199,7 @@ class VirtualTime:
                 self.devices[addr]['alarm'] = None
                 self.devices[addr]['msgs'] = []
                 self.devices[addr]['time'] = self.current_time
-                self._awake += 1
+                self._awake.add(addr)
                 #print "New device:", addr, self.devices
 
             delay, type, datalen = struct.unpack('=QBH', msg[:11])
@@ -210,12 +211,11 @@ class VirtualTime:
 
             if type == self.OT_SIM_EVENT_ALARM_FIRED:
                 # remove any existing alarm event for device
-                try:
+                if self.devices[addr]['alarm']:
                     self.event_queue.remove(self.devices[addr]['alarm'])
                     #print "-- Remove\t", self.devices[addr]['alarm']
-                    self.devices[addr]['alarm'] = None
-                except ValueError:
-                    pass
+
+                self._awake.remove(addr)
 
                 # add alarm event to event queue
                 event = (event_time, self.event_sequence, addr, type, datalen)
@@ -223,7 +223,6 @@ class VirtualTime:
                 #print "-- Enqueue\t", event, delay, self.current_time
                 bisect.insort(self.event_queue, event)
                 self.devices[addr]['alarm'] = event
-                self._awake -= 1
 
                 if self.current_event is not None and self.current_event[self.EVENT_ADDR] == addr:
                     #print "Done\t", self.current_event
@@ -320,15 +319,15 @@ class VirtualTime:
         if type == self.OT_SIM_EVENT_ALARM_FIRED:
             self.devices[addr]['alarm'] = None
             self._send_message(message, addr)
-            self._awake += 1
+            self._awake.add(addr)
         elif type == self.OT_SIM_EVENT_RADIO_RECEIVED:
             message += data
             self._send_message(message, addr)
-            self._awake += 1
+            self._awake.add(addr)
         elif type == self.OT_SIM_EVENT_UART_RECEIVED:
             message += data
             self._send_message(message, addr)
-            self._awake += 1
+            self._awake.add(addr)
         elif type == self.OT_SIM_EVENT_UART_SENT:
             message += data
             self._send_message(message, (addr[0], addr[1] + self.BASE_PORT))
