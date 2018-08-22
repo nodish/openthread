@@ -85,4 +85,8 @@ void platformUartUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aE
     (void)aMaxFd;
 }
 
+void platformUartProcess(void)
+{
+}
+
 #endif // OPENTHREAD_POSIX_VIRTUAL_TIME && OPENTHREAD_POSIX_VIRTUAL_TIME_NCP

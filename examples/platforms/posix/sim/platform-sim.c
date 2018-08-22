@@ -111,6 +111,9 @@ static void receiveEvent(otInstance *aInstance)
     case OT_SIM_EVENT_UART_RECEIVED:
         otPlatUartReceived(event.mData, event.mDataLength);
         break;
+
+    default:
+        assert(false);
     }
 }
 
@@ -246,6 +249,7 @@ void otSysProcessDrivers(otInstance *aInstance)
     max_fd = sSockFd;
 
     platformUartUpdateFdSet(&read_fds, &write_fds, &error_fds, &max_fd);
+
     if (!otTaskletsArePending(aInstance) && platformAlarmGetNext() > 0)
     {
         platformSendSleepEvent();
@@ -263,6 +267,7 @@ void otSysProcessDrivers(otInstance *aInstance)
 
     platformAlarmProcess(aInstance);
     platformRadioProcess(aInstance);
+    platformUartProcess();
 }
 
 #endif // OPENTHREAD_POSIX_VIRTUAL_TIME

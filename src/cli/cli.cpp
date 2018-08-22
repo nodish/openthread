@@ -1805,8 +1805,6 @@ void Interpreter::ProcessPing(int argc, char *argv[])
 
     HandlePingTimer();
 
-    return;
-
 exit:
     AppendResult(error);
 }

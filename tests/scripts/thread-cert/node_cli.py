@@ -592,8 +592,7 @@ class otCli:
 
         self.send_command(cmd)
 
-        if self.node_type == 'ncp-sim':
-            self.pexpect.expect('Done')
+        self.pexpect.expect('Done')
 
         if isinstance(self.simulator, simulator.VirtualTime):
             self.simulator.go(timeout)
