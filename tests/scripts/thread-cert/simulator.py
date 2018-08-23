@@ -151,7 +151,7 @@ class VirtualTime:
         else:
             return self.event_queue[0][0]
 
-    def receive_events(self, block=False):
+    def receive_events(self, block=0):
         """ Receive events until no more event are possible.
 
         Condition to process next event:
@@ -159,12 +159,20 @@ class VirtualTime:
             2. current event is done.
             3. zero delay event occurred. this will only happen when simulator is paused.
         """
-        while self.current_event or len(self._awake) or block:
+        while True:
+            if self.current_event or block:
+                self.sock.setblocking(1)
+                msg, addr = self.sock.recvfrom(self.MAX_MESSAGE)
+                block = 0
+            else:
+                self.sock.setblocking(0)
+                try:
+                    msg, addr = self.sock.recvfrom(self.MAX_MESSAGE)
+                except socket.error:
+                    break
+
             #print '%u: awake %u paused %u next_event_time %u pause_time %u' % (self.current_time, len(self._awake), self._paused.is_set(), self._next_event_time(), self._pause_time)
             #print self.current_event
-            assert len(self._awake) >= 0
-            block = False
-            msg, addr = self.sock.recvfrom(self.MAX_MESSAGE)
 
             if addr[1] > self.BASE_PORT * 2:
                 sender = addr
@@ -183,7 +191,7 @@ class VirtualTime:
 
             event_time = self.current_time + delay
 
-            print "New event:", type, addr
+            #print "New event:", type, addr
 
             if type == self.OT_SIM_EVENT_ALARM_FIRED:
                 # remove any existing alarm event for device
@@ -196,7 +204,7 @@ class VirtualTime:
                 # add alarm event to event queue
                 event = (event_time, self.event_sequence, addr, type, datalen)
                 self.event_sequence += 1
-                print "-- Enqueue\t", event, delay, self.current_time
+                #print "-- Enqueue\t", event, delay, self.current_time
                 bisect.insort(self.event_queue, event)
                 self.devices[addr]['alarm'] = event
 
@@ -263,7 +271,7 @@ class VirtualTime:
         except IndexError:
             return
 
-        print "Pop\t", event
+        #print "Pop\t", event
 
         if len(event) == 5:
             event_time, sequence, addr, type, datalen = event
@@ -302,12 +310,9 @@ class VirtualTime:
 
     def go(self, duration):
         duration = int(duration) * 1000000
-        print "now is %d us" % self.current_time
         print "running for %d us" % duration
         self._pause_time += duration
-        print "pause time is %d us" % self._pause_time
-        self.receive_events(True)
-        print "next time is %d us" % self._next_event_time()
+        self.receive_events(duration == 0)
         while self._next_event_time() <= self._pause_time:
             self.process_next_event()
             self.receive_events()

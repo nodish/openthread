@@ -112,16 +112,17 @@ class otCli:
 
     def destroy(self):
         if self.pexpect and self.pexpect.isalive():
-            self.send_command('exit')
+            self.send_command('exit', False)
             self.pexpect.expect(pexpect.EOF)
             self.pexpect.terminate()
             self.pexpect.close(force=True)
             self.pexpect = None
 
-    def send_command(self, cmd):
+    def send_command(self, cmd, go=True):
         print("%d: %s" % (self.nodeid, cmd))
         self.pexpect.send(cmd + '\n')
-        self.simulator.go(0)
+        if go:
+            self.simulator.go(0)
         sys.stdout.flush()
 
     def get_commands(self):
