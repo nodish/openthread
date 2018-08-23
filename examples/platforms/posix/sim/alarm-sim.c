@@ -109,6 +109,10 @@ int32_t platformAlarmGetNext(void)
         int32_t milli = (int32_t)(sMsAlarm - otPlatAlarmMilliGetNow());
 
         remaining = milli * US_PER_MS;
+        if (remaining < 0 && milli > 0)
+        {
+            remaining = INT32_MAX;
+        }
     }
 
 #if OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER
