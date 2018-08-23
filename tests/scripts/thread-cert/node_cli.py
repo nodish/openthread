@@ -121,6 +121,7 @@ class otCli:
     def send_command(self, cmd):
         print("%d: %s" % (self.nodeid, cmd))
         self.pexpect.send(cmd + '\n')
+        self.simulator.go(0)
         sys.stdout.flush()
 
     def get_commands(self):
