@@ -97,8 +97,13 @@ class otCli:
         print ("%s" % cmd)
 
         self.pexpect = pexpect.spawn(cmd, timeout=4)
-        time.sleep(0.2)
-        self.pexpect.expect('spinel-cli >')
+        while True:
+            self.simulator.go(0)
+            try:
+                self.pexpect.expect('spinel-cli >')
+            except:
+                print('waiting')
+                pass
         self.debug(int(os.getenv('DEBUG', '0')))
 
     def __init_soc(self, nodeid):

@@ -68,6 +68,7 @@ class VirtualTime:
     OT_SIM_EVENT_UART_RECEIVED  = 2
     OT_SIM_EVENT_UART_SENT      = 3
     OT_SIM_EVENT_UART_DONE      = 4
+    OT_SIM_EVENT_ACK            = 5
 
     EVENT_TIME = 0
     EVENT_SEQUENCE = 1
@@ -169,6 +170,7 @@ class VirtualTime:
                 try:
                     msg, addr = self.sock.recvfrom(self.MAX_MESSAGE)
                 except socket.error:
+                    print 'blocking call'
                     break
 
             #print '%u: awake %u paused %u next_event_time %u pause_time %u' % (self.current_time, len(self._awake), self._paused.is_set(), self._next_event_time(), self._pause_time)
@@ -191,7 +193,7 @@ class VirtualTime:
 
             event_time = self.current_time + delay
 
-            #print "New event:", type, addr
+            print "New event:", type, addr
 
             if type == self.OT_SIM_EVENT_ALARM_FIRED:
                 # remove any existing alarm event for device
@@ -242,7 +244,7 @@ class VirtualTime:
                 bisect.insort(self.event_queue, event)
 
             elif type == self.OT_SIM_EVENT_UART_DONE:
-                if self.current_event is not None and self.current_event[self.EVENT_ADDR] == addr:
+                if self.current_event is not None and self.current_event[self.EVENT_ADDR] == addr and self.current_event[self.EVENT_TYPE] == self.OT_SIM_EVENT_UART_SENT:
                     self.current_event = None
 
     def _send_message(self, message, addr):
@@ -271,7 +273,7 @@ class VirtualTime:
         except IndexError:
             return
 
-        #print "Pop\t", event
+        print "Pop\t", event
 
         if len(event) == 5:
             event_time, sequence, addr, type, datalen = event
@@ -308,6 +310,10 @@ class VirtualTime:
             message += data
             self._send_message(message, (addr[0], addr[1] + self.BASE_PORT))
 
+    def _ack(self, addr):
+        message = struct.pack('=QBH', 0, self.OT_SIM_EVENT_ACK, 0)
+        self.sock.sendto(message, addr)
+
     def go(self, duration):
         duration = int(duration) * 1000000
         print "running for %d us" % duration
@@ -317,10 +323,13 @@ class VirtualTime:
             self.process_next_event()
             self.receive_events()
         self.current_time = self._pause_time
+        print "current time %d us" % self.current_time
 
 
 if __name__ == '__main__':
     simulator = VirtualTime()
     while True:
-        simulator.go(1)
+        simulator.go(0)
+        break
+        #simulator.go(5)
         time.sleep(1)
