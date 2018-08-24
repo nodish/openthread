@@ -84,7 +84,7 @@ class VirtualTime:
     END_OF_TIME = 0x7fffffff
     PORT_OFFSET = int(os.getenv('PORT_OFFSET', '0'))
 
-    BLOCK_TIMEOUT = 4
+    BLOCK_TIMEOUT = 8
 
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -94,7 +94,6 @@ class VirtualTime:
         self.addr = (ip, self.port)
         self.sock.bind(self.addr)
 
-        self._awake = set()
         self.devices = {}
         self.event_queue = []
         self.event_count = 0
@@ -188,7 +187,6 @@ class VirtualTime:
                 self.devices[addr]['alarm'] = None
                 self.devices[addr]['msgs'] = []
                 self.devices[addr]['time'] = self.current_time
-                self._awake.add(addr)
                 #print "New device:", addr, self.devices
 
             delay, type, datalen = struct.unpack('=QBH', msg[:11])
@@ -204,7 +202,6 @@ class VirtualTime:
                     self.event_queue.remove(self.devices[addr]['alarm'])
                     #print "-- Remove\t", self.devices[addr]['alarm']
 
-                self._awake.discard(addr)
 
                 # add alarm event to event queue
                 event = (event_time, self.event_sequence, addr, type, datalen)
@@ -308,15 +305,12 @@ class VirtualTime:
         if type == self.OT_SIM_EVENT_ALARM_FIRED:
             self.devices[addr]['alarm'] = None
             self._send_message(message, addr)
-            self._awake.add(addr)
         elif type == self.OT_SIM_EVENT_RADIO_RECEIVED:
             message += data
             self._send_message(message, addr)
-            self._awake.add(addr)
         elif type == self.OT_SIM_EVENT_UART_INPUT:
             message += data
             self._send_message(message, addr)
-            self._awake.add(addr)
         elif type == self.OT_SIM_EVENT_UART_OUTPUT:
             message += data
             self._send_message(message, (addr[0], addr[1] + self.BASE_PORT))
