@@ -127,7 +127,13 @@ class otCli:
 
     def destroy(self):
         if self.pexpect and self.pexpect.isalive():
-            self.send_command('exit')
+            if self.node_type == 'ncp-sim':
+                self.send_command('exit')
+            else:
+                print("%d: exit" % self.nodeid)
+                self.pexpect.send('exit\n')
+                sys.stdout.flush()
+
             self._expect(pexpect.EOF)
             self.pexpect.terminate()
             self.pexpect.close(force=True)
