@@ -32,6 +32,7 @@ import sys
 import time
 import pexpect
 import re
+import socket
 import ipaddress
 
 import config
@@ -620,7 +621,7 @@ class otCli:
                 if i == 0:
                     responders[self.pexpect.match.groups()[0]] = 1
             self._expect('\n')
-        except pexpect.TIMEOUT:
+        except (pexpect.TIMEOUT, socket.timeout):
             result = False
 
         return result

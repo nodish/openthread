@@ -84,7 +84,7 @@ class VirtualTime:
     END_OF_TIME = 0x7fffffff
     PORT_OFFSET = int(os.getenv('PORT_OFFSET', '0'))
 
-    BLOCK_TIMEOUT = 30
+    BLOCK_TIMEOUT = 4
 
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -156,7 +156,7 @@ class VirtualTime:
         else:
             return self.event_queue[0][0]
 
-    def receive_events(self, block=0):
+    def receive_events(self, block=False):
         """ Receive events until no more event are possible.
 
         Condition to process next event:
@@ -168,7 +168,7 @@ class VirtualTime:
             if self.current_event or block or (self._next_event_time() > self._pause_time and self._commander):
                 self.sock.settimeout(self.BLOCK_TIMEOUT)
                 msg, addr = self.sock.recvfrom(self.MAX_MESSAGE)
-                block = 0
+                block = False
             else:
                 self.sock.settimeout(0)
                 try:
