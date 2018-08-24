@@ -65,10 +65,11 @@ class VirtualTime:
 
     OT_SIM_EVENT_ALARM_FIRED    = 0
     OT_SIM_EVENT_RADIO_RECEIVED = 1
-    OT_SIM_EVENT_UART_RECEIVED  = 2
-    OT_SIM_EVENT_UART_SENT      = 3
-    OT_SIM_EVENT_UART_DONE      = 4
-    OT_SIM_EVENT_ACK            = 5
+    OT_SIM_EVENT_UART_INPUT  = 2
+    OT_SIM_EVENT_UART_OUTPUT      = 3
+    OT_SIM_EVENT_UART_ACK            = 4
+    OT_SIM_EVENT_PRECMD      = 5
+    OT_SIM_EVENT_POSTCMD      = 6
 
     EVENT_TIME = 0
     EVENT_SEQUENCE = 1
@@ -82,6 +83,8 @@ class VirtualTime:
     MAX_MESSAGE = 1536
     END_OF_TIME = 0x7fffffff
     PORT_OFFSET = int(os.getenv('PORT_OFFSET', '0'))
+
+    BLOCK_TIMEOUT = 30
 
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -100,6 +103,7 @@ class VirtualTime:
         self.current_event = None
 
         self._pcap = pcap.PcapCodec(os.getenv('TEST_NAME', 'current'))
+        self._commander = None
         self._pause_time = 0
 
         self._message_factory = config.create_default_thread_message_factory()
@@ -161,16 +165,15 @@ class VirtualTime:
             3. zero delay event occurred. this will only happen when simulator is paused.
         """
         while True:
-            if self.current_event or block:
-                self.sock.setblocking(1)
+            if self.current_event or block or (self._next_event_time() > self._pause_time and self._commander):
+                self.sock.settimeout(self.BLOCK_TIMEOUT)
                 msg, addr = self.sock.recvfrom(self.MAX_MESSAGE)
                 block = 0
             else:
-                self.sock.setblocking(0)
+                self.sock.settimeout(0)
                 try:
                     msg, addr = self.sock.recvfrom(self.MAX_MESSAGE)
                 except socket.error:
-                    print 'blocking call'
                     break
 
             #print '%u: awake %u paused %u next_event_time %u pause_time %u' % (self.current_time, len(self._awake), self._paused.is_set(), self._next_event_time(), self._pause_time)
@@ -193,7 +196,7 @@ class VirtualTime:
 
             event_time = self.current_time + delay
 
-            print "New event:", type, addr
+            #print "New event:", type, addr
 
             if type == self.OT_SIM_EVENT_ALARM_FIRED:
                 # remove any existing alarm event for device
@@ -231,21 +234,29 @@ class VirtualTime:
                 self.event_sequence += 1
                 bisect.insort(self.event_queue, event)
 
-            elif type == self.OT_SIM_EVENT_UART_RECEIVED:
+            elif type == self.OT_SIM_EVENT_UART_INPUT:
                 event = (event_time, self.event_sequence, addr, type, datalen, data)
                 self.event_sequence += 1
                 bisect.insort(self.event_queue, event)
 
                 self._ack(sender)
 
-            elif type == self.OT_SIM_EVENT_UART_SENT:
+            elif type == self.OT_SIM_EVENT_UART_OUTPUT:
                 event = (event_time, self.event_sequence, addr, type, datalen, data)
                 self.event_sequence += 1
                 bisect.insort(self.event_queue, event)
 
-            elif type == self.OT_SIM_EVENT_UART_DONE:
-                if self.current_event is not None and self.current_event[self.EVENT_ADDR] == addr and self.current_event[self.EVENT_TYPE] == self.OT_SIM_EVENT_UART_SENT:
+            elif type == self.OT_SIM_EVENT_UART_ACK:
+                if self.current_event is not None and self.current_event[self.EVENT_ADDR] == addr and self.current_event[self.EVENT_TYPE] == self.OT_SIM_EVENT_UART_OUTPUT:
                     self.current_event = None
+
+            elif type == self.OT_SIM_EVENT_PRECMD:
+                assert self._commander == None
+                self._commander = addr
+
+            elif type == self.OT_SIM_EVENT_POSTCMD:
+                assert self._commander == addr
+                self._commander = None
 
     def _send_message(self, message, addr):
         while True:
@@ -273,7 +284,7 @@ class VirtualTime:
         except IndexError:
             return
 
-        print "Pop\t", event
+        #print "Pop\t", event
 
         if len(event) == 5:
             event_time, sequence, addr, type, datalen = event
@@ -302,17 +313,17 @@ class VirtualTime:
             message += data
             self._send_message(message, addr)
             self._awake.add(addr)
-        elif type == self.OT_SIM_EVENT_UART_RECEIVED:
+        elif type == self.OT_SIM_EVENT_UART_INPUT:
             message += data
             self._send_message(message, addr)
             self._awake.add(addr)
-        elif type == self.OT_SIM_EVENT_UART_SENT:
+        elif type == self.OT_SIM_EVENT_UART_OUTPUT:
             message += data
             self._send_message(message, (addr[0], addr[1] + self.BASE_PORT))
 
     def _ack(self, addr):
-        message = struct.pack('=QBH', 0, self.OT_SIM_EVENT_ACK, 0)
-        self.sock.sendto(message, addr)
+        message = struct.pack('=QBH', 0, self.OT_SIM_EVENT_UART_ACK, 0)
+        self._send_message(message, addr)
 
     def go(self, duration):
         duration = int(duration) * 1000000
@@ -330,6 +341,5 @@ if __name__ == '__main__':
     simulator = VirtualTime()
     while True:
         simulator.go(0)
-        break
         #simulator.go(5)
         time.sleep(1)
