@@ -162,11 +162,20 @@ class VirtualTime:
             1. all devices have send sleep event, so that no event will come from ncp devices.
             2. current event is done.
             3. zero delay event occurred. this will only happen when simulator is paused.
+        Condition to block:
+            1. There is a pending event, which means there is a running device.
+            2. We are waiting for at least one event, for example, waiting for cli input event.
+            3. CLI command is not finished, we are waiting for additional events.
         """
         while True:
             if self.current_event or block or (self._next_event_time() > self._pause_time and self._commander):
                 self.sock.settimeout(self.BLOCK_TIMEOUT)
-                msg, addr = self.sock.recvfrom(self.MAX_MESSAGE)
+                try:
+                    msg, addr = self.sock.recvfrom(self.MAX_MESSAGE)
+                except socket.error:
+                    # fail
+                    print self.current_time, self.current_event
+                    raise
                 block = False
             else:
                 self.sock.settimeout(0)
@@ -320,6 +329,7 @@ class VirtualTime:
         self._send_message(message, addr)
 
     def go(self, duration):
+        assert self.current_time == self._pause_time
         duration = int(duration) * 1000000
         print "running for %d us" % duration
         self._pause_time += duration
