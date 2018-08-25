@@ -84,7 +84,7 @@ class VirtualTime:
     END_OF_TIME = 0x7fffffff
     PORT_OFFSET = int(os.getenv('PORT_OFFSET', '0'))
 
-    BLOCK_TIMEOUT = 8
+    BLOCK_TIMEOUT = 30
 
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
