@@ -84,7 +84,7 @@ class VirtualTime:
     END_OF_TIME = 0x7fffffff
     PORT_OFFSET = int(os.getenv('PORT_OFFSET', '0'))
 
-    BLOCK_TIMEOUT = 4
+    BLOCK_TIMEOUT = 8
 
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -279,10 +279,7 @@ class VirtualTime:
         assert self._next_event_time() != self.END_OF_TIME
 
         # process next event
-        try:
-            event = self.event_queue.pop(0)
-        except IndexError:
-            return
+        event = self.event_queue.pop(0)
 
         #print "Pop\t", event
 
@@ -321,11 +318,12 @@ class VirtualTime:
     def sync_devices(self):
         for addr in self.devices:
             elapsed = self.current_time - self.devices[addr]['time']
-            if not elapsed:
+            if elapsed == 0:
                 continue
             self.devices[addr]['time'] = self.current_time
-            message = struct.pack('=QBH', elapsed, 0, 0)
-            self.sock.sendto(message, addr)
+            message = struct.pack('=QBH', elapsed, self.OT_SIM_EVENT_ALARM_FIRED, 0)
+            self._send_message(message, addr)
+            self.receive_events(True)
 
     def go(self, duration):
         assert self.current_time == self._pause_time
@@ -337,9 +335,9 @@ class VirtualTime:
             self.process_next_event()
             self.receive_events()
         self.current_time = self._pause_time
-        if duration:
+        if duration > 0:
             self.sync_devices()
-        #print "current time %d us" % self.current_time
+        print "current time %d us" % self.current_time
 
 
 if __name__ == '__main__':

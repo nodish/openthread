@@ -99,7 +99,7 @@ class otCli:
         cmd += ' %d' % nodeid
         print ("%s" % cmd)
 
-        self.pexpect = pexpect.spawn(cmd, timeout=4)
+        self.pexpect = pexpect.popen_spawn.PopenSpawn(cmd, timeout=4, stderr=sys.stdout)
         self._expect = self._expect_ncp_sim
         self._expect('spinel-cli >')
         self.debug(int(os.getenv('DEBUG', '0')))
@@ -423,7 +423,7 @@ class otCli:
         self.send_command('ipaddr')
 
         while True:
-            i = self._expect(['(\S+:\S+)\r\n', 'Done'])
+            i = self._expect(['(\S+(:\S*)+)\r?\n', 'Done'])
             if i == 0:
                 addrs.append(self.pexpect.match.groups()[0].decode("utf-8"))
             elif i == 1:
