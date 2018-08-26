@@ -75,7 +75,7 @@ class otCli:
         cmd += ' %d' % nodeid
         print ("%s" % cmd)
 
-        self.pexpect = pexpect.popen_spawn.PopenSpawn(cmd, timeout=4, stderr=sys.stdout)
+        self.pexpect = pexpect.spawn(cmd, timeout=4)
 
         self._expect = self.pexpect.expect
         # Add delay to ensure that the process is ready to receive commands.
@@ -127,12 +127,14 @@ class otCli:
         self.destroy()
 
     def destroy(self):
-        if self.pexpect and self.pexpect.proc.poll() is None:
+        if self.pexpect and self.pexpect.isalive():
             if self.node_type == 'ncp-sim':
                 self.send_command('exit')
             else:
                 print("%d: exit" % self.nodeid)
                 self.pexpect.send('exit\n')
+                self.pexpect.terminate()
+                self.pexpect.wait()
                 sys.stdout.flush()
 
             self._expect(pexpect.EOF)

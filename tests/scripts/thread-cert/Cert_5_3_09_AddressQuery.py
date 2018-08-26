@@ -80,7 +80,7 @@ class Cert_5_3_09_AddressQuery(unittest.TestCase):
         self.nodes[SED1].set_panid(0xface)
         self.nodes[SED1].set_mode('s')
         self.nodes[SED1].add_whitelist(self.nodes[DUT_ROUTER2].get_addr64())
-        self.nodes[SED1].set_timeout(9)
+        self.nodes[SED1].set_timeout(6)
         self.nodes[SED1].enable_whitelist()
 
     def tearDown(self):
@@ -168,7 +168,7 @@ class Cert_5_3_09_AddressQuery(unittest.TestCase):
 
         # 6 DUT_ROUTER2: Power off ROUTER3 and wait 580s to alow LEADER to expire its Router ID
         self.nodes[ROUTER3].stop()
-        self.simulator.go(802)
+        self.simulator.go(580)
 
         # The SED1 sends an ICMPv6 Echo Request to ROUTER3 GUA 2001:: address
         self.assertFalse(self.nodes[SED1].ping(router3_addr))
