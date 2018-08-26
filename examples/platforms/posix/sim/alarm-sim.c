@@ -30,6 +30,7 @@
 
 #if OPENTHREAD_POSIX_VIRTUAL_TIME
 
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -40,7 +41,7 @@
 
 #define US_PER_MS 1000
 
-static uint64_t sNow = 0; // microseconds
+extern uint64_t sNow; // microseconds
 
 static bool     sIsMsRunning = false;
 static uint32_t sMsAlarm     = 0;
@@ -62,6 +63,15 @@ uint64_t platformAlarmGetNow(void)
 void platformAlarmAdvanceNow(uint64_t aDelta)
 {
     sNow += aDelta;
+    if (sIsMsRunning)
+    {
+        assert(sNow / US_PER_MS <= sMsAlarm);
+    }
+    if (sIsUsRunning)
+    {
+        int32_t micro = (int32_t)(sUsAlarm - (uint32_t)sNow);
+        assert(micro >= 0);
+    }
 }
 
 uint32_t otPlatAlarmMilliGetNow(void)

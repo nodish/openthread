@@ -31,6 +31,8 @@ import binascii
 import bisect
 import cmd
 import exceptions
+#import logging
+#import logging.config
 import os
 import socket
 import struct
@@ -42,6 +44,34 @@ import io
 import config
 import message
 import pcap
+
+#logging.config.dictConfig({
+#    'version': 1,
+#    'disable_existing_loggers': True,
+#
+#    'formatters': {
+#        'minimal': {
+#            'format': '%(message)s'
+#        },
+#        'standard': {
+#            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+#        },
+#    },
+#    'handlers': {
+#        'syslog': {
+#            'level':'DEBUG',
+#            'address':'/dev/log',
+#            'class':'logging.handlers.SysLogHandler',
+#        },
+#    },
+#    'loggers': {
+#        '': {
+#            'handlers': ['syslog'],
+#            'level': 'DEBUG',
+#            'propagate': True
+#        },
+#    }
+#})
 
 class RealTime:
 
@@ -84,7 +114,7 @@ class VirtualTime:
     END_OF_TIME = 0x7fffffff
     PORT_OFFSET = int(os.getenv('PORT_OFFSET', '0'))
 
-    BLOCK_TIMEOUT = 30
+    BLOCK_TIMEOUT = 4
 
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -96,7 +126,6 @@ class VirtualTime:
 
         self.devices = {}
         self.event_queue = []
-        self.event_count = 0
         self.event_sequence = 0 # there could be events scheduled at exactly the same time
         self.current_time = 0
         self.current_event = None
@@ -204,6 +233,7 @@ class VirtualTime:
             event_time = self.current_time + delay
 
             #print "New event:", type, addr
+            #logging.info("New event: %d %s", type, str(addr))
 
             if type == self.OT_SIM_EVENT_ALARM_FIRED:
                 # remove any existing alarm event for device
@@ -277,12 +307,7 @@ class VirtualTime:
 
     def process_next_event(self):
         assert self.current_event is None
-
-        #print "Events", len(self.event_queue)
-        count = 0
-        for event in self.event_queue:
-            #print count, event
-            count += 1
+        assert self._next_event_time() != self.END_OF_TIME
 
         # process next event
         try:
@@ -291,16 +316,13 @@ class VirtualTime:
             return
 
         #print "Pop\t", event
+        #logging.info("Pop\t %s", str(event))
 
         if len(event) == 5:
             event_time, sequence, addr, type, datalen = event
         else:
             event_time, sequence, addr, type, datalen, data = event
 
-        if event_time == self.END_OF_TIME:
-            return
-
-        self.event_count += 1
         self.current_event = event
 
         assert(event_time >= self.current_time)
@@ -328,6 +350,15 @@ class VirtualTime:
         message = struct.pack('=QBH', 0, self.OT_SIM_EVENT_UART_ACK, 0)
         self._send_message(message, addr)
 
+    def sync_devices(self):
+        for addr in self.devices:
+            elapsed = self.current_time - self.devices[addr]['time']
+            if not elapsed:
+                continue
+            self.devices[addr]['time'] = self.current_time
+            message = struct.pack('=QBH', elapsed, 0, 0)
+            self.sock.sendto(message, addr)
+
     def go(self, duration):
         assert self.current_time == self._pause_time
         duration = int(duration) * 1000000
@@ -338,7 +369,9 @@ class VirtualTime:
             self.process_next_event()
             self.receive_events()
         self.current_time = self._pause_time
-        print "current time %d us" % self.current_time
+        if duration:
+            self.sync_devices()
+        #print "current time %d us" % self.current_time
 
 
 if __name__ == '__main__':

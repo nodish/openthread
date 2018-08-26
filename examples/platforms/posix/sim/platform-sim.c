@@ -60,6 +60,7 @@ char **gArguments      = NULL;
 
 int      sSockFd;
 uint16_t sPortOffset;
+uint64_t sNow = 0; // microseconds
 
 void sendEvent(struct Event *aEvent, size_t aLength)
 {
@@ -143,6 +144,7 @@ static void platformSendSleepEvent(void)
     event.mDataLength = 0;
 
     sendEvent(&event, offsetof(struct Event, mData));
+    // fprintf(stderr, "ot[%d] sleep now %" PRIu64 "\r\n", NODE_ID, sNow);
 }
 
 static void socket_init(void)
