@@ -31,8 +31,6 @@ import binascii
 import bisect
 import cmd
 import exceptions
-#import logging
-#import logging.config
 import os
 import socket
 import struct
@@ -44,34 +42,6 @@ import io
 import config
 import message
 import pcap
-
-#logging.config.dictConfig({
-#    'version': 1,
-#    'disable_existing_loggers': True,
-#
-#    'formatters': {
-#        'minimal': {
-#            'format': '%(message)s'
-#        },
-#        'standard': {
-#            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
-#        },
-#    },
-#    'handlers': {
-#        'syslog': {
-#            'level':'DEBUG',
-#            'address':'/dev/log',
-#            'class':'logging.handlers.SysLogHandler',
-#        },
-#    },
-#    'loggers': {
-#        '': {
-#            'handlers': ['syslog'],
-#            'level': 'DEBUG',
-#            'propagate': True
-#        },
-#    }
-#})
 
 class RealTime:
 
@@ -114,7 +84,7 @@ class VirtualTime:
     END_OF_TIME = 0x7fffffff
     PORT_OFFSET = int(os.getenv('PORT_OFFSET', '0'))
 
-    BLOCK_TIMEOUT = 8
+    BLOCK_TIMEOUT = 4
 
     def __init__(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -233,7 +203,6 @@ class VirtualTime:
             event_time = self.current_time + delay
 
             #print "New event:", type, addr
-            #logging.info("New event: %d %s", type, str(addr))
 
             if type == self.OT_SIM_EVENT_ALARM_FIRED:
                 # remove any existing alarm event for device
@@ -316,7 +285,6 @@ class VirtualTime:
             return
 
         #print "Pop\t", event
-        #logging.info("Pop\t %s", str(event))
 
         if len(event) == 5:
             event_time, sequence, addr, type, datalen = event
