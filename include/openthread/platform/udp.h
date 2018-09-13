@@ -32,8 +32,8 @@
  *   This file includes the abstraction for the platform UDP service.
  */
 
-#ifndef PLATFORM_UDP_H_
-#define PLATFORM_UDP_H_
+#ifndef OPENTHREAD_PLATFORM_UDP_H_
+#define OPENTHREAD_PLATFORM_UDP_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -100,4 +100,4 @@ otError otPlatUdpSend(otUdpSocket *aUdpSocket, otMessage *aMessage, const otMess
 } // extern "C"
 #endif
 
-#endif // PLATFORM_UDP_H_
+#endif // OPENTHREAD_PLATFORM_UDP_H_
