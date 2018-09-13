@@ -1,4 +1,3 @@
-
 /*
  *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
@@ -33,6 +32,8 @@
  */
 
 #include "thread_netif.hpp"
+
+#include <openthread/platform/netif.h>
 
 #include "common/code_utils.hpp"
 #include "common/encoding.hpp"
@@ -111,8 +112,14 @@ ThreadNetif::ThreadNetif(Instance &aInstance)
 
 otError ThreadNetif::Up(void)
 {
+    otError error = OT_ERROR_NONE;
+
     if (!mIsUp)
     {
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+        SuccessOrExit(error = otPlatNetifUp(&GetInstance()));
+#endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
+
         // Enable the MAC just in case it was disabled while the Interface was down.
         mMac.SetEnabled(true);
         GetIp6().AddNetif(*this);
@@ -128,11 +135,20 @@ otError ThreadNetif::Up(void)
         mIsUp = true;
     }
 
-    return OT_ERROR_NONE;
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+exit:
+#endif
+    return error;
 }
 
 otError ThreadNetif::Down(void)
 {
+    otError error = OT_ERROR_NONE;
+
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+    SuccessOrExit(error = otPlatNetifDown(&GetInstance()));
+#endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
+
     mCoap.Stop();
 #if OPENTHREAD_ENABLE_DNS_CLIENT
     mDnsClient.Stop();
@@ -151,7 +167,10 @@ otError ThreadNetif::Down(void)
     mDtls.Stop();
 #endif
 
-    return OT_ERROR_NONE;
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+exit:
+#endif
+    return error;
 }
 
 otError ThreadNetif::GetLinkAddress(Ip6::LinkAddress &address) const

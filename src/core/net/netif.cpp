@@ -33,6 +33,8 @@
 
 #include "netif.hpp"
 
+#include <openthread/platform/netif.h>
+
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
 #include "common/instance.hpp"
@@ -80,6 +82,35 @@ const otNetifMulticastAddress Netif::kLinkLocalAllRoutersMulticastAddress = {
     {{{0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02}}},
     &Netif::kRealmLocalAllRoutersMulticastAddress};
 
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+void HandlePlatNetifEvent(otInstance *aInstance, const otPlatNetifEvent *aEvent)
+{
+    ThreadNetif &netif = static_cast<Instance *>(aInstance)->GetThreadNetif();
+
+    switch (aEvent->mType)
+    {
+    case OT_PLAT_NETIF_EVENT_UP:
+        netif.Up();
+        break;
+
+    case OT_PLAT_NETIF_EVENT_DOWN:
+        netif.Down();
+        break;
+
+    case OT_PLAT_NETIF_EVENT_ADDR_ADDED:
+        netif.AddExternalUnicastAddress(*static_cast<const NetifUnicastAddress *>(&aEvent->mData.mNetifAddress));
+        break;
+
+    case OT_PLAT_NETIF_EVENT_ADDR_REMOVED:
+        netif.RemoveExternalUnicastAddress(*static_cast<const Address *>(&aEvent->mData.mNetifAddress.mAddress));
+        break;
+
+    default:
+        assert(false);
+    }
+}
+#endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
+
 Netif::Netif(Instance &aInstance, int8_t aInterfaceId)
     : InstanceLocator(aInstance)
     , mUnicastAddresses(NULL)
@@ -99,6 +130,13 @@ Netif::Netif(Instance &aInstance, int8_t aInterfaceId)
         // To mark the address as unused/available, set the `mNext` to point back to itself.
         mExtMulticastAddresses[i].mNext = &mExtMulticastAddresses[i];
     }
+
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+    if (aInterfaceId == OT_NETIF_INTERFACE_ID_THREAD)
+    {
+        otPlatNetifInit(&aInstance, HandlePlatNetifEvent);
+    }
+#endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
 
     mMulticastAddresses = static_cast<NetifMulticastAddress *>(
         const_cast<otNetifMulticastAddress *>(&kLinkLocalAllNodesMulticastAddress));
@@ -362,6 +400,10 @@ otError Netif::AddUnicastAddress(NetifUnicastAddress &aAddress)
         }
     }
 
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+    SuccessOrExit(error = otPlatNetifAddAddress(&GetInstance(), &aAddress));
+#endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
+
     aAddress.mNext    = mUnicastAddresses;
     mUnicastAddresses = &aAddress;
 
@@ -377,6 +419,9 @@ otError Netif::RemoveUnicastAddress(const NetifUnicastAddress &aAddress)
 
     if (mUnicastAddresses == &aAddress)
     {
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+        SuccessOrExit(error = otPlatNetifRemoveAddress(&GetInstance(), &aAddress));
+#endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
         mUnicastAddresses = mUnicastAddresses->GetNext();
         ExitNow();
     }
@@ -386,6 +431,9 @@ otError Netif::RemoveUnicastAddress(const NetifUnicastAddress &aAddress)
         {
             if (cur->mNext == &aAddress)
             {
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+                SuccessOrExit(error = otPlatNetifRemoveAddress(&GetInstance(), &aAddress));
+#endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
                 cur->mNext = aAddress.mNext;
                 ExitNow();
             }
@@ -438,6 +486,10 @@ otError Netif::AddExternalUnicastAddress(const NetifUnicastAddress &aAddress)
 
     VerifyOrExit(num > 0, error = OT_ERROR_NO_BUFS);
 
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+    SuccessOrExit(error = otPlatNetifAddAddress(&GetInstance(), &aAddress));
+#endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
+
     // Copy the new address into the available entry and insert it in linked-list.
     *entry            = aAddress;
     entry->mNext      = mUnicastAddresses;
@@ -482,6 +534,10 @@ otError Netif::RemoveExternalUnicastAddress(const Address &aAddress)
 
     // To mark the address entry as unused/available, set the `mNext` pointer back to the entry itself.
     entry->mNext = entry;
+
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+    SuccessOrExit(error = otPlatNetifRemoveAddress(&GetInstance(), entry));
+#endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
 
     GetNotifier().Signal(OT_CHANGED_IP6_ADDRESS_REMOVED);
 

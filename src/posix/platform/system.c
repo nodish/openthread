@@ -214,6 +214,9 @@ void otSysProcessDrivers(otInstance *aInstance)
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
     platformUdpUpdateFdSet(aInstance, &readFdSet, &maxFd);
 #endif
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+    platformNetifUpdateFdSet(&readFdSet, &writeFdSet, &errorFdSet, &maxFd);
+#endif
 #if OPENTHREAD_POSIX_VIRTUAL_TIME
     otSimUpdateFdSet(&readFdSet, &writeFdSet, &errorFdSet, &maxFd, &timeout);
 #else
@@ -274,6 +277,9 @@ void otSysProcessDrivers(otInstance *aInstance)
 #endif
     platformUartProcess(&readFdSet, &writeFdSet, &errorFdSet);
     platformAlarmProcess(aInstance);
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+    platformNetifProcess(aInstance, &readFdSet, &writeFdSet, &errorFdSet);
+#endif
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
     platformUdpProcess(aInstance, &readFdSet);
 #endif
