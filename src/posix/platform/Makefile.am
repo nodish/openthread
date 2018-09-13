@@ -45,6 +45,7 @@ libopenthread_posix_a_SOURCES             = \
     frame_queue.cpp                         \
     logging.c                               \
     misc.c                                  \
+    netif.cpp                               \
     radio_spinel.cpp                        \
     random.c                                \
     settings.cpp                            \
