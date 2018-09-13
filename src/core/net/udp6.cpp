@@ -51,7 +51,11 @@ namespace Ip6 {
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
 static bool IsMle(const Instance &aInstance, uint16_t aPort)
 {
+#if OPENTHREAD_FTD
     return aPort == ot::Mle::kUdpPort || aPort == aInstance.Get<JoinerRouter>().GetJoinerUdpPort();
+#else
+    return aPort == ot::Mle::kUdpPort;
+#endif
 }
 #endif
 
