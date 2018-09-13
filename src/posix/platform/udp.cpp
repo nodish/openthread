@@ -34,19 +34,20 @@
 
 #include "platform-posix.h"
 
-#include "common/code_utils.hpp"
-
 #include <arpa/inet.h>
 #include <net/if.h>
+#include <stdlib.h>
 #include <sys/select.h>
+
 #include <openthread/instance.h>
 #include <openthread/thread.h>
 #include <openthread/udp.h>
 #include <openthread/platform/udp.h>
 
-static const char  sThreadInterface[]    = "wpan0";
-static int         sThreadInterfaceIndex = 0;
-static otInstance *sInstance             = NULL;
+#include "common/code_utils.hpp"
+
+static int         sPlatNetifIndex = 0;
+static otInstance *sInstance       = NULL;
 
 static const size_t kMaxUdpSize = 1280;
 
@@ -132,9 +133,8 @@ otError otPlatUdpBind(otUdpSocket *aUdpSocket)
         VerifyOrExit(0 == setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on, sizeof(on)), error = OT_ERROR_FAILED);
     }
 
-    VerifyOrExit(
-        0 == setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &sThreadInterfaceIndex, sizeof(sThreadInterfaceIndex)),
-        error = OT_ERROR_FAILED);
+    VerifyOrExit(0 == setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &sPlatNetifIndex, sizeof(sPlatNetifIndex)),
+                 error = OT_ERROR_FAILED);
 
     if (aUdpSocket->mSockName.mPort == 0)
     {
@@ -203,7 +203,7 @@ otError otPlatUdpSend(otUdpSocket *aUdpSocket, otMessage *aMessage, const otMess
 
     if (isLinkLocal(peerAddr.sin6_addr))
     {
-        peerAddr.sin6_scope_id = sThreadInterfaceIndex;
+        peerAddr.sin6_scope_id = sPlatNetifIndex;
     }
 
     len = otMessageGetLength(aMessage);
@@ -246,9 +246,10 @@ void platformUdpUpdateFdSet(otInstance *aInstance, fd_set *aReadFdSet, int *aMax
 
 void platformUdpInit(otInstance *aInstance)
 {
-    sThreadInterfaceIndex = if_nametoindex(sThreadInterface);
+    const char *platformNetif = getenv("PLATFORM_NETIF");
+    sPlatNetifIndex           = if_nametoindex(platformNetif);
 
-    if (sThreadInterfaceIndex == 0)
+    if (sPlatNetifIndex == 0)
     {
         perror("if_nametoindex");
     }
