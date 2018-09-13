@@ -49,14 +49,9 @@ namespace ot {
 namespace Ip6 {
 
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
-static bool IsMle(uint16_t aPort)
+static bool IsMle(const Instance &aInstance, uint16_t aPort)
 {
-    return aPort == ot::Mle::kUdpPort || aPort == 1000;
-}
-
-static bool IsTmf(uint16_t aPort)
-{
-    return aPort == ot::kCoapUdpPort;
+    return aPort == ot::Mle::kUdpPort || aPort == aInstance.Get<JoinerRouter>().GetJoinerUdpPort();
 }
 #endif
 
@@ -153,7 +148,8 @@ otError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo)
     MessageInfo messageInfoLocal;
 
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
-    if (!IsMle(mSockName.mPort) && !(IsTmf(mSockName.mPort) && aMessage.GetSubType() == Message::kSubTypeJoinerEntrust))
+    if (!IsMle(mSockName.mPort) &&
+        !(mSockName.mPort == ot::kCoapUdpPort && aMessage.GetSubType() == Message::kSubTypeJoinerEntrust))
     {
         ExitNow(error = otPlatUdpSend(this, &aMessage, &aMessageInfo));
     }
@@ -358,14 +354,15 @@ otError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo)
     aMessageInfo.mPeerPort = udpHeader.GetSourcePort();
     aMessageInfo.mSockPort = udpHeader.GetDestinationPort();
 
+#if OPENTHREAD_ENABLE_PLATFORM_UDP
+    VerifyOrExit(IsMle(GetInstance(), aMessageInfo.mSockPort));
+#endif
+
     for (UdpReceiver *receiver = mReceivers; receiver; receiver = receiver->GetNext())
     {
         VerifyOrExit(!receiver->HandleMessage(aMessage, aMessageInfo));
     }
 
-#if OPENTHREAD_ENABLE_PLATFORM_UDP
-    VerifyOrExit(IsMle(aMessageInfo.mSockPort));
-#endif
     HandlePayload(aMessage, aMessageInfo);
 
 exit:

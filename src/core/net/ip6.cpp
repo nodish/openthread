@@ -657,7 +657,7 @@ otError Ip6::ProcessReceiveCallback(const Message &    aMessage,
 #endif // OPENTHREAD_ENABLE_PLATFORM_UDP
 
             default:
-                if (udp.GetDestinationPort() == 1000)
+                if (udp.GetDestinationPort() == GetInstance().Get<MeshCoP::JoinerRouter>().GetJoinerUdpPort())
                 {
                     ExitNow(error = OT_ERROR_NO_ROUTE);
                 }
