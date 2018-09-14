@@ -49,10 +49,10 @@ namespace ot {
 namespace Ip6 {
 
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
-static bool IsMle(const Instance &aInstance, uint16_t aPort)
+static bool IsMle(Instance &aInstance, uint16_t aPort)
 {
 #if OPENTHREAD_FTD
-    return aPort == ot::Mle::kUdpPort || aPort == aInstance.Get<JoinerRouter>().GetJoinerUdpPort();
+    return aPort == ot::Mle::kUdpPort || aPort == aInstance.Get<MeshCoP::JoinerRouter>().GetJoinerUdpPort();
 #else
     return aPort == ot::Mle::kUdpPort;
 #endif
@@ -98,7 +98,7 @@ otError UdpSocket::Bind(const SockAddr &aSockAddr)
 
     mSockName = aSockAddr;
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
-    if (!IsMle(mSockName.mPort))
+    if (!IsMle(GetInstance(), mSockName.mPort))
     {
         error = otPlatUdpBind(this);
     }
@@ -119,7 +119,7 @@ otError UdpSocket::Connect(const SockAddr &aSockAddr)
 
     mPeerName = aSockAddr;
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
-    if (!IsMle(mSockName.mPort))
+    if (!IsMle(GetInstance(), mSockName.mPort))
     {
         error = otPlatUdpConnect(this);
     }
@@ -133,7 +133,7 @@ otError UdpSocket::Close(void)
     otError error = OT_ERROR_NONE;
 
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
-    if (!IsMle(mSockName.mPort))
+    if (!IsMle(GetInstance(), mSockName.mPort))
     {
         SuccessOrExit(error = otPlatUdpClose(this));
     }
@@ -152,7 +152,7 @@ otError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo)
     MessageInfo messageInfoLocal;
 
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
-    if (!IsMle(mSockName.mPort) &&
+    if (!IsMle(GetInstance(), mSockName.mPort) &&
         !(mSockName.mPort == ot::kCoapUdpPort && aMessage.GetSubType() == Message::kSubTypeJoinerEntrust))
     {
         ExitNow(error = otPlatUdpSend(this, &aMessage, &aMessageInfo));
