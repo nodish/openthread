@@ -58,13 +58,13 @@ cd /tmp || die
     }
 
     [ $BUILD_TARGET != posix-app-pty ] || {
-        sudo apt-get install socat expect || die
+        sudo apt-get install socat expect libdbus-1-dev autoconf-archive || die
         (
         WPANTUND_TMPDIR=/tmp/wpantund
         git clone --depth 1 https://github.com/openthread/wpantund.git $WPANTUND_TMPDIR
         cd $WPANTUND_TMPDIR
         ./bootstrap.sh
-        ./configure --prefix= --exec-prefix=/usr --disable-ncp-dummpy --enable-static-link-ncp-plugin=spinel
+        ./configure --prefix= --exec-prefix=/usr --disable-ncp-dummy --enable-static-link-ncp-plugin=spinel
         make -j2
         sudo make install
         ) || die
@@ -76,7 +76,7 @@ cd /tmp || die
         tar xvf bsd-licensed.tar.gz
         cd libcoap-bsd-licensed
         ./autogen.sh
-        ./configure --prefix= --exec-prefix=/usr --disable-tests --disable-documentation
+        ./configure --prefix= --exec-prefix=/usr --with-boost=internal --disable-tests --disable-documentation
         make -j2
         sudo make install
         ) || die
