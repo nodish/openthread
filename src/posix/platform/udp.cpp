@@ -92,13 +92,12 @@ otError otPlatUdpClose(otUdpSocket *aUdpSocket)
     otError error = OT_ERROR_NONE;
     int     fd    = GetFdFromHandle(aUdpSocket->mHandle);
 
-    VerifyOrExit(fd > 0, error = OT_ERROR_INVALID_ARGS);
+    VerifyOrExit(fd > 0);
 
     closeFd(fd);
 
-    aUdpSocket->mHandle = INVALID_HANDLE;
-
 exit:
+    aUdpSocket->mHandle = INVALID_HANDLE;
     return error;
 }
 

@@ -35,13 +35,12 @@
 
 #include <stdio.h>
 
+#include <openthread/platform/udp.h>
+
 #include "common/code_utils.hpp"
 #include "common/encoding.hpp"
 #include "common/instance.hpp"
 #include "net/ip6.hpp"
-#if OPENTHREAD_ENABLE_PLATFORM_UDP
-#include <openthread/platform/udp.h>
-#endif
 
 using ot::Encoding::BigEndian::HostSwap16;
 
@@ -51,11 +50,8 @@ namespace Ip6 {
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
 static bool IsMle(Instance &aInstance, uint16_t aPort)
 {
-#if OPENTHREAD_FTD
-    return aPort == ot::Mle::kUdpPort || aPort == aInstance.Get<MeshCoP::JoinerRouter>().GetJoinerUdpPort();
-#else
+    OT_UNUSED_VARIABLE(aInstance);
     return aPort == ot::Mle::kUdpPort;
-#endif
 }
 #endif
 
