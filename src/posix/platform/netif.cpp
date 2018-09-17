@@ -41,6 +41,7 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <net/if.h>
+#include <net/if_arp.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -62,7 +63,9 @@ static int                     sTunIndex     = 0;
 static int                     sIpFd         = -1;
 static int                     sNetlinkFd    = -1;
 static char                    sTunName[IFNAMSIZ];
-static const size_t            kMaxIp6Size = 1536;
+static const size_t            kMaxIp6Size   = 1536;
+static otPlatNetifEvent *      sCurrentEvent = NULL;
+static char                    ip6string[INET6_ADDRSTRLEN];
 
 #ifndef OPENTHREAD_POSIX_TUN_DEVICE
 #define OPENTHREAD_POSIX_TUN_DEVICE "/dev/net/tun"
@@ -71,7 +74,6 @@ static const size_t            kMaxIp6Size = 1536;
 void otPlatNetifInit(otInstance *aInstance, otPlatNetifEventHandler aHandler)
 {
     struct ifreq ifr;
-    int          fd = -1;
 
     fprintf(stderr, "init plat netif\r\n");
     sIpFd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_IP);
@@ -85,29 +87,36 @@ void otPlatNetifInit(otInstance *aInstance, otPlatNetifEventHandler aHandler)
 
         memset(&sa, 0, sizeof(sa));
         sa.nl_family = AF_NETLINK;
-        sa.nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR;
+        sa.nl_groups = RTMGRP_LINK | RTMGRP_IPV6_IFADDR;
         VerifyOrExit(bind(sNetlinkFd, reinterpret_cast<struct sockaddr *>(&sa), sizeof(sa)) == 0);
     }
 
-    fd = open(OPENTHREAD_POSIX_TUN_DEVICE, O_RDWR);
-    VerifyOrExit(fd > 0, otLogCritPlat(aInstance, "Unable to open tun device %s", OPENTHREAD_POSIX_TUN_DEVICE));
+    sTunFd = open(OPENTHREAD_POSIX_TUN_DEVICE, O_RDWR);
+    VerifyOrExit(sTunFd > 0, otLogCritPlat(aInstance, "Unable to open tun device %s", OPENTHREAD_POSIX_TUN_DEVICE));
 
     memset(&ifr, 0, sizeof(ifr));
     ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
     strncpy(ifr.ifr_name, "wpan%d", IFNAMSIZ);
 
-    VerifyOrExit(ioctl(fd, TUNSETIFF, static_cast<void *>(&ifr)) == 0,
+    VerifyOrExit(ioctl(sTunFd, TUNSETIFF, static_cast<void *>(&ifr)) == 0,
                  otLogCritPlat(aInstance, "Unable to configure tun device %s", OPENTHREAD_POSIX_TUN_DEVICE));
+#if defined(ARPHRD_6LOWPAN)
+    VerifyOrExit(ioctl(sTunFd, TUNSETLINK, ARPHRD_6LOWPAN) == 0,
+                 otLogCritPlat(aInstance, "Unable to set link type of tun device %s", OPENTHREAD_POSIX_TUN_DEVICE));
+#else
+    VerifyOrExit(ioctl(sTunFd, TUNSETLINK, ARPHRD_ETHER) == 0,
+                 otLogCritPlat(aInstance, "Unable to set link type of tun device %s", OPENTHREAD_POSIX_TUN_DEVICE));
+#endif
+
+    sTunIndex = if_nametoindex(ifr.ifr_name);
+    VerifyOrExit(sTunIndex > 0);
 
     strncpy(sTunName, ifr.ifr_name, sizeof(sTunName));
     // set for platform UDP
-    setenv("PLATFORM_NETIF", ifr.ifr_name, 0);
+    setenv("PLATFORM_NETIF", sTunName, 1);
 
     sInstance     = aInstance;
     sEventHandler = aHandler;
-    sTunFd        = fd;
-
-    sTunIndex = if_nametoindex(sTunName);
 
 exit:
     if (sTunIndex == 0)
@@ -143,7 +152,8 @@ otError otPlatNetifUp(otInstance *aInstance)
     VerifyOrExit(sIpFd > 0);
     strncpy(ifr.ifr_name, sTunName, sizeof(ifr.ifr_name));
     VerifyOrExit(ioctl(sIpFd, SIOCGIFFLAGS, &ifr) == 0, error = OT_ERROR_FAILED);
-    ifr.ifr_flags |= IFF_UP;
+
+    ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
     VerifyOrExit(ioctl(sIpFd, SIOCSIFFLAGS, &ifr) == 0, error = OT_ERROR_FAILED);
 
 exit:
@@ -165,6 +175,7 @@ otError otPlatNetifDown(otInstance *aInstance)
     VerifyOrExit(sIpFd > 0);
     strncpy(ifr.ifr_name, sTunName, sizeof(ifr.ifr_name));
     VerifyOrExit(ioctl(sIpFd, SIOCGIFFLAGS, &ifr) == 0, error = OT_ERROR_FAILED);
+
     ifr.ifr_flags &= ~IFF_UP;
     VerifyOrExit(ioctl(sIpFd, SIOCSIFFLAGS, &ifr) == 0, error = OT_ERROR_FAILED);
 
@@ -182,11 +193,14 @@ otError otPlatNetifAddAddress(otInstance *aInstance, const otNetifAddress *aNeti
     struct in6_ifreq ifr6;
     otError          error = OT_ERROR_NONE;
 
-    fprintf(stderr, "add address\r\n");
     OT_UNUSED_VARIABLE(aInstance);
 
     VerifyOrExit(sIpFd > 0);
+
+    VerifyOrExit(sCurrentEvent == NULL || sCurrentEvent->mType != OT_PLAT_NETIF_EVENT_ADDR_ADDED);
     memcpy(&ifr6.ifr6_addr, &aNetifAddress->mAddress, sizeof(ifr6.ifr6_addr));
+    fprintf(stderr, "add address %s\r\n", inet_ntop(AF_INET6, &ifr6.ifr6_addr, ip6string, sizeof(ip6string)));
+
     ifr6.ifr6_ifindex   = sTunIndex;
     ifr6.ifr6_prefixlen = aNetifAddress->mPrefixLength;
 
@@ -206,11 +220,12 @@ otError otPlatNetifRemoveAddress(otInstance *aInstance, const otNetifAddress *aN
     struct in6_ifreq ifr6;
     otError          error = OT_ERROR_NONE;
 
-    fprintf(stderr, "del address\r\n");
     OT_UNUSED_VARIABLE(aInstance);
 
     VerifyOrExit(sIpFd > 0);
+    VerifyOrExit(sCurrentEvent == NULL || sCurrentEvent->mType != OT_PLAT_NETIF_EVENT_ADDR_REMOVED);
     memcpy(&ifr6.ifr6_addr, &aNetifAddress->mAddress, sizeof(ifr6.ifr6_addr));
+    fprintf(stderr, "del address %s\r\n", inet_ntop(AF_INET6, &ifr6.ifr6_addr, ip6string, sizeof(ip6string)));
     ifr6.ifr6_ifindex   = sTunIndex;
     ifr6.ifr6_prefixlen = aNetifAddress->mPrefixLength;
 
@@ -272,7 +287,9 @@ static void processTransmit(otInstance *aInstance)
         VerifyOrExit(message != NULL, error = OT_ERROR_NO_BUFS);
 
         SuccessOrExit(error = otMessageAppend(message, packet, rval));
-        SuccessOrExit(error = otIp6Send(aInstance, message));
+
+        error   = otIp6Send(aInstance, message);
+        message = NULL;
     }
 
 exit:
@@ -293,7 +310,7 @@ static void processNetifAddrEvent(otInstance *aInstance, struct nlmsghdr *aNetli
     size_t            rtaLength;
     otPlatNetifEvent  event;
 
-    VerifyOrExit(ifaddr->ifa_index != static_cast<unsigned int>(sTunIndex) && ifaddr->ifa_family == AF_INET6);
+    VerifyOrExit(ifaddr->ifa_index == static_cast<unsigned int>(sTunIndex) && ifaddr->ifa_family == AF_INET6);
 
     rtaLength = IFA_PAYLOAD(aNetlinkMessage);
 
@@ -314,16 +331,23 @@ static void processNetifAddrEvent(otInstance *aInstance, struct nlmsghdr *aNetli
             if (aNetlinkMessage->nlmsg_type == RTM_NEWADDR)
             {
                 event.mType = OT_PLAT_NETIF_EVENT_ADDR_ADDED;
+                fprintf(stderr, "address added %s\r\n",
+                        inet_ntop(AF_INET6, &address.mAddress, ip6string, sizeof(ip6string)));
             }
             else if (aNetlinkMessage->nlmsg_type == RTM_DELADDR)
             {
                 event.mType = OT_PLAT_NETIF_EVENT_ADDR_REMOVED;
+                fprintf(stderr, "address removed %s\r\n",
+                        inet_ntop(AF_INET6, &address.mAddress, ip6string, sizeof(ip6string)));
             }
             else
             {
                 continue;
             }
+
+            sCurrentEvent = &event;
             sEventHandler(aInstance, &event);
+            sCurrentEvent = NULL;
             break;
         default:
             break;
@@ -339,9 +363,11 @@ static void processNetifLinkEvent(otInstance *aInstance, struct nlmsghdr *aNetli
     struct ifinfomsg *ifinfo = reinterpret_cast<struct ifinfomsg *>(NLMSG_DATA(aNetlinkMessage));
     otPlatNetifEvent  event;
 
-    VerifyOrExit(ifinfo->ifi_index != sTunIndex);
-    event.mType = (ifinfo->ifi_flags & IFF_UP) ? OT_PLAT_NETIF_EVENT_UP : OT_PLAT_NETIF_EVENT_DOWN;
+    VerifyOrExit(ifinfo->ifi_index == sTunIndex);
+    event.mType   = (ifinfo->ifi_flags & IFF_UP) ? OT_PLAT_NETIF_EVENT_UP : OT_PLAT_NETIF_EVENT_DOWN;
+    sCurrentEvent = &event;
     sEventHandler(aInstance, &event);
+    sCurrentEvent = NULL;
 
 exit:
     return;
@@ -349,10 +375,10 @@ exit:
 
 static void processNetifEvent(otInstance *aInstance)
 {
-    char buffer[1024];
-
+    char    buffer[8192];
     ssize_t length;
-    length = read(sNetlinkFd, buffer, sizeof(buffer));
+
+    length = recv(sNetlinkFd, buffer, sizeof(buffer), 0);
 
     VerifyOrExit(length > 0);
 
@@ -418,7 +444,7 @@ void platformNetifProcess(otInstance *  aInstance,
     if (FD_ISSET(sTunFd, aErrorFdSet))
     {
         close(sTunFd);
-        sTunFd = -1;
+        exit(EXIT_FAILURE);
     }
 
     if (FD_ISSET(sNetlinkFd, aErrorFdSet))
