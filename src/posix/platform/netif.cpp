@@ -112,8 +112,9 @@ void otPlatNetifInit(otInstance *aInstance, otPlatNetifEventHandler aHandler)
     VerifyOrExit(sTunIndex > 0);
 
     strncpy(sTunName, ifr.ifr_name, sizeof(sTunName));
-    // set for platform UDP
-    setenv("PLATFORM_NETIF", sTunName, 1);
+#if OPENTHREAD_ENABLE_PLATFORM_UDP
+    platformUdpInit(sTunName);
+#endif
 
     sInstance     = aInstance;
     sEventHandler = aHandler;
