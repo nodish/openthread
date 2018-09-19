@@ -132,7 +132,7 @@ Netif::Netif(Instance &aInstance, int8_t aInterfaceId)
     }
 
 #if OPENTHREAD_ENABLE_PLATFORM_NETIF
-    if (aInterfaceId == OT_NETIF_INTERFACE_ID_THREAD)
+    if (mInterfaceId == OT_NETIF_INTERFACE_ID_THREAD)
     {
         otPlatNetifInit(&aInstance, HandlePlatNetifEvent);
     }
@@ -401,7 +401,10 @@ otError Netif::AddUnicastAddress(NetifUnicastAddress &aAddress)
     }
 
 #if OPENTHREAD_ENABLE_PLATFORM_NETIF
-    SuccessOrExit(error = otPlatNetifAddAddress(&GetInstance(), &aAddress));
+    if (mInterfaceId == OT_NETIF_INTERFACE_ID_THREAD)
+    {
+        SuccessOrExit(error = otPlatNetifAddAddress(&GetInstance(), &aAddress));
+    }
 #endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
 
     aAddress.mNext    = mUnicastAddresses;
@@ -420,7 +423,10 @@ otError Netif::RemoveUnicastAddress(const NetifUnicastAddress &aAddress)
     if (mUnicastAddresses == &aAddress)
     {
 #if OPENTHREAD_ENABLE_PLATFORM_NETIF
-        SuccessOrExit(error = otPlatNetifRemoveAddress(&GetInstance(), &aAddress));
+        if (mInterfaceId == OT_NETIF_INTERFACE_ID_THREAD)
+        {
+            SuccessOrExit(error = otPlatNetifRemoveAddress(&GetInstance(), &aAddress));
+        }
 #endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
         mUnicastAddresses = mUnicastAddresses->GetNext();
         ExitNow();
@@ -432,7 +438,10 @@ otError Netif::RemoveUnicastAddress(const NetifUnicastAddress &aAddress)
             if (cur->mNext == &aAddress)
             {
 #if OPENTHREAD_ENABLE_PLATFORM_NETIF
-                SuccessOrExit(error = otPlatNetifRemoveAddress(&GetInstance(), &aAddress));
+                if (mInterfaceId == OT_NETIF_INTERFACE_ID_THREAD)
+                {
+                    SuccessOrExit(error = otPlatNetifRemoveAddress(&GetInstance(), &aAddress));
+                }
 #endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
                 cur->mNext = aAddress.mNext;
                 ExitNow();
@@ -487,7 +496,10 @@ otError Netif::AddExternalUnicastAddress(const NetifUnicastAddress &aAddress)
     VerifyOrExit(num > 0, error = OT_ERROR_NO_BUFS);
 
 #if OPENTHREAD_ENABLE_PLATFORM_NETIF
-    SuccessOrExit(error = otPlatNetifAddAddress(&GetInstance(), &aAddress));
+    if (mInterfaceId == OT_NETIF_INTERFACE_ID_THREAD)
+    {
+        SuccessOrExit(error = otPlatNetifAddAddress(&GetInstance(), &aAddress));
+    }
 #endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
 
     // Copy the new address into the available entry and insert it in linked-list.
@@ -536,7 +548,10 @@ otError Netif::RemoveExternalUnicastAddress(const Address &aAddress)
     entry->mNext = entry;
 
 #if OPENTHREAD_ENABLE_PLATFORM_NETIF
-    SuccessOrExit(error = otPlatNetifRemoveAddress(&GetInstance(), entry));
+    if (mInterfaceId == OT_NETIF_INTERFACE_ID_THREAD)
+    {
+        SuccessOrExit(error = otPlatNetifRemoveAddress(&GetInstance(), entry));
+    }
 #endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
 
     GetNotifier().Signal(OT_CHANGED_IP6_ADDRESS_REMOVED);
