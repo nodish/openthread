@@ -146,11 +146,12 @@ exit:
 otError otPlatNetifUp(otInstance *aInstance)
 {
     otError      error = OT_ERROR_NONE;
-    struct ifreq ifr   = {};
+    struct ifreq ifr;
 
     OT_UNUSED_VARIABLE(aInstance);
 
     VerifyOrExit(sIpFd > 0);
+    memset(&ifr, 0, sizeof(ifr));
     strncpy(ifr.ifr_name, sTunName, sizeof(ifr.ifr_name));
     VerifyOrExit(ioctl(sIpFd, SIOCGIFFLAGS, &ifr) == 0, error = OT_ERROR_FAILED);
 
@@ -169,11 +170,12 @@ exit:
 otError otPlatNetifDown(otInstance *aInstance)
 {
     otError      error = OT_ERROR_NONE;
-    struct ifreq ifr   = {};
+    struct ifreq ifr;
 
     OT_UNUSED_VARIABLE(aInstance);
 
     VerifyOrExit(sIpFd > 0);
+    memset(&ifr, 0, sizeof(ifr));
     strncpy(ifr.ifr_name, sTunName, sizeof(ifr.ifr_name));
     VerifyOrExit(ioctl(sIpFd, SIOCGIFFLAGS, &ifr) == 0, error = OT_ERROR_FAILED);
 
