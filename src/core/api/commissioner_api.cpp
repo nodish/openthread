@@ -49,6 +49,7 @@ otError otCommissionerStart(otInstance *aInstance)
 #if OPENTHREAD_ENABLE_BORDER_AGENT
     SuccessOrExit(error = instance.Get<MeshCoP::BorderAgent>().Stop());
 #endif
+    SuccessOrExit(error = instance.GetThreadNetif().EnableCommissioner());
     SuccessOrExit(error = instance.GetThreadNetif().GetCommissioner().Start());
 exit:
 #endif
@@ -63,6 +64,7 @@ otError otCommissionerStop(otInstance *aInstance)
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled(), error = OT_ERROR_INVALID_STATE);
     SuccessOrExit(error = instance.GetThreadNetif().GetCommissioner().Stop());
 #if OPENTHREAD_ENABLE_BORDER_AGENT
     SuccessOrExit(error = instance.Get<MeshCoP::BorderAgent>().Start());
@@ -80,6 +82,7 @@ otError otCommissionerAddJoiner(otInstance *aInstance, const otExtAddress *aEui6
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled(), error = OT_ERROR_INVALID_STATE);
     error = instance.GetThreadNetif().GetCommissioner().AddJoiner(static_cast<const Mac::ExtAddress *>(aEui64), aPSKd,
                                                                   aTimeout);
 #else
@@ -99,6 +102,7 @@ otError otCommissionerRemoveJoiner(otInstance *aInstance, const otExtAddress *aE
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled(), error = OT_ERROR_INVALID_STATE);
     error = instance.GetThreadNetif().GetCommissioner().RemoveJoiner(static_cast<const Mac::ExtAddress *>(aEui64), 0);
 #else
     OT_UNUSED_VARIABLE(aInstance);
@@ -115,6 +119,7 @@ otError otCommissionerSetProvisioningUrl(otInstance *aInstance, const char *aPro
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled(), error = OT_ERROR_INVALID_STATE);
     error = instance.GetThreadNetif().GetCommissioner().SetProvisioningUrl(aProvisioningUrl);
 #else
     OT_UNUSED_VARIABLE(aInstance);
@@ -131,6 +136,7 @@ const char *otCommissionerGetProvisioningUrl(otInstance *aInstance, uint16_t *aL
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled());
     if (aLength != NULL)
     {
         url = instance.GetThreadNetif().GetCommissioner().GetProvisioningUrl(*aLength);
@@ -154,6 +160,7 @@ otError otCommissionerAnnounceBegin(otInstance *        aInstance,
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled(), error = OT_ERROR_INVALID_STATE);
     error = instance.GetThreadNetif().GetCommissioner().GetAnnounceBeginClient().SendRequest(
         aChannelMask, aCount, aPeriod, *static_cast<const Ip6::Address *>(aAddress));
 #else
@@ -181,6 +188,7 @@ otError otCommissionerEnergyScan(otInstance *                       aInstance,
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled(), error = OT_ERROR_INVALID_STATE);
     error = instance.GetThreadNetif().GetCommissioner().GetEnergyScanClient().SendQuery(
         aChannelMask, aCount, aPeriod, aScanDuration, *static_cast<const Ip6::Address *>(aAddress), aCallback,
         aContext);
@@ -210,6 +218,7 @@ otError otCommissionerPanIdQuery(otInstance *                        aInstance,
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled(), error = OT_ERROR_INVALID_STATE);
     error = instance.GetThreadNetif().GetCommissioner().GetPanIdQueryClient().SendQuery(
         aPanId, aChannelMask, *static_cast<const Ip6::Address *>(aAddress), aCallback, aContext);
 #else
@@ -231,6 +240,7 @@ otError otCommissionerSendMgmtGet(otInstance *aInstance, const uint8_t *aTlvs, u
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled(), error = OT_ERROR_INVALID_STATE);
     error = instance.GetThreadNetif().GetCommissioner().SendMgmtCommissionerGetRequest(aTlvs, aLength);
 #else
     OT_UNUSED_VARIABLE(aInstance);
@@ -251,6 +261,7 @@ otError otCommissionerSendMgmtSet(otInstance *                  aInstance,
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled(), error = OT_ERROR_INVALID_STATE);
     error = instance.GetThreadNetif().GetCommissioner().SendMgmtCommissionerSetRequest(*aDataset, aTlvs, aLength);
 #else
     OT_UNUSED_VARIABLE(aInstance);
@@ -269,6 +280,7 @@ uint16_t otCommissionerGetSessionId(otInstance *aInstance)
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled(), error = OT_ERROR_INVALID_STATE);
     sessionId = instance.GetThreadNetif().GetCommissioner().GetSessionId();
 #else
     OT_UNUSED_VARIABLE(aInstance);
@@ -284,6 +296,7 @@ otCommissionerState otCommissionerGetState(otInstance *aInstance)
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled());
     state = instance.GetThreadNetif().GetCommissioner().GetState();
 #else
     OT_UNUSED_VARIABLE(aInstance);
@@ -303,6 +316,7 @@ otError otCommissionerGeneratePSKc(otInstance *           aInstance,
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsCommissionerEnabled(), error = OT_ERROR_INVALID_STATE);
     error = instance.GetThreadNetif().GetCommissioner().GeneratePSKc(aPassPhrase, aNetworkName, *aExtPanId, aPSKc);
 #else
     OT_UNUSED_VARIABLE(aInstance);

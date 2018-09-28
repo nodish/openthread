@@ -327,17 +327,19 @@ void Mle::SetRole(otDeviceRole aRole)
         break;
     }
 
-#if OPENTHREAD_ENABLE_BORDER_AGENT
     // Start border agent
     if (aRole == OT_DEVICE_ROLE_ROUTER || aRole == OT_DEVICE_ROLE_LEADER || aRole == OT_DEVICE_ROLE_CHILD)
     {
-        SuccessOrExit(GetInstance().Get<MeshCoP::BorderAgent>().Start());
+#if OPENTHREAD_ENABLE_BORDER_AGENT
+        SuccessOrExit(GetInstance().GetNetif().EnableBorderAgent());
+#endif
     }
     else
     {
-        SuccessOrExit(GetInstance().Get<MeshCoP::BorderAgent>().Stop());
-    }
+#if OPENTHREAD_ENABLE_JOINER
+        SuccessOrExit(GetInstance().GetNetif().EnableJoiner());
 #endif
+    }
 
 exit:
     return;

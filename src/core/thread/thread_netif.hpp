@@ -321,22 +321,34 @@ public:
     AnnounceBeginServer &GetAnnounceBeginServer(void) { return mAnnounceBegin; }
 
 #if OPENTHREAD_ENABLE_BORDER_AGENT
+    bool IsBorderAgentEnabled(void) const { return mMeshCoPState == kMeshCoPStateBorderAgent; }
     /**
      * This method returns a reference to the border agent object.
      *
      * @returns A reference to the border agent object.
      *
      */
-    MeshCoP::BorderAgent &GetBorderAgent(void) { return mBorderAgent; }
+    MeshCoP::BorderAgent &GetBorderAgent(void)
+    {
+        assert(mMeshCoPState == kMeshCoPStateBorderAgent);
+        return mMeshCoP.mBorderAgent;
+    }
+    otError EnableBorderAgent(void);
 #endif
 #if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
+    bool IsCommissionerEnabled(void) const { return mMeshCoPState == kMeshCoPStateCommissioner; }
     /**
      * This method returns a reference to the commissioner object.
      *
      * @returns A reference to the commissioner object.
      *
      */
-    MeshCoP::Commissioner &GetCommissioner(void) { return mCommissioner; }
+    MeshCoP::Commissioner &GetCommissioner(void)
+    {
+        assert(mMeshCoPState == kMeshCoPStateCommissioner);
+        return mMeshCoP.mCommissioner;
+    }
+    otError EnableCommissioner(void);
 #endif // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
 
 #if OPENTHREAD_ENABLE_DTLS
@@ -358,13 +370,19 @@ public:
 #endif // OPENTHREAD_ENABLE_DTLS
 
 #if OPENTHREAD_ENABLE_JOINER
+    bool IsJoinerEnabled(void) const { return mMeshCoPState == kMeshCoPStateJoiner; }
     /**
      * This method returns a reference to the joiner object.
      *
      * @returns A reference to the joiner object.
      *
      */
-    MeshCoP::Joiner &GetJoiner(void) { return mJoiner; }
+    MeshCoP::Joiner &GetJoiner(void)
+    {
+        assert(mMeshCoPState == kMeshCoPStateJoiner);
+        return mMeshCoP.mJoiner;
+    }
+    otError EnableJoiner(void);
 #endif // OPENTHREAD_ENABLE_JOINER
 
 #if OPENTHREAD_ENABLE_JAM_DETECTION
@@ -429,6 +447,12 @@ public:
     bool IsTmfMessage(const Ip6::MessageInfo &aMessageInfo);
 
 private:
+    enum MeshCoPState
+    {
+        kMeshCoPStateJoiner       = 0,
+        kMeshCoPStateBorderAgent  = 1,
+        kMeshCoPStateCommissioner = 2,
+    };
     static otError TmfFilter(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo, void *aContext);
 
     Coap::Coap mCoap;
@@ -458,21 +482,27 @@ private:
 #endif // OPENTHREAD_FTD || OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC
     bool mIsUp;
 
-#if OPENTHREAD_ENABLE_BORDER_AGENT
-    MeshCoP::BorderAgent mBorderAgent;
-#endif
-#if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
-    MeshCoP::Commissioner mCommissioner;
-#endif // OPENTHREAD_ENABLE_COMMISSIONER
-
 #if OPENTHREAD_ENABLE_DTLS
     MeshCoP::Dtls    mDtls;
     Coap::CoapSecure mCoapSecure;
 #endif // OPENTHREAD_ENABLE_DTLS
 
+#if OPENTHREAD_ENABLE_BORDER_AGENT || OPENTHREAD_ENABLE_COMMISSIONER || OPENTHREAD_ENABLE_JOINER
+    union _MeshCoP
+    {
+#if OPENTHREAD_ENABLE_BORDER_AGENT
+        MeshCoP::BorderAgent mBorderAgent;
+#endif
+#if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
+        MeshCoP::Commissioner mCommissioner;
+#endif // OPENTHREAD_ENABLE_COMMISSIONER
 #if OPENTHREAD_ENABLE_JOINER
-    MeshCoP::Joiner mJoiner;
+        MeshCoP::Joiner mJoiner;
 #endif // OPENTHREAD_ENABLE_JOINER
+        _MeshCoP() {}
+    } mMeshCoP;
+    MeshCoPState mMeshCoPState;
+#endif // OPENTHREAD_ENABLE_BORDER_AGENT || OPENTHREAD_ENABLE_COMMISSIONER || OPENTHREAD_ENABLE_JOINER
 
 #if OPENTHREAD_ENABLE_JAM_DETECTION
     Utils::JamDetector mJamDetector;

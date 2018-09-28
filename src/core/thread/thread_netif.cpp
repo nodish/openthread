@@ -1,4 +1,3 @@
-
 /*
  *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
@@ -76,19 +75,13 @@ ThreadNetif::ThreadNetif(Instance &aInstance)
     , mNetworkDiagnostic(aInstance)
 #endif
     , mIsUp(false)
-#if OPENTHREAD_ENABLE_BORDER_AGENT
-    , mBorderAgent(aInstance)
-#endif
-#if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
-    , mCommissioner(aInstance)
-#endif // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
 #if OPENTHREAD_ENABLE_DTLS
     , mDtls(aInstance)
     , mCoapSecure(aInstance)
 #endif
-#if OPENTHREAD_ENABLE_JOINER
-    , mJoiner(aInstance)
-#endif // OPENTHREAD_ENABLE_JOINER
+#if OPENTHREAD_ENABLE_BORDER_AGENT || OPENTHREAD_ENABLE_COMMISSIONER || OPENTHREAD_ENABLE_JOINER
+    , mMeshCoPState(kMeshCoPStateJoiner)
+#endif
 #if OPENTHREAD_ENABLE_JAM_DETECTION
     , mJamDetector(aInstance)
 #endif // OPENTHREAD_ENABLE_JAM_DETECTTION
@@ -107,7 +100,85 @@ ThreadNetif::ThreadNetif(Instance &aInstance)
 #endif
 {
     mCoap.SetInterceptor(&ThreadNetif::TmfFilter, this);
+#if OPENTHREAD_ENABLE_JOINER
+    EnableJoiner();
+#endif
 }
+
+#if OPENTHREAD_ENABLE_BORDER_AGENT
+otError ThreadNetif::EnableBorderAgent(void)
+{
+    otError error = OT_ERROR_NONE;
+
+    switch (mMeshCoPState)
+    {
+    case kMeshCoPStateJoiner:
+        SuccessOrExit(error = GetJoiner().Stop());
+        break;
+    case kMeshCoPStateCommissioner:
+        SuccessOrExit(error = GetCommissioner().Stop());
+        break;
+    case kMeshCoPStateBorderAgent:
+        break;
+    default:
+        assert(false);
+    }
+    new (&mMeshCoP.mBorderAgent) MeshCoP::BorderAgent(GetInstance());
+
+exit:
+    return error;
+}
+#endif
+
+#if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
+otError ThreadNetif::EnableCommissioner(void)
+{
+    otError error = OT_ERROR_NONE;
+
+    switch (mMeshCoPState)
+    {
+    case kMeshCoPStateBorderAgent:
+        SuccessOrExit(error = GetBorderAgent().Stop());
+        break;
+    case kMeshCoPStateJoiner:
+        SuccessOrExit(error = GetJoiner().Stop());
+        break;
+    case kMeshCoPStateCommissioner:
+        break;
+    default:
+        assert(false);
+    }
+    new (&mMeshCoP.mCommissioner) MeshCoP::Commissioner(GetInstance());
+
+exit:
+    return error;
+}
+#endif // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
+
+#if OPENTHREAD_ENABLE_JOINER
+otError ThreadNetif::EnableJoiner(void)
+{
+    otError error = OT_ERROR_NONE;
+
+    switch (mMeshCoPState)
+    {
+    case kMeshCoPStateBorderAgent:
+        SuccessOrExit(error = GetBorderAgent().Stop());
+        break;
+    case kMeshCoPStateCommissioner:
+        SuccessOrExit(error = GetCommissioner().Stop());
+        break;
+    case kMeshCoPStateJoiner:
+        break;
+    default:
+        assert(false);
+    }
+    new (&mMeshCoP.mJoiner) MeshCoP::Joiner(GetInstance());
+
+exit:
+    return error;
+}
+#endif // OPENTHREAD_ENABLE_JOINER
 
 otError ThreadNetif::Up(void)
 {

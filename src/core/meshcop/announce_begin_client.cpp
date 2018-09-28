@@ -71,7 +71,7 @@ otError AnnounceBeginClient::SendRequest(uint32_t            aChannelMask,
     Ip6::MessageInfo messageInfo;
     Message *        message = NULL;
 
-    VerifyOrExit(GetNetif().GetCommissioner().IsActive(), error = OT_ERROR_INVALID_STATE);
+    VerifyOrExit((GetNetif().IsCommissionerEnabled() && GetNetif().GetCommissioner().IsActive(), error = OT_ERROR_INVALID_STATE);
 
     header.Init(aAddress.IsMulticast() ? OT_COAP_TYPE_NON_CONFIRMABLE : OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
     header.SetToken(Coap::Header::kDefaultTokenLength);

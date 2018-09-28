@@ -53,6 +53,7 @@ otError otJoinerStart(otInstance *     aInstance,
 #if OPENTHREAD_ENABLE_JOINER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    SuccessOrExit(error = instance.GetThreadNetif().EnableJoiner());
     error = instance.GetThreadNetif().GetJoiner().Start(aPSKd, aProvisioningUrl, aVendorName, aVendorModel,
                                                         aVendorSwVersion, aVendorData, aCallback, aContext);
 #else
@@ -77,6 +78,7 @@ otError otJoinerStop(otInstance *aInstance)
 #if OPENTHREAD_ENABLE_JOINER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsJoinerEnabled(), error = OT_ERROR_INVALID_STATE);
     error = instance.GetThreadNetif().GetJoiner().Stop();
 #else
     OT_UNUSED_VARIABLE(aInstance);
@@ -92,6 +94,7 @@ otJoinerState otJoinerGetState(otInstance *aInstance)
 #if OPENTHREAD_ENABLE_JOINER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsJoinerEnabled());
     state = instance.GetThreadNetif().GetJoiner().GetState();
 #else
     OT_UNUSED_VARIABLE(aInstance);
@@ -107,6 +110,7 @@ otError otJoinerGetId(otInstance *aInstance, otExtAddress *aJoinerId)
 #if OPENTHREAD_ENABLE_JOINER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
+    VerifyOrExit(instance.GetThreadNetif().IsJoinerEnabled(), error = OT_ERROR_INVALID_STATE);
     instance.GetThreadNetif().GetJoiner().GetJoinerId(*static_cast<Mac::ExtAddress *>(aJoinerId));
     error = OT_ERROR_NONE;
 #else

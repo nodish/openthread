@@ -330,7 +330,7 @@ otError DatasetManager::SendSetRequest(const otOperationalDataset &aDataset, con
 
 #if OPENTHREAD_ENABLE_COMMISSIONER
 
-    if (netif.GetCommissioner().IsActive())
+    if (netif.IsCommissionerEnabled() && netif.GetCommissioner().IsActive())
     {
         const uint8_t *cur          = aTlvs;
         const uint8_t *end          = aTlvs + aLength;
