@@ -110,6 +110,8 @@ CFLAGS                         += \
 
 CXXFLAGS                       += \
     $(COMMONCFLAGS)               \
+    -fno-exceptions               \
+    -fno-rtti                     \
     $(NULL)
 
 LDFLAGS                        += \
