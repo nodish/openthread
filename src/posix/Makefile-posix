@@ -88,6 +88,8 @@ COMMONCFLAGS                   := \
     -g                            \
     -D$(CONFIG_FILE)              \
     -I$(CONFIG_FILE_PATH)         \
+    -ffunction-sections           \
+    -fdata-sections               \
     $(NULL)
 
 ifeq ($(VIRTUAL_TIME),1)
@@ -116,6 +118,7 @@ CXXFLAGS                       += \
 
 LDFLAGS                        += \
     $(COMMONCFLAGS)               \
+    -Wl,--gc-sections             \
     $(NULL)
 
 INSTALL                         := /usr/bin/install
