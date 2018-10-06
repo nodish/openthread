@@ -268,7 +268,7 @@ static void LaunchRadio(const char *aFile, const char *aConfig)
     VerifyOrExit(rval > 0 && static_cast<size_t>(rval) < sizeof(cmd),
                  otLogCritPlat(mInstance, "NCP file and configuration is too long!"));
 
-    execl(getenv("SHELL"), getenv("SHELL"), "-c", cmd, NULL);
+    execl(getenv("SHELL"), getenv("SHELL"), "-c", cmd, static_cast<char *>(NULL));
     perror("open pty failed");
 exit:
     exit(EXIT_FAILURE);
