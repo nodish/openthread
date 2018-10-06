@@ -326,7 +326,7 @@ void platformUdpProcess(otInstance *aInstance, const fd_set *aReadFdSet)
     {
         int fd = GetFdFromHandle(socket->mHandle);
 
-        if (FD_ISSET(fd, aReadFdSet))
+        if (fd != -1 && FD_ISSET(fd, aReadFdSet))
         {
             otMessageInfo messageInfo;
             otMessage *   message = NULL;
