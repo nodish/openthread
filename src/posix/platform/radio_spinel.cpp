@@ -238,6 +238,42 @@ static void LogIfFail(otInstance *aInstance, const char *aText, otError aError)
 }
 
 #if OPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE
+static void LaunchRadio(const char *aFile, const char *aConfig)
+{
+    const int     kMaxCommand = 255;
+    char          cmd[kMaxCommand];
+    int           rval;
+    struct rlimit limit;
+
+    rval = getrlimit(RLIMIT_NOFILE, &limit);
+    rval = setenv("SHELL", SOCKET_UTILS_DEFAULT_SHELL, 0);
+
+    VerifyOrExit(rval == 0, perror("setenv failed"));
+
+    // Close all file descriptors larger than STDERR_FILENO.
+    for (rlim_t i = (STDERR_FILENO + 1); i < limit.rlim_cur; i++)
+    {
+        close(static_cast<int>(i));
+    }
+
+    if (aConfig != NULL)
+    {
+        rval = snprintf(cmd, sizeof(cmd), "exec %s %s", aFile, aConfig);
+    }
+    else
+    {
+        rval = snprintf(cmd, sizeof(cmd), "exec %s", aFile);
+    }
+
+    VerifyOrExit(rval > 0 && static_cast<size_t>(rval) < sizeof(cmd),
+                 otLogCritPlat(mInstance, "NCP file and configuration is too long!"));
+
+    execl(getenv("SHELL"), getenv("SHELL"), "-c", cmd, NULL);
+    perror("open pty failed");
+exit:
+    exit(EXIT_FAILURE);
+}
+
 static int OpenPty(const char *aFile, const char *aConfig)
 {
     int fd  = -1;
@@ -256,29 +292,7 @@ static int OpenPty(const char *aFile, const char *aConfig)
 
     if (0 == pid)
     {
-        const int     kMaxCommand = 255;
-        char          cmd[kMaxCommand];
-        int           rval;
-        struct rlimit limit;
-
-        rval = getrlimit(RLIMIT_NOFILE, &limit);
-        rval = setenv("SHELL", SOCKET_UTILS_DEFAULT_SHELL, 0);
-
-        VerifyOrExit(rval == 0, perror("setenv failed"));
-
-        // Close all file descriptors larger than STDERR_FILENO.
-        for (rlim_t i = (STDERR_FILENO + 1); i < limit.rlim_cur; i++)
-        {
-            close(static_cast<int>(i));
-        }
-
-        rval = snprintf(cmd, sizeof(cmd), "exec %s %s", aFile, aConfig);
-        VerifyOrExit(rval > 0 && static_cast<size_t>(rval) < sizeof(cmd),
-                     otLogCritPlat(mInstance, "NCP file and configuration is too long!"));
-
-        execl(getenv("SHELL"), getenv("SHELL"), "-c", cmd, NULL);
-        perror("open pty failed");
-        exit(EXIT_FAILURE);
+        LaunchRadio(aFile, aConfig);
     }
     else
     {
@@ -304,20 +318,24 @@ exit:
 
 static int OpenUart(const char *aRadioFile, const char *aRadioConfig)
 {
-    const int kMaxSttyCommand = 128;
-    char      cmd[kMaxSttyCommand];
-    int       fd = -1;
-    int       rval;
+    int fd = -1;
+    int rval;
 
-    VerifyOrExit(!strchr(aRadioConfig, '&') && !strchr(aRadioConfig, '|') && !strchr(aRadioConfig, ';'),
-                 otLogCritPlat(mInstance, "Illegal NCP config arguments!"));
+    if (aRadioConfig != NULL)
+    {
+        const int kMaxSttyCommand = 128;
+        char      cmd[kMaxSttyCommand];
 
-    rval = snprintf(cmd, sizeof(cmd), "stty -F %s %s", aRadioFile, aRadioConfig);
-    VerifyOrExit(rval > 0 && static_cast<size_t>(rval) < sizeof(cmd),
-                 otLogCritPlat(mInstance, "NCP file and configuration is too long!"));
+        VerifyOrExit(!strchr(aRadioConfig, '&') && !strchr(aRadioConfig, '|') && !strchr(aRadioConfig, ';'),
+                     otLogCritPlat(mInstance, "Illegal NCP config arguments!"));
 
-    rval = system(cmd);
-    VerifyOrExit(rval == 0, otLogCritPlat(mInstance, "Unable to configure serial port"));
+        rval = snprintf(cmd, sizeof(cmd), "stty -F %s %s", aRadioFile, aRadioConfig);
+        VerifyOrExit(rval > 0 && static_cast<size_t>(rval) < sizeof(cmd),
+                     otLogCritPlat(mInstance, "NCP file and configuration is too long!"));
+
+        rval = system(cmd);
+        VerifyOrExit(rval == 0, otLogCritPlat(mInstance, "Unable to configure serial port"));
+    }
 
     fd = open(aRadioFile, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd == -1)
