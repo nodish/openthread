@@ -61,7 +61,7 @@ void otSysInit(int aArgCount, char *aArgVector[])
     uint32_t    speedUpFactor = 1;
     char *      endptr;
     const char *radioFile   = NULL;
-    const char *radioConfig = "";
+    const char *radioConfig = NULL;
 
     if (gPlatformPseudoResetWasRequested)
     {
