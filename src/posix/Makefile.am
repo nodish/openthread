@@ -108,6 +108,16 @@ ot_ncp_LIBTOOLFLAGS                                                    = \
     $(LIBTOOLFLAGS_COMMON)                                               \
     $(NULL)
 
+if OPENTHREAD_ENABLE_POSIX_APP_DAEMON
+bin_PROGRAMS                                                          += \
+    ot-ctl                                                               \
+    $(NULL)
+
+ot_ctl_SOURCES                                                         = \
+    client.c                                                             \
+    $(NULL)
+endif
+
 if OPENTHREAD_ENABLE_CLI
 bin_PROGRAMS                                                          += \
     ot-cli                                                               \
