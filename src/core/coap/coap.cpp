@@ -52,7 +52,6 @@ CoapBase::CoapBase(Instance &     aInstance,
                    Timer::Handler aRetransmissionTimerHandler,
                    Timer::Handler aResponsesQueueTimerHandler)
     : InstanceLocator(aInstance)
-    , mSocket(aInstance.GetThreadNetif().GetIp6().GetUdp())
     , mRetransmissionTimer(aInstance, aRetransmissionTimerHandler, this)
     , mResources(NULL)
     , mContext(NULL)
@@ -64,20 +63,7 @@ CoapBase::CoapBase(Instance &     aInstance,
     mMessageId = Random::GetUint16();
 }
 
-otError CoapBase::Start(uint16_t aPort)
-{
-    otError       error;
-    Ip6::SockAddr sockaddr;
-    sockaddr.mPort = aPort;
-
-    SuccessOrExit(error = mSocket.Open(&CoapBase::HandleUdpReceive, this));
-    SuccessOrExit(error = mSocket.Bind(sockaddr));
-
-exit:
-    return error;
-}
-
-otError CoapBase::Stop(void)
+void CoapBase::ClearCaches(void)
 {
     Message *    message = mPendingRequests.GetHead();
     Message *    messageToRemove;
@@ -94,8 +80,6 @@ otError CoapBase::Stop(void)
     }
 
     mResponsesQueue.DequeueAllResponses();
-
-    return mSocket.Close();
 }
 
 otError CoapBase::AddResource(Resource &aResource)
@@ -149,7 +133,8 @@ Message *CoapBase::NewMessage(const Header &aHeader, uint8_t aPriority)
     // Ensure that header has minimum required length.
     VerifyOrExit(aHeader.GetLength() >= Header::kMinHeaderLength);
 
-    VerifyOrExit((message = mSocket.NewMessage(aHeader.GetLength(), aPriority)) != NULL);
+    message = GetInstance().GetThreadNetif().GetIp6().GetUdp().NewMessage(aHeader.GetLength(), aPriority);
+    VerifyOrExit(message != NULL);
     message->Prepend(aHeader.GetBytes(), aHeader.GetLength());
     message->SetOffset(0);
 
@@ -216,7 +201,9 @@ exit:
 
 otError CoapBase::Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
-    return mSocket.SendTo(aMessage, aMessageInfo);
+    OT_UNUSED_VARIABLE(aMessage);
+    OT_UNUSED_VARIABLE(aMessageInfo);
+    return OT_ERROR_NOT_IMPLEMENTED;
 }
 
 otError CoapBase::SendEmptyMessage(Header::Type            aType,
@@ -522,12 +509,6 @@ Message *CoapBase::FindRelatedRequest(const Header &          aResponseHeader,
 
 exit:
     return message;
-}
-
-void CoapBase::HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
-{
-    static_cast<CoapBase *>(aContext)->Receive(*static_cast<Message *>(aMessage),
-                                               *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
 void CoapBase::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
@@ -923,9 +904,45 @@ uint32_t EnqueuedResponseHeader::GetRemainingTime(void) const
     return remainingTime >= 0 ? static_cast<uint32_t>(remainingTime) : 0;
 }
 
-Coap::Coap(Instance &aInstance)
-    : CoapBase(aInstance, &Coap::HandleRetransmissionTimer, &Coap::HandleResponsesQueueTimer)
+Coap::Coap(Instance &aInstance, Timer::Handler aRetransmissionTimerHandler, Timer::Handler aResponsesQueueTimerHandler)
+    : CoapBase(aInstance, aRetransmissionTimerHandler, aResponsesQueueTimerHandler)
+    , mSocket(aInstance.GetThreadNetif().GetIp6().GetUdp())
 {
+}
+
+otError Coap::Start(uint16_t aPort)
+{
+    otError       error;
+    Ip6::SockAddr sockaddr;
+
+    sockaddr.mPort = aPort;
+    SuccessOrExit(error = mSocket.Open(&Coap::HandleUdpReceive, this));
+    SuccessOrExit(error = mSocket.Bind(sockaddr));
+
+exit:
+    return error;
+}
+
+otError Coap::Stop(void)
+{
+    otError error;
+
+    SuccessOrExit(error = mSocket.Close());
+    ClearCaches();
+
+exit:
+    return error;
+}
+
+void Coap::HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
+{
+    static_cast<Coap *>(aContext)->Receive(*static_cast<Message *>(aMessage),
+                                           *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
+}
+
+otError Coap::Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+{
+    return mSocket.SendTo(aMessage, aMessageInfo);
 }
 
 void Coap::HandleRetransmissionTimer(Timer &aTimer)
@@ -941,7 +958,7 @@ void Coap::HandleResponsesQueueTimer(Timer &aTimer)
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
 
 ApplicationCoap::ApplicationCoap(Instance &aInstance)
-    : CoapBase(aInstance, &ApplicationCoap::HandleRetransmissionTimer, &ApplicationCoap::HandleResponsesQueueTimer)
+    : Coap(aInstance, &ApplicationCoap::HandleRetransmissionTimer, &ApplicationCoap::HandleResponsesQueueTimer)
 {
 }
 

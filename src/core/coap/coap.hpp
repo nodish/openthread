@@ -468,30 +468,10 @@ public:
     typedef otError (*Interceptor)(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo, void *aContext);
 
     /**
-     * This method starts the CoAP service.
-     *
-     * @param[in]  aPort  The local UDP port to bind to.
-     *
-     * @retval OT_ERROR_NONE  Successfully started the CoAP service.
+     * This method clears caches used by this CoAP agent.
      *
      */
-    otError Start(uint16_t aPort);
-
-    /**
-     * This method stops the CoAP service.
-     *
-     * @retval OT_ERROR_NONE  Successfully stopped the CoAP service.
-     *
-     */
-    otError Stop(void);
-
-    /**
-     * This method returns a port number used by CoAP service.
-     *
-     * @returns A port number.
-     *
-     */
-    uint16_t GetPort(void) { return mSocket.GetSockName().mPort; };
+    void ClearCaches(void);
 
     /**
      * This method adds a resource to the CoAP server.
@@ -705,7 +685,7 @@ protected:
     void HandleResponsesQueueTimer(void) { mResponsesQueue.HandleTimer(); }
 
     /**
-     * This method sends a message.
+     * This method sends a CoAP message.
      *
      * @param[in]  aMessage      A reference to the message to send.
      * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
@@ -714,23 +694,19 @@ protected:
     virtual otError Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
     /**
-     * This method receives a message.
+     * This method receives a CoAP message.
      *
      * @param[in]  aMessage      A reference to the received message.
      * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
      *
      */
-    virtual void Receive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
-
-    Ip6::UdpSocket mSocket;
+    void Receive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
 private:
     enum
     {
         kDefaultCoapMessagePriority = Message::kPriorityLow,
     };
-
-    static void HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
 
     Message *CopyAndEnqueueMessage(const Message &aMessage, uint16_t aCopyLength, const CoapMetadata &aCoapMetadata);
     void     DequeueMessage(Message &aMessage);
@@ -778,11 +754,51 @@ public:
      * @param[in] aInstance      A reference to the OpenThread instance.
      *
      */
-    explicit Coap(Instance &aInstance);
+    explicit Coap(Instance &     aInstance,
+                  Timer::Handler aRetransmissionTimerHandler = &Coap::HandleRetransmissionTimer,
+                  Timer::Handler aResponsesQueueTimerHandler = &Coap::HandleResponsesQueueTimer);
+
+    /**
+     * This method starts the CoAP service.
+     *
+     * @param[in]  aPort  The local UDP port to bind to.
+     *
+     * @retval OT_ERROR_NONE  Successfully started the CoAP service.
+     *
+     */
+    otError Start(uint16_t aPort);
+
+    /**
+     * This method stops the CoAP service.
+     *
+     * @retval OT_ERROR_NONE  Successfully stopped the CoAP service.
+     *
+     */
+    otError Stop(void);
+
+    /**
+     * This method returns a port number used by CoAP service.
+     *
+     * @returns A port number.
+     *
+     */
+    uint16_t GetPort(void) { return mSocket.GetSockName().mPort; };
+
+    /**
+     * This method sends a CoAP message.
+     *
+     * @param[in]  aMessage      A reference to the message to send.
+     * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
+     *
+     */
+    virtual otError Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
 private:
     static void HandleRetransmissionTimer(Timer &aTimer);
     static void HandleResponsesQueueTimer(Timer &aTimer);
+    static void HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
+
+    Ip6::UdpSocket mSocket;
 };
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
@@ -791,7 +807,7 @@ private:
  * This class implements the application CoAP client and server.
  *
  */
-class ApplicationCoap : public CoapBase
+class ApplicationCoap : public Coap
 {
 public:
     /**

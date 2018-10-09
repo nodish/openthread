@@ -869,7 +869,7 @@ void Commissioner::HandleRelayReceive(Coap::Header &aHeader, Message &aMessage, 
     joinerMessageInfo.GetPeerAddr().SetIid(mJoinerIid);
     joinerMessageInfo.SetPeerPort(mJoinerPort);
 
-    netif.GetCoapSecure().Receive(aMessage, joinerMessageInfo);
+    netif.GetCoapSecure().HandleUdpReceive(aMessage, joinerMessageInfo);
 
 exit:
     OT_UNUSED_VARIABLE(aMessageInfo);
