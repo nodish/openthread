@@ -59,6 +59,8 @@
 #include "common/timer.hpp"
 #include "crypto/sha256.hpp"
 #include "meshcop/meshcop_tlvs.hpp"
+#include "net/socket.hpp"
+#include "net/udp6.hpp"
 
 namespace ot {
 
@@ -117,6 +119,32 @@ public:
     typedef otError (*SendHandler)(void *aContext, const uint8_t *aBuf, uint16_t aLength, uint8_t aMessageSubType);
 
     /**
+     * This method binds the DTLS service.
+     *
+     * @param[in]  aPort              The port to bind.
+     *
+     * @retval OT_ERROR_NONE      Successfully binded the DTLS service.
+     *
+     */
+    otError Bind(uint16_t aPort);
+
+    /**
+     * This method starts the DTLS service.
+     *
+     * For CoAP Secure API do first:
+     * Set X509 Pk and Cert for use DTLS mode ECDHE ECDSA with AES 128 CCM 8 or
+     * set PreShared Key for use DTLS mode PSK with AES 128 CCM 8.
+     *
+     * @param[in]  aSockAddr               A reference to the remote sockaddr.
+     * @param[in]  aConnectedHandler       A pointer to the connected handler.
+     * @param[in]  aContext                A pointer to application-specific context.
+     *
+     * @retval OT_ERROR_NONE      Successfully started the DTLS service.
+     *
+     */
+    otError Connect(const Ip6::SockAddr &aSockAddr, ConnectedHandler aConnectedHandler, void *aContext);
+
+    /**
      * This method starts the DTLS service.
      *
      * For CoAP Secure API do first:
@@ -125,18 +153,12 @@ public:
      *
      * @param[in]  aClient                 TRUE if operating as a client, FALSE if operating as a server.
      * @param[in]  aConnectedHandler       A pointer to the connected handler.
-     * @param[in]  aReceiveHandler         A pointer to the receive handler.
-     * @param[in]  aSendHandler            A pointer to the send handler.
      * @param[in]  aContext                A pointer to application-specific context.
      *
      * @retval OT_ERROR_NONE      Successfully started the DTLS service.
      *
      */
-    otError Start(bool             aClient,
-                  ConnectedHandler aConnectedHandler,
-                  ReceiveHandler   aReceiveHandler,
-                  SendHandler      aSendHandler,
-                  void *           aContext);
+    otError Start(bool aClient, ConnectedHandler aConnectedHandler, void *aContext);
 
     /**
      * This method stops the DTLS service.
@@ -356,6 +378,8 @@ private:
     static void HandleTimer(Timer &aTimer);
     void        HandleTimer(void);
 
+    void HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
+
     static int HandleMbedtlsEntropyPoll(void *aData, unsigned char *aOutput, size_t aInLen, size_t *aOutLen);
 
     void Close(void);
@@ -387,7 +411,8 @@ private:
 #endif // MBEDTLS_KEY_EXCHANGE_PSK_ENABLED
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
-    bool mVerifyPeerCertificate;
+    bool           mVerifyPeerCertificate;
+    Ip6::UdpSocket mSocket;
 
     mbedtls_entropy_context  mEntropy;
     mbedtls_ctr_drbg_context mCtrDrbg;
@@ -413,6 +438,8 @@ private:
     SendHandler      mSendHandler;
     void *           mContext;
     bool             mGuardTimerSet;
+
+    Ip6::MessageInfo mPeerAddress;
 
     uint8_t mMessageSubType;
     uint8_t mMessageDefaultSubType;

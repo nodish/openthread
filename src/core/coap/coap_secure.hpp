@@ -363,7 +363,6 @@ private:
     static void HandleRetransmissionTimer(Timer &aTimer);
     static void HandleResponsesQueueTimer(Timer &aTimer);
 
-    Ip6::MessageInfo  mPeerAddress;
     ConnectedCallback mConnectedCallback;
     void *            mConnectedContext;
     TransportCallback mTransportCallback;

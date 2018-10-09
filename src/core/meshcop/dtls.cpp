@@ -135,11 +135,63 @@ exit:
     return rval;
 }
 
-otError Dtls::Start(bool             aClient,
-                    ConnectedHandler aConnectedHandler,
-                    ReceiveHandler   aReceiveHandler,
-                    SendHandler      aSendHandler,
-                    void *           aContext)
+otError Dtls::Bind(uint16_t aPort)
+{
+    otError       error;
+    Ip6::SockAddr sockaddr;
+    sockaddr.mPort = aPort;
+
+    SuccessOrExit(error = mSocket.Open(HandleUdpReceive, this));
+    SuccessOrExit(error = mSocket.Bind(sockaddr));
+
+exit:
+    return error;
+}
+
+void Dtls::HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
+{
+    static_cast<Dtls *>(aContext)->Receive(*static_cast<Message *>(aMessage), static_cast<MessageInfo *>(aMessageInfo));
+}
+
+void Dtls::Receive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
+{
+    ThreadNetif &netif = GetNetif();
+
+    if (!IsStarted())
+    {
+        Ip6::SockAddr sockAddr;
+        sockAddr.mAddress = aMessageInfo.GetPeerAddr();
+        sockAddr.mPort    = aMessageInfo.GetPeerPort();
+        mSocket.Connect(sockAddr);
+
+        mPeerAddress.SetPeerAddr(aMessageInfo.GetPeerAddr());
+        mPeerAddress.SetPeerPort(aMessageInfo.GetPeerPort());
+        mPeerAddress.SetInterfaceId(aMessageInfo.GetInterfaceId());
+
+        if (netif.IsUnicastAddress(aMessageInfo.GetSockAddr()))
+        {
+            mPeerAddress.SetSockAddr(aMessageInfo.GetSockAddr());
+        }
+
+        mPeerAddress.SetSockPort(aMessageInfo.GetSockPort());
+    }
+    else
+    {
+        // Once DTLS session is started, communicate only with a peer.
+        VerifyOrExit((mPeerAddress.GetPeerAddr() == aMessageInfo.GetPeerAddr()) &&
+                     (mPeerAddress.GetPeerPort() == aMessageInfo.GetPeerPort()));
+    }
+
+    SetClientId(mPeerAddress.GetPeerAddr().mFields.m8, sizeof(mPeerAddress.GetPeerAddr().mFields));
+
+    mReceiveMessage = &aMessage;
+    mReceiveOffset  = aMessage.GetOffset();
+    mReceiveLength  = aMessage.GetLength() - mReceiveOffset;
+
+    Process();
+}
+
+otError Dtls::Start(bool aClient, ConnectedHandler aConnectedHandler, void *aContext)
 {
     otExtAddress eui64;
     int          rval;
@@ -481,17 +533,6 @@ otError Dtls::Send(Message &aMessage, uint16_t aLength)
 
 exit:
     return error;
-}
-
-otError Dtls::Receive(Message &aMessage, uint16_t aOffset, uint16_t aLength)
-{
-    mReceiveMessage = &aMessage;
-    mReceiveOffset  = aOffset;
-    mReceiveLength  = aLength;
-
-    Process();
-
-    return OT_ERROR_NONE;
 }
 
 int Dtls::HandleMbedtlsTransmit(void *aContext, const unsigned char *aBuf, size_t aLength)
@@ -914,6 +955,95 @@ void Dtls::HandleMbedtlsDebug(void *ctx, int level, const char *, int, const cha
         }
     }
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
+}
+
+void Dtls::HandleDtlsReceive(void *aContext, uint8_t *aBuf, uint16_t aLength)
+{
+    return static_cast<Dtls *>(aContext)->HandleDtlsReceive(aBuf, aLength);
+}
+
+void Dtls::HandleDtlsReceive(uint8_t *aBuf, uint16_t aLength)
+{
+    Message *message = NULL;
+
+    VerifyOrExit((message = GetInstance().GetMessagePool().New(Message::kTypeIp6, 0)) != NULL);
+    SuccessOrExit(message->Append(aBuf, aLength));
+
+    CoapBase::Receive(*message, mPeerAddress);
+
+exit:
+
+    if (message != NULL)
+    {
+        message->Free();
+    }
+}
+
+otError Dtls::HandleDtlsSend(void *aContext, const uint8_t *aBuf, uint16_t aLength, uint8_t aMessageSubType)
+{
+    return static_cast<Dtls *>(aContext)->HandleDtlsSend(aBuf, aLength, aMessageSubType);
+}
+
+otError Dtls::HandleDtlsSend(const uint8_t *aBuf, uint16_t aLength, uint8_t aMessageSubType)
+{
+    otError error = OT_ERROR_NONE;
+
+    if (mTransmitMessage == NULL)
+    {
+        VerifyOrExit((mTransmitMessage = mSocket.NewMessage(0)) != NULL, error = OT_ERROR_NO_BUFS);
+        mTransmitMessage->SetSubType(aMessageSubType);
+        mTransmitMessage->SetLinkSecurityEnabled(mLayerTwoSecurity);
+    }
+
+    SuccessOrExit(error = mTransmitMessage->Append(aBuf, aLength));
+
+    // Set message sub type in case Joiner Finalize Response is appended to the message.
+    if (aMessageSubType != Message::kSubTypeNone)
+    {
+        mTransmitMessage->SetSubType(aMessageSubType);
+    }
+
+    mTransmitTask.Post();
+
+exit:
+
+    if (error != OT_ERROR_NONE && mTransmitMessage != NULL && mTransmitMessage->GetLength() == 0)
+    {
+        mTransmitMessage->Free();
+        mTransmitMessage = NULL;
+    }
+
+    return error;
+}
+
+void Dtls::HandleUdpTransmit(Tasklet &aTasklet)
+{
+    aTasklet.GetOwner<Dtls>().HandleUdpTransmit();
+}
+
+void Dtls::HandleUdpTransmit(void)
+{
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(mTransmitMessage != NULL, error = OT_ERROR_NO_BUFS);
+
+    if (mTransportCallback)
+    {
+        SuccessOrExit(error = mTransportCallback(mTransportContext, *mTransmitMessage, mPeerAddress));
+    }
+    else
+    {
+        SuccessOrExit(error = mSocket.SendTo(*mTransmitMessage, mPeerAddress));
+    }
+
+exit:
+
+    if (error != OT_ERROR_NONE && mTransmitMessage != NULL)
+    {
+        mTransmitMessage->Free();
+    }
+
+    mTransmitMessage = NULL;
 }
 
 } // namespace MeshCoP
