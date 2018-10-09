@@ -54,6 +54,7 @@ CoapSecure::CoapSecure(Instance &aInstance)
     , mTransportContext(NULL)
     , mTransmitMessage(NULL)
     , mTransmitTask(aInstance, &CoapSecure::HandleUdpTransmit, this)
+    , mSocket(aInstance.GetThreadNetif().GetIp6().GetUdp())
     , mLayerTwoSecurity(false)
 {
 }
@@ -70,6 +71,7 @@ CoapSecure::CoapSecure(Instance &       aInstance,
     , mTransportContext(NULL)
     , mTransmitMessage(NULL)
     , mTransmitTask(aInstance, aUdpTransmitHandle, this)
+    , mSocket(aInstance.GetThreadNetif().GetIp6().GetUdp())
     , mLayerTwoSecurity(true)
 {
 }
@@ -87,9 +89,14 @@ otError CoapSecure::Start(uint16_t aPort, TransportCallback aCallback, void *aCo
     // to transmit/receive messages, so do not open it in that case.
     if (mTransportCallback == NULL)
     {
-        error = CoapBase::Start(aPort);
+        Ip6::SockAddr sockaddr;
+
+        sockaddr.mPort = aPort;
+        SuccessOrExit(error = mSocket.Open(&HandleUdpReceive, this));
+        SuccessOrExit(error = mSocket.Bind(sockaddr));
     }
 
+exit:
     return error;
 }
 
@@ -101,6 +108,10 @@ void CoapSecure::SetConnectedCallback(ConnectedCallback aCallback, void *aContex
 
 otError CoapSecure::Stop(void)
 {
+    otError error;
+
+    SuccessOrExit(error = mSocket.Close());
+
     if (IsConnectionActive())
     {
         Disconnect();
@@ -115,7 +126,10 @@ otError CoapSecure::Stop(void)
     mTransportCallback = NULL;
     mTransportContext  = NULL;
 
-    return CoapBase::Stop();
+    ClearCaches();
+
+exit:
+    return error;
 }
 
 otError CoapSecure::Connect(const Ip6::SockAddr &aSockAddr, ConnectedCallback aCallback, void *aContext)
@@ -237,7 +251,13 @@ otError CoapSecure::Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo
     return GetNetif().GetDtls().Send(aMessage, aMessage.GetLength());
 }
 
-void CoapSecure::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+void CoapSecure::HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
+{
+    static_cast<CoapSecure *>(aContext)->HandleUdpReceive(*static_cast<Message *>(aMessage),
+                                                          *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
+}
+
+void CoapSecure::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     ThreadNetif &netif = GetNetif();
 

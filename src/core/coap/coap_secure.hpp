@@ -316,22 +316,30 @@ public:
                         void *                  aContext = NULL);
 
     /**
-     * This method is used to pass messages to the secure CoAP server.
-     * It can be used when messages are received other way that via server's socket.
-     *
-     * @param[in]  aMessage      A reference to the received message.
-     * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
-     *
-     */
-    virtual void Receive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
-
-    /**
      * This method returns the DTLS session's peer address.
      *
      * @return DTLS session's message info.
      *
      */
     const Ip6::MessageInfo &GetPeerMessageInfo(void) const { return mPeerAddress; }
+
+    /**
+     * This method returns a port number used by CoAP service.
+     *
+     * @returns A port number.
+     *
+     */
+    uint16_t GetPort(void) { return mSocket.GetSockName().mPort; };
+
+    /**
+     * This method is used to pass UDP messages to the secure CoAP server.
+     * It can be used when messages are received other way that via server's socket.
+     *
+     * @param[in]  aMessage      A reference to the received message.
+     * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
+     *
+     */
+    void HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
 protected:
     void HandleUdpTransmit(void);
@@ -348,6 +356,8 @@ private:
     static otError HandleDtlsSend(void *aContext, const uint8_t *aBuf, uint16_t aLength, uint8_t aMessageSubType);
     otError        HandleDtlsSend(const uint8_t *aBuf, uint16_t aLength, uint8_t aMessageSubType);
 
+    static void HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
+
     static void HandleUdpTransmit(Tasklet &aTasklet);
 
     static void HandleRetransmissionTimer(Timer &aTimer);
@@ -360,6 +370,7 @@ private:
     void *            mTransportContext;
     Message *         mTransmitMessage;
     Tasklet           mTransmitTask;
+    Ip6::UdpSocket    mSocket;
 
     bool mLayerTwoSecurity : 1;
 };
