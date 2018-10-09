@@ -53,7 +53,7 @@
 namespace ot {
 namespace MeshCoP {
 
-Dtls::Dtls(Instance &aInstance)
+Dtls::Dtls(Instance &aInstance, bool aLayerTwoSecurity)
     : InstanceLocator(aInstance)
     , mState(kStateStopped)
     , mPskLength(0)
@@ -61,6 +61,7 @@ Dtls::Dtls(Instance &aInstance)
     , mTimer(aInstance, &Dtls::HandleTimer, this)
     , mTimerIntermediate(0)
     , mTimerSet(false)
+    , mLayerTwoSecurity(aLayerTwoSecurity)
     , mReceiveMessage(NULL)
     , mReceiveOffset(0)
     , mReceiveLength(0)
@@ -68,6 +69,9 @@ Dtls::Dtls(Instance &aInstance)
     , mReceiveHandler(NULL)
     , mSendHandler(NULL)
     , mContext(NULL)
+    , mSocket(aInstance.GetThreadNetif().GetIp6().GetUdp())
+    , mTransportCallback(NULL)
+    , mTransportContext(NULL)
     , mMessageSubType(Message::kSubTypeNone)
     , mMessageDefaultSubType(Message::kSubTypeNone)
 {
@@ -149,11 +153,120 @@ void Dtls::FreeMbedtls(void)
     mbedtls_ssl_free(&mSsl);
 }
 
-otError Dtls::Start(bool             aClient,
-                    ConnectedHandler aConnectedHandler,
-                    ReceiveHandler   aReceiveHandler,
-                    SendHandler      aSendHandler,
-                    void *           aContext)
+otError Dtls::Open(ReceiveHandler aReceiveHandler, ConnectedHandler aConnectedHandler, void *aContext)
+{
+    otError error;
+
+    SuccessOrExit(error = mSocket.Open(&Dtls::HandleUdpReceive, this));
+
+    mReceiveHandler   = aReceiveHandler;
+    mConnectedHandler = aConnectedHandler;
+    mContext          = aContext;
+
+exit:
+    return error;
+}
+
+otError Dtls::Connect(const Ip6::SockAddr &aSockAddr)
+{
+    memcpy(&mPeerAddress.mPeerAddr, &aSockAddr.mAddress, sizeof(mPeerAddress.mPeerAddr));
+    mPeerAddress.mPeerPort = aSockAddr.mPort;
+
+    if (aSockAddr.GetAddress().IsLinkLocal() || aSockAddr.GetAddress().IsMulticast())
+    {
+        mPeerAddress.mInterfaceId = aSockAddr.mScopeId;
+    }
+    else
+    {
+        mPeerAddress.mInterfaceId = 0;
+    }
+
+    return Start(true);
+}
+
+void Dtls::HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
+{
+    static_cast<Dtls *>(aContext)->HandleUdpReceive(*static_cast<Message *>(aMessage),
+                                                    *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
+}
+
+void Dtls::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+{
+    ThreadNetif &netif = GetNetif();
+
+    if (mState == MeshCoP::Dtls::kStateStopped)
+    {
+        Ip6::SockAddr sockAddr;
+
+        sockAddr.mAddress = aMessageInfo.GetPeerAddr();
+        sockAddr.mPort    = aMessageInfo.GetPeerPort();
+        mSocket.Connect(sockAddr);
+
+        mPeerAddress.SetPeerAddr(aMessageInfo.GetPeerAddr());
+        mPeerAddress.SetPeerPort(aMessageInfo.GetPeerPort());
+        mPeerAddress.SetInterfaceId(aMessageInfo.GetInterfaceId());
+
+        if (netif.IsUnicastAddress(aMessageInfo.GetSockAddr()))
+        {
+            mPeerAddress.SetSockAddr(aMessageInfo.GetSockAddr());
+        }
+
+        mPeerAddress.SetSockPort(aMessageInfo.GetSockPort());
+
+        SuccessOrExit(Start(false));
+    }
+    else
+    {
+        // Once DTLS session is started, communicate only with a peer.
+        VerifyOrExit((mPeerAddress.GetPeerAddr() == aMessageInfo.GetPeerAddr()) &&
+                     (mPeerAddress.GetPeerPort() == aMessageInfo.GetPeerPort()));
+    }
+
+#if OPENTHREAD_ENABLE_BORDER_AGENT || OPENTHREAD_ENABLE_COMMISSIONER
+    if (mState == MeshCoP::Dtls::kStateConnecting)
+    {
+        SetClientId(mPeerAddress.GetPeerAddr().mFields.m8, sizeof(mPeerAddress.GetPeerAddr().mFields));
+    }
+#endif
+
+    Receive(aMessage, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
+
+exit:
+    return;
+}
+
+otError Dtls::Bind(uint16_t aPort)
+{
+    otError       error;
+    Ip6::SockAddr sockaddr;
+
+    VerifyOrExit(mTransportCallback == NULL, error = OT_ERROR_ALREADY);
+
+    sockaddr.mPort = aPort;
+    SuccessOrExit(error = mSocket.Bind(sockaddr));
+
+    mState = kStateStopped;
+
+exit:
+    return error;
+}
+
+otError Dtls::Bind(TransportCallback aCallback, void *aContext)
+{
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(mTransportCallback == NULL, error = OT_ERROR_ALREADY);
+
+    mState = kStateStopped;
+
+    mTransportCallback = aCallback;
+    mTransportContext  = aContext;
+
+exit:
+    return error;
+}
+
+otError Dtls::Start(bool aClient)
 {
     int rval;
 
@@ -240,12 +353,9 @@ otError Dtls::Start(bool             aClient,
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
     VerifyOrExit(rval == 0);
 
-    mConnectedHandler = aConnectedHandler;
-    mReceiveHandler   = aReceiveHandler;
-    mSendHandler      = aSendHandler;
-    mContext          = aContext;
-    mReceiveMessage   = NULL;
-    mMessageSubType   = Message::kSubTypeNone;
+    mReceiveMessage = NULL;
+    mMessageSubType = Message::kSubTypeNone;
+    mState          = kStateConnecting;
 
     if (mCipherSuites[0] == MBEDTLS_TLS_ECJPAKE_WITH_AES_128_CCM_8)
     {
@@ -310,6 +420,7 @@ int Dtls::SetApplicationCoapSecureKeys(void)
         break;
 
     default:
+        assert(false);
         otLogCritCoap("Application Coap Secure DTLS: Not supported cipher.");
         rval = MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
         ExitNow();
@@ -327,30 +438,36 @@ void Dtls::SetSslAuthMode(bool aVerifyPeerCertificate)
 
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
-void Dtls::Stop(void)
-{
-    VerifyOrExit((mState == kStateConnecting) || (mState == kStateConnected));
-
-    mbedtls_ssl_close_notify(&mSsl);
-    Close();
-
-exit:
-    return;
-}
-
 void Dtls::Close(void)
 {
-    assert((mState == kStateConnecting) || (mState == kStateConnected));
+    Disconnect();
 
+    mState             = kStateStopped;
+    mTransportCallback = NULL;
+    mTransportContext  = NULL;
+    mTimerSet          = false;
+
+    mSocket.Close();
+    mTimer.Stop();
+}
+
+void Dtls::Disconnect(void)
+{
+    VerifyOrExit(mState == kStateConnecting || mState == kStateConnected);
+
+    mbedtls_ssl_close_notify(&mSsl);
     mState = kStateCloseNotify;
     mTimer.Start(kGuardTimeNewConnectionMilli);
-
-    FreeMbedtls();
 
     if (mConnectedHandler != NULL)
     {
         mConnectedHandler(mContext, false);
     }
+
+    FreeMbedtls();
+
+exit:
+    return;
 }
 
 otError Dtls::SetPsk(const uint8_t *aPsk, uint8_t aPskLength)
@@ -516,7 +633,7 @@ int Dtls::HandleMbedtlsTransmit(const unsigned char *aBuf, size_t aLength)
     }
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
-    error = mSendHandler(mContext, aBuf, static_cast<uint16_t>(aLength), mMessageSubType);
+    error = HandleDtlsSend(aBuf, static_cast<uint16_t>(aLength), mMessageSubType);
 
     // Restore default sub type.
     mMessageSubType = mMessageDefaultSubType;
@@ -689,7 +806,7 @@ int Dtls::HandleMbedtlsExportKeys(const unsigned char *aMasterSecret,
 
 void Dtls::HandleTimer(Timer &aTimer)
 {
-    aTimer.GetOwner<Dtls>().HandleTimer();
+    static_cast<Dtls *>(static_cast<TimerMilliContext &>(aTimer).GetContext())->HandleTimer();
 }
 
 void Dtls::HandleTimer(void)
@@ -929,6 +1046,42 @@ void Dtls::HandleMbedtlsDebug(void *ctx, int level, const char *, int, const cha
         }
     }
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
+}
+
+otError Dtls::HandleDtlsSend(const uint8_t *aBuf, uint16_t aLength, uint8_t aMessageSubType)
+{
+    otError      error   = OT_ERROR_NONE;
+    ot::Message *message = NULL;
+
+    VerifyOrExit((message = mSocket.NewMessage(0)) != NULL, error = OT_ERROR_NO_BUFS);
+    message->SetSubType(aMessageSubType);
+    message->SetLinkSecurityEnabled(mLayerTwoSecurity);
+
+    SuccessOrExit(error = message->Append(aBuf, aLength));
+
+    // Set message sub type in case Joiner Finalize Response is appended to the message.
+    if (aMessageSubType != Message::kSubTypeNone)
+    {
+        message->SetSubType(aMessageSubType);
+    }
+
+    if (mTransportCallback)
+    {
+        SuccessOrExit(error = mTransportCallback(mTransportContext, *message, mPeerAddress));
+    }
+    else
+    {
+        SuccessOrExit(error = mSocket.SendTo(*message, mPeerAddress));
+    }
+
+exit:
+
+    if (error != OT_ERROR_NONE && message != NULL)
+    {
+        message->Free();
+    }
+
+    return error;
 }
 
 } // namespace MeshCoP

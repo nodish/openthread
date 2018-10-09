@@ -624,10 +624,10 @@ template <> inline Dns::Client &Instance::Get(void)
 #endif
 
 #if OPENTHREAD_ENABLE_DTLS
-template <> inline MeshCoP::Dtls &Instance::Get(void)
-{
-    return GetThreadNetif().GetDtls();
-}
+// template <> inline MeshCoP::Dtls &Instance::Get(void)
+//{
+//    return GetThreadNetif().GetCoapSecure().GetDtls();
+//}
 
 template <> inline Coap::CoapSecure &Instance::Get(void)
 {
