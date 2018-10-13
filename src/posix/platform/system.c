@@ -47,8 +47,6 @@
 
 uint64_t gNodeId = 0;
 
-extern bool gPlatformPseudoResetWasRequested;
-
 static void PrintUsage(const char *aArg0)
 {
     fprintf(stderr, "Syntax:\n    %s [-s TimeSpeedUpFactor] {NodeId|Device DeviceConfig|Command CommandArgs}\n", aArg0);
@@ -62,12 +60,6 @@ void otSysInit(int aArgCount, char *aArgVector[])
     char *      endptr;
     const char *radioFile   = NULL;
     const char *radioConfig = "";
-
-    if (gPlatformPseudoResetWasRequested)
-    {
-        gPlatformPseudoResetWasRequested = false;
-        return;
-    }
 
     if (aArgCount < 2)
     {
@@ -107,11 +99,6 @@ void otSysInit(int aArgCount, char *aArgVector[])
     platformAlarmInit(speedUpFactor);
     platformRadioInit(radioFile, radioConfig);
     platformRandomInit();
-}
-
-bool otSysPseudoResetWasRequested(void)
-{
-    return gPlatformPseudoResetWasRequested;
 }
 
 void otSysDeinit(void)
