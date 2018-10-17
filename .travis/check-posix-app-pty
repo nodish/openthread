@@ -55,7 +55,7 @@ check() {
 
     SOCAT_OUTPUT=/tmp/ot-socat
     OT_OUTPUT=/tmp/ot-output
-    socat -d -d pty,raw,b115200,echo=0 pty,raw,b115200,echo=0 > /dev/null 2> $SOCAT_OUTPUT &
+    socat -d -d pty,raw,echo=0 pty,raw,echo=0 > /dev/null 2> $SOCAT_OUTPUT &
     while true; do
         if test $(head -n2 $SOCAT_OUTPUT | wc -l) = 2; then
             RADIO_PTY=$(head -n1 $SOCAT_OUTPUT | grep -o '/dev/.\+')
@@ -72,7 +72,7 @@ check() {
     $RADIO_NCP_PATH 1 > $RADIO_PTY < $RADIO_PTY &
     OT_CLI_PATH="$(pwd)/$(ls output/posix/*linux*/bin/ot-cli)"
     sudo expect <<EOF > $OT_OUTPUT &
-spawn $OT_CLI_PATH ${OT_NCP_PATH} ${CORE_PTY} -echo
+spawn $OT_CLI_PATH ${OT_NCP_PATH} ${CORE_PTY}
 send "panid 0xface\r\n"
 expect "Done"
 send "ifconfig up\r\n"
