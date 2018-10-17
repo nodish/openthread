@@ -141,7 +141,7 @@ void otSysInit(int aArgCount, char *aArgVector[])
     platformRadioInit(radioFile, radioConfig);
     platformRandomInit();
 #if OPENTHREAD_ENABLE_PLATFORM_UDP && OPENTHREAD_ENABLE_PLATFORM_NETIF == 0
-    platformUdpInit();
+    platformUdpInit(getenv("PLATFORM_NETIF");
 #endif
 
     if (isDryRun)

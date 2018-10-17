@@ -70,10 +70,10 @@ struct in6_ifreq
 static otPlatNetifEvent *      sCurrentEvent = NULL;
 static otPlatNetifEventHandler sEventHandler = NULL;
 static otInstance *            sInstance     = NULL;
-static int                     sTunFd        = -1;
-static int                     sTunIndex     = 0;
-static int                     sIpFd         = -1;
-static int                     sNetlinkFd    = -1;
+static int                     sTunFd        = -1; ///< Used to exchange IPv6 packets.
+static int                     sIpFd         = -1; ///< Used to manage IPv6 stack on Thread interface.
+static int                     sNetlinkFd    = -1; ///< Used to receive netlink events.
+static unsigned int            sTunIndex     = 0;
 static char                    sTunName[IFNAMSIZ];
 static const size_t            kMaxIp6Size = 1536;
 
@@ -85,7 +85,6 @@ void otPlatNetifInit(otInstance *aInstance, otPlatNetifEventHandler aHandler)
 {
     struct ifreq ifr;
 
-    fprintf(stderr, "init plat netif\r\n");
     sIpFd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_IP);
     VerifyOrExit(sIpFd > 0);
 
@@ -149,7 +148,8 @@ exit:
             close(sNetlinkFd);
             sNetlinkFd = -1;
         }
-        exit(EXIT_FAILURE);
+
+        exit(OT_EXIT_FAILURE);
     }
 }
 
@@ -158,7 +158,7 @@ otError otPlatNetifUp(otInstance *aInstance)
     otError      error = OT_ERROR_NONE;
     struct ifreq ifr;
 
-    OT_UNUSED_VARIABLE(aInstance);
+    assert(sInstance == aInstance);
 
     VerifyOrExit(sIpFd > 0);
     memset(&ifr, 0, sizeof(ifr));
@@ -171,7 +171,7 @@ otError otPlatNetifUp(otInstance *aInstance)
 exit:
     if (error != OT_ERROR_NONE)
     {
-        perror("ifconfig up");
+        perror(__func__);
     }
 
     return error;
@@ -182,7 +182,7 @@ otError otPlatNetifDown(otInstance *aInstance)
     otError      error = OT_ERROR_NONE;
     struct ifreq ifr;
 
-    OT_UNUSED_VARIABLE(aInstance);
+    assert(sInstance == aInstance);
 
     VerifyOrExit(sIpFd > 0);
     memset(&ifr, 0, sizeof(ifr));
@@ -195,7 +195,7 @@ otError otPlatNetifDown(otInstance *aInstance)
 exit:
     if (error != OT_ERROR_NONE)
     {
-        perror("ifconfig down");
+        perror(__func__);
     }
 
     return error;
@@ -206,9 +206,9 @@ otError otPlatNetifAddAddress(otInstance *aInstance, const otNetifAddress *aNeti
     struct in6_ifreq ifr6;
     otError          error = OT_ERROR_NONE;
 
-    OT_UNUSED_VARIABLE(aInstance);
+    assert(sInstance == aInstance);
 
-    VerifyOrExit(sIpFd > 0);
+    VerifyOrExit(sIpFd > 0, error = OT_ERROR_INVALID_STATE);
 
     VerifyOrExit(sCurrentEvent == NULL || sCurrentEvent->mType != OT_PLAT_NETIF_EVENT_ADDR_ADDED);
     memcpy(&ifr6.ifr6_addr, &aNetifAddress->mAddress, sizeof(ifr6.ifr6_addr));
@@ -221,7 +221,7 @@ otError otPlatNetifAddAddress(otInstance *aInstance, const otNetifAddress *aNeti
 exit:
     if (error != OT_ERROR_NONE)
     {
-        perror("add address");
+        perror(__func__);
     }
 
     return error;
@@ -232,7 +232,7 @@ otError otPlatNetifRemoveAddress(otInstance *aInstance, const otNetifAddress *aN
     struct in6_ifreq ifr6;
     otError          error = OT_ERROR_NONE;
 
-    OT_UNUSED_VARIABLE(aInstance);
+    assert(sInstance == aInstance);
 
     VerifyOrExit(sIpFd > 0);
     VerifyOrExit(sCurrentEvent == NULL || sCurrentEvent->mType != OT_PLAT_NETIF_EVENT_ADDR_REMOVED);
@@ -245,7 +245,7 @@ otError otPlatNetifRemoveAddress(otInstance *aInstance, const otNetifAddress *aN
 exit:
     if (error != OT_ERROR_NONE)
     {
-        perror("remove address");
+        perror(__func__);
     }
 
     return error;
@@ -257,7 +257,7 @@ void otPlatNetifReceive(otInstance *aInstance, otMessage *aMessage)
     otError  error  = OT_ERROR_NONE;
     uint16_t length = otMessageGetLength(aMessage);
 
-    OT_UNUSED_VARIABLE(aInstance);
+    assert(sInstance == aInstance);
 
     VerifyOrExit(sTunFd > 0);
 
@@ -271,7 +271,7 @@ exit:
         switch (error)
         {
         case OT_ERROR_FAILED:
-            perror("netif receive");
+            perror(__func__);
             break;
         default:
             otLogWarnPlat(aInstance, "failed to deliver netif: %s", otThreadErrorToString(error));
@@ -287,6 +287,8 @@ static void processTransmit(otInstance *aInstance)
     char       packet[kMaxIp6Size];
     otError    error   = OT_ERROR_NONE;
     otMessage *message = NULL;
+
+    assert(sInstance == aInstance);
 
     {
         ssize_t rval;
@@ -370,7 +372,7 @@ static void processNetifLinkEvent(otInstance *aInstance, struct nlmsghdr *aNetli
     struct ifinfomsg *ifinfo = reinterpret_cast<struct ifinfomsg *>(NLMSG_DATA(aNetlinkMessage));
     otPlatNetifEvent  event;
 
-    VerifyOrExit(ifinfo->ifi_index == sTunIndex);
+    VerifyOrExit(ifinfo->ifi_index == static_cast<int>(sTunIndex));
     event.mType   = (ifinfo->ifi_flags & IFF_UP) ? OT_PLAT_NETIF_EVENT_UP : OT_PLAT_NETIF_EVENT_DOWN;
     sCurrentEvent = &event;
     sEventHandler(aInstance, &event);
@@ -382,8 +384,9 @@ exit:
 
 static void processNetifEvent(otInstance *aInstance)
 {
-    char    buffer[8192];
-    ssize_t length;
+    const size_t kMaxNetifEvent = 8192;
+    char         buffer[kMaxNetifEvent];
+    ssize_t      length;
 
     length = recv(sNetlinkFd, buffer, sizeof(buffer), 0);
 
@@ -448,13 +451,13 @@ void platformNetifProcess(const fd_set *aReadFdSet, const fd_set *aWriteFdSet, c
     if (FD_ISSET(sTunFd, aErrorFdSet))
     {
         close(sTunFd);
-        exit(EXIT_FAILURE);
+        exit(OT_EXIT_FAILURE);
     }
 
     if (FD_ISSET(sNetlinkFd, aErrorFdSet))
     {
         close(sNetlinkFd);
-        exit(EXIT_FAILURE);
+        exit(OT_EXIT_FAILURE);
     }
 
     if (FD_ISSET(sTunFd, aReadFdSet))
