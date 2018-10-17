@@ -265,7 +265,7 @@ void otSysProcessDrivers(otInstance *aInstance)
     platformUartProcess(&readFdSet, &writeFdSet, &errorFdSet);
     platformAlarmProcess(aInstance);
 #if OPENTHREAD_ENABLE_PLATFORM_NETIF
-    platformNetifProcess(aInstance, &readFdSet, &writeFdSet, &errorFdSet);
+    platformNetifProcess(&readFdSet, &writeFdSet, &errorFdSet);
 #endif
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
     platformUdpProcess(aInstance, &readFdSet);
