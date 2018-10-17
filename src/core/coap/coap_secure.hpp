@@ -58,16 +58,6 @@ public:
     typedef void (*ConnectedCallback)(bool aConnected, void *aContext);
 
     /**
-     * This function pointer is called when secure CoAP server want to send encrypted message.
-     *
-     * @param[in]  aContext      A pointer to arbitrary context information.
-     * @param[in]  aMessage      A reference to the message to send.
-     * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
-     *
-     */
-    typedef otError (*TransportCallback)(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
-
-    /**
      * This constructor initializes the object.
      *
      * @param[in]  aInstance  A reference to the OpenThread instance.
@@ -86,10 +76,7 @@ public:
      * @param[in]  aResponsesQueueTimer  Handler for Queue Responses.
      *
      */
-    explicit CoapSecure(Instance &       aInstance,
-                        Tasklet::Handler aUdpTransmitHandle,
-                        Timer::Handler   aRetransmissionTimer,
-                        Timer::Handler   aResponsesQueueTimer);
+    explicit CoapSecure(Instance &aInstance, Timer::Handler aRetransmissionTimer, Timer::Handler aResponsesQueueTimer);
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
     /**
@@ -103,7 +90,7 @@ public:
      * @retval OT_ERROR_NONE  Successfully started the CoAP agent.
      *
      */
-    otError Start(uint16_t aPort, TransportCallback aCallback = NULL, void *aContext = NULL);
+    otError Start(uint16_t aPort);
 
     /**
      * This method sets connected callback of this secure CoAP agent.
@@ -321,7 +308,7 @@ public:
      * @return DTLS session's message info.
      *
      */
-    const Ip6::MessageInfo &GetPeerMessageInfo(void) const { return mPeerAddress; }
+    const Ip6::MessageInfo &GetMessageInfo(void) const { return mDtls.GetMessageInfo(); }
 
     /**
      * This method returns a port number used by CoAP service.
@@ -350,28 +337,21 @@ private:
     static void HandleDtlsConnected(void *aContext, bool aConnected);
     void        HandleDtlsConnected(bool aConnected);
 
-    static void HandleDtlsReceive(void *aContext, uint8_t *aBuf, uint16_t aLength);
-    void        HandleDtlsReceive(uint8_t *aBuf, uint16_t aLength);
+    static void HandleDtlsReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
+    void        HandleDtlsReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
     static otError HandleDtlsSend(void *aContext, const uint8_t *aBuf, uint16_t aLength, uint8_t aMessageSubType);
     otError        HandleDtlsSend(const uint8_t *aBuf, uint16_t aLength, uint8_t aMessageSubType);
-
-    static void HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
 
     static void HandleUdpTransmit(Tasklet &aTasklet);
 
     static void HandleRetransmissionTimer(Timer &aTimer);
     static void HandleResponsesQueueTimer(Timer &aTimer);
 
+    MeshCoP::Dtls     mDtls;
     ConnectedCallback mConnectedCallback;
     void *            mConnectedContext;
-    TransportCallback mTransportCallback;
-    void *            mTransportContext;
-    Message *         mTransmitMessage;
-    Tasklet           mTransmitTask;
     Ip6::UdpSocket    mSocket;
-
-    bool mLayerTwoSecurity : 1;
 };
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE

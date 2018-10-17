@@ -48,53 +48,34 @@ namespace Coap {
 
 CoapSecure::CoapSecure(Instance &aInstance)
     : CoapBase(aInstance, &CoapSecure::HandleRetransmissionTimer, &CoapSecure::HandleResponsesQueueTimer)
+    , mDtls(aInstance)
     , mConnectedCallback(NULL)
     , mConnectedContext(NULL)
-    , mTransportCallback(NULL)
-    , mTransportContext(NULL)
-    , mTransmitMessage(NULL)
-    , mTransmitTask(aInstance, &CoapSecure::HandleUdpTransmit, this)
     , mSocket(aInstance.GetThreadNetif().GetIp6().GetUdp())
-    , mLayerTwoSecurity(false)
 {
 }
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
-CoapSecure::CoapSecure(Instance &       aInstance,
-                       Tasklet::Handler aUdpTransmitHandle,
-                       Timer::Handler   aRetransmissionTimer,
-                       Timer::Handler   aResponsesQueueTimer)
+CoapSecure::CoapSecure(Instance &aInstance, Timer::Handler aRetransmissionTimer, Timer::Handler aResponsesQueueTimer)
     : CoapBase(aInstance, aRetransmissionTimer, aResponsesQueueTimer)
+    , mDtls(aInstance)
     , mConnectedCallback(NULL)
     , mConnectedContext(NULL)
-    , mTransportCallback(NULL)
-    , mTransportContext(NULL)
-    , mTransmitMessage(NULL)
-    , mTransmitTask(aInstance, aUdpTransmitHandle, this)
     , mSocket(aInstance.GetThreadNetif().GetIp6().GetUdp())
-    , mLayerTwoSecurity(true)
 {
 }
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
-otError CoapSecure::Start(uint16_t aPort, TransportCallback aCallback, void *aContext)
+otError CoapSecure::Start(uint16_t aPort)
 {
     otError error      = OT_ERROR_NONE;
-    mTransportCallback = aCallback;
-    mTransportContext  = aContext;
     mConnectedCallback = NULL;
     mConnectedContext  = NULL;
 
     // Passing mTransportCallback means that we do not want to use socket
     // to transmit/receive messages, so do not open it in that case.
-    if (mTransportCallback == NULL)
-    {
-        Ip6::SockAddr sockaddr;
-
-        sockaddr.mPort = aPort;
-        SuccessOrExit(error = mSocket.Open(&HandleUdpReceive, this));
-        SuccessOrExit(error = mSocket.Bind(sockaddr));
-    }
+    SuccessOrExit(error = mDtls.Open(HandleDtlsReceive, this));
+    SuccessOrExit(error = mDtls.Start(aPort, HandleDtlsConnected));
 
 exit:
     return error;
@@ -117,15 +98,6 @@ otError CoapSecure::Stop(void)
         Disconnect();
     }
 
-    if (mTransmitMessage != NULL)
-    {
-        mTransmitMessage->Free();
-        mTransmitMessage = NULL;
-    }
-
-    mTransportCallback = NULL;
-    mTransportContext  = NULL;
-
     ClearCaches();
 
 exit:
@@ -134,48 +106,35 @@ exit:
 
 otError CoapSecure::Connect(const Ip6::SockAddr &aSockAddr, ConnectedCallback aCallback, void *aContext)
 {
-    memcpy(&mPeerAddress.mPeerAddr, &aSockAddr.mAddress, sizeof(mPeerAddress.mPeerAddr));
-    mPeerAddress.mPeerPort = aSockAddr.mPort;
-
-    if (aSockAddr.GetAddress().IsLinkLocal() || aSockAddr.GetAddress().IsMulticast())
-    {
-        mPeerAddress.mInterfaceId = aSockAddr.mScopeId;
-    }
-    else
-    {
-        mPeerAddress.mInterfaceId = 0;
-    }
-
     mConnectedCallback = aCallback;
     mConnectedContext  = aContext;
 
-    return GetNetif().GetDtls().Start(true, &CoapSecure::HandleDtlsConnected, &CoapSecure::HandleDtlsReceive,
-                                      &CoapSecure::HandleDtlsSend, this);
+    return mDtls.Connect(aSockAddr, &CoapSecure::HandleDtlsConnected);
 }
 
 bool CoapSecure::IsConnectionActive(void)
 {
-    return GetNetif().GetDtls().IsStarted();
+    return mDtls.IsStarted();
 }
 
 bool CoapSecure::IsConnected(void)
 {
-    return GetNetif().GetDtls().IsConnected();
+    return mDtls.IsConnected();
 }
 
 otError CoapSecure::Disconnect(void)
 {
-    return GetNetif().GetDtls().Stop();
+    return mDtls.Stop();
 }
 
 MeshCoP::Dtls &CoapSecure::GetDtls(void)
 {
-    return GetNetif().GetDtls();
+    return mDtls;
 }
 
 otError CoapSecure::SetPsk(const uint8_t *aPsk, uint8_t aPskLength)
 {
-    return GetNetif().GetDtls().SetPsk(aPsk, aPskLength);
+    return mDtls.SetPsk(aPsk, aPskLength);
 }
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
@@ -186,12 +145,12 @@ otError CoapSecure::SetCertificate(const uint8_t *aX509Cert,
                                    const uint8_t *aPrivateKey,
                                    uint32_t       aPrivateKeyLength)
 {
-    return GetNetif().GetDtls().SetCertificate(aX509Cert, aX509Length, aPrivateKey, aPrivateKeyLength);
+    return mDtls.SetCertificate(aX509Cert, aX509Length, aPrivateKey, aPrivateKeyLength);
 }
 
 otError CoapSecure::SetCaCertificateChain(const uint8_t *aX509CaCertificateChain, uint32_t aX509CaCertChainLenth)
 {
-    return GetNetif().GetDtls().SetCaCertificateChain(aX509CaCertificateChain, aX509CaCertChainLenth);
+    return mDtls.SetCaCertificateChain(aX509CaCertificateChain, aX509CaCertChainLenth);
 }
 #endif // MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
 
@@ -201,14 +160,14 @@ otError CoapSecure::SetPreSharedKey(const uint8_t *aPsk,
                                     const uint8_t *aPskIdentity,
                                     uint16_t       aPskIdLength)
 {
-    return GetNetif().GetDtls().SetPreSharedKey(aPsk, aPskLength, aPskIdentity, aPskIdLength);
+    return mDtls.SetPreSharedKey(aPsk, aPskLength, aPskIdentity, aPskIdLength);
 }
 #endif // MBEDTLS_KEY_EXCHANGE_PSK_ENABLED
 
 #ifdef MBEDTLS_BASE64_C
 otError CoapSecure::GetPeerCertificateBase64(unsigned char *aPeerCert, size_t *aCertLength, size_t aCertBufferSize)
 {
-    return GetNetif().GetDtls().GetPeerCertificateBase64(aPeerCert, aCertLength, aCertBufferSize);
+    return mDtls.GetPeerCertificateBase64(aPeerCert, aCertLength, aCertBufferSize);
 }
 #endif // MBEDTLS_BASE64_C
 
@@ -220,7 +179,7 @@ void CoapSecure::SetClientConnectedCallback(ConnectedCallback aCallback, void *a
 
 void CoapSecure::SetSslAuthMode(bool aVerifyPeerCertificate)
 {
-    GetNetif().GetDtls().SetSslAuthMode(aVerifyPeerCertificate);
+    mDtls.SetSslAuthMode(aVerifyPeerCertificate);
 }
 
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
@@ -231,7 +190,7 @@ otError CoapSecure::SendMessage(Message &aMessage, otCoapResponseHandler aHandle
 
     VerifyOrExit(IsConnected(), error = OT_ERROR_INVALID_STATE);
 
-    error = CoapBase::SendMessage(aMessage, mPeerAddress, aHandler, aContext);
+    error = CoapBase::SendMessage(aMessage, mDtls.GetMessageInfo(), aHandler, aContext);
 
 exit:
     return error;
@@ -248,55 +207,7 @@ otError CoapSecure::SendMessage(Message &               aMessage,
 otError CoapSecure::Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     OT_UNUSED_VARIABLE(aMessageInfo);
-    return GetNetif().GetDtls().Send(aMessage, aMessage.GetLength());
-}
-
-void CoapSecure::HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
-{
-    static_cast<CoapSecure *>(aContext)->HandleUdpReceive(*static_cast<Message *>(aMessage),
-                                                          *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
-}
-
-void CoapSecure::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
-{
-    ThreadNetif &netif = GetNetif();
-
-    if (!netif.GetDtls().IsStarted())
-    {
-        Ip6::SockAddr sockAddr;
-        sockAddr.mAddress = aMessageInfo.GetPeerAddr();
-        sockAddr.mPort    = aMessageInfo.GetPeerPort();
-        mSocket.Connect(sockAddr);
-
-        mPeerAddress.SetPeerAddr(aMessageInfo.GetPeerAddr());
-        mPeerAddress.SetPeerPort(aMessageInfo.GetPeerPort());
-        mPeerAddress.SetInterfaceId(aMessageInfo.GetInterfaceId());
-
-        if (netif.IsUnicastAddress(aMessageInfo.GetSockAddr()))
-        {
-            mPeerAddress.SetSockAddr(aMessageInfo.GetSockAddr());
-        }
-
-        mPeerAddress.SetSockPort(aMessageInfo.GetSockPort());
-
-        VerifyOrExit(netif.GetDtls().Start(false, &CoapSecure::HandleDtlsConnected, &CoapSecure::HandleDtlsReceive,
-                                           CoapSecure::HandleDtlsSend, this) == OT_ERROR_NONE);
-    }
-    else
-    {
-        // Once DTLS session is started, communicate only with a peer.
-        VerifyOrExit((mPeerAddress.GetPeerAddr() == aMessageInfo.GetPeerAddr()) &&
-                     (mPeerAddress.GetPeerPort() == aMessageInfo.GetPeerPort()));
-    }
-
-#if OPENTHREAD_ENABLE_BORDER_AGENT || OPENTHREAD_ENABLE_COMMISSIONER
-    netif.GetDtls().SetClientId(mPeerAddress.GetPeerAddr().mFields.m8, sizeof(mPeerAddress.GetPeerAddr().mFields));
-#endif
-
-    netif.GetDtls().Receive(aMessage, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
-
-exit:
-    return;
+    return mDtls.Send(aMessage, aMessage.GetLength());
 }
 
 void CoapSecure::HandleDtlsConnected(void *aContext, bool aConnected)
@@ -320,6 +231,17 @@ void CoapSecure::HandleRetransmissionTimer(Timer &aTimer)
 void CoapSecure::HandleResponsesQueueTimer(Timer &aTimer)
 {
     aTimer.GetOwner<CoapSecure>().CoapBase::HandleResponsesQueueTimer();
+}
+
+void CoapSecure::HandleDtlsReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
+{
+    static_cast<CoapSecure *>(aContext)->HandleDtlsReceive(*static_cast<Message *>(aMessage),
+                                                           *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
+}
+
+void CoapSecure::HandleDtlsReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+{
+    CoapBase::Receive(aMessage, aMessageInfo);
 }
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE

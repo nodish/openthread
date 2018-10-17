@@ -786,8 +786,6 @@ public:
     virtual otError Send(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
 private:
-    Ip6::UdpSocket mSocket;
-
     static void HandleRetransmissionTimer(Timer &aTimer);
     static void HandleResponsesQueueTimer(Timer &aTimer);
     static void HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);

@@ -1,4 +1,3 @@
-
 /*
  *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
@@ -83,7 +82,6 @@ ThreadNetif::ThreadNetif(Instance &aInstance)
     , mCommissioner(aInstance)
 #endif // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
 #if OPENTHREAD_ENABLE_DTLS
-    , mDtls(aInstance)
     , mCoapSecure(aInstance)
 #endif
 #if OPENTHREAD_ENABLE_JOINER
@@ -148,7 +146,7 @@ otError ThreadNetif::Down(void)
     mIsUp = false;
 
 #if OPENTHREAD_ENABLE_DTLS
-    mDtls.Stop();
+    mCoapSecure.Stop();
 #endif
 
     return OT_ERROR_NONE;

@@ -129,7 +129,7 @@ otError Commissioner::Stop(void)
 
     mTimer.Stop();
 
-    GetNetif().GetDtls().Stop();
+    GetNetif().GetCoapSecure().Stop();
 
     SendKeepAlive();
 

@@ -166,7 +166,7 @@ void BorderAgent::SendErrorMessage(const Coap::Header &aHeader)
 
     VerifyOrExit((message = NewMeshCoPMessage(netif.GetCoapSecure(), aHeader)) != NULL, error = OT_ERROR_NO_BUFS);
 
-    SuccessOrExit(error = netif.GetCoapSecure().SendMessage(*message, netif.GetCoapSecure().GetPeerMessageInfo()));
+    SuccessOrExit(error = netif.GetCoapSecure().SendMessage(*message, netif.GetCoapSecure().GetMessageInfo()));
 
 exit:
 
