@@ -28,7 +28,7 @@
 
 /**
  * @file
- *   This file implements the spinel based radio transceiver.
+ *   This file implements the platform network interface APIs on Linux.
  */
 
 #include "platform-posix.h"
