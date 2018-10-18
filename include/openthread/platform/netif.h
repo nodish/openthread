@@ -46,7 +46,7 @@ extern "C" {
 typedef enum {
     OT_PLAT_NETIF_EVENT_UP,           ///< The interface is up.
     OT_PLAT_NETIF_EVENT_DOWN,         ///< The interface is down.
-    OT_PLAT_NETIF_EVENT_ADDR_ADDED,   ///< A new ipv6 address is added.
+    OT_PLAT_NETIF_EVENT_ADDR_ADDED,   ///< An IPv6 address is added.
     OT_PLAT_NETIF_EVENT_ADDR_REMOVED, ///< An IPv6 address is removed.
 } otPlatNetifEventType;
 
@@ -62,8 +62,8 @@ typedef struct
 /**
  * A function pointer called on a network interface event happened.
  *
- * @param   aInstance   A pointer to the OpenThread interface.
- * @param   aEvent      A pointer to the event just happened.
+ * @param[in]   aInstance   A pointer to the OpenThread interface.
+ * @param [in]  aEvent      A pointer to the event just happened.
  *
  */
 typedef void (*otPlatNetifEventHandler)(otInstance *aInstance, const otPlatNetifEvent *aEvent);

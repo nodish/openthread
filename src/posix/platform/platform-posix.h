@@ -227,7 +227,7 @@ void platformUartUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aE
 void platformUartProcess(const fd_set *aReadFdSet, const fd_set *aWriteFdSet, const fd_set *aErrorFdSet);
 
 /**
- * This function updates the file descriptor sets with file descriptors used by the UART driver.
+ * This function updates the file descriptor sets with file descriptors used by platform netif module.
  *
  * @param[inout]  aReadFdSet   A pointer to the read file descriptors.
  * @param[inout]  aWriteFdSet  A pointer to the write file descriptors.
@@ -237,9 +237,8 @@ void platformUartProcess(const fd_set *aReadFdSet, const fd_set *aWriteFdSet, co
 void platformNetifUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aErrorFdSet, int *aMaxFd);
 
 /**
- * This function performs radio driver processing.
+ * This function performs platform netif processing.
  *
- * @param[in]   aInstance       A pointer to the OpenThread instance.
  * @param[in]   aReadFdSet      A pointer to the read file descriptors.
  * @param[in]   aWriteFdSet     A pointer to the write file descriptors.
  * @param[in]   aErrorFdSet     A pointer to the error file descriptors.
