@@ -227,6 +227,14 @@ void platformUartUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aE
 void platformUartProcess(const fd_set *aReadFdSet, const fd_set *aWriteFdSet, const fd_set *aErrorFdSet);
 
 /**
+ * This function initializes platform netif.
+ *
+ * @param[in]   aInstance       A pointer to the OpenThread instance.
+ *
+ */
+void platformNetifInit(otInstance *aInstance);
+
+/**
  * This function updates the file descriptor sets with file descriptors used by platform netif module.
  *
  * @param[inout]  aReadFdSet   A pointer to the read file descriptors.
@@ -369,6 +377,7 @@ void platformUdpProcess(otInstance *aInstance, const fd_set *aReadSet);
 /**
  * This function updates the file descriptor sets with file descriptors used by the platform UDP driver.
  *
+ * @param[in]     aInstance    The OpenThread instance structure.
  * @param[inout]  aReadFdSet   A pointer to the read file descriptors.
  * @param[inout]  aMaxFd       A pointer to the max file descriptor.
  */

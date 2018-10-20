@@ -28,7 +28,7 @@
 
 /**
  * @file
- *   This file implements the platform network interface APIs on Linux.
+ *   This file implements the platform network on Linux.
  */
 
 #include "platform-posix.h"
@@ -42,8 +42,10 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <fcntl.h>
+#include <ifaddrs.h>
 #include <net/if.h>
 #include <net/if_arp.h>
+#include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -51,11 +53,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <openthread/instance.h>
 #include <openthread/message.h>
-#include <openthread/platform/netif.h>
 
 #include "common/code_utils.hpp"
 #include "common/logging.hpp"
+#include "net/ip6_address.hpp"
 
 #if OPENTHREAD_ENABLE_PLATFORM_NETIF
 
@@ -67,21 +70,389 @@ struct in6_ifreq
     int             ifr6_ifindex;
 };
 
-static otPlatNetifEvent *      sCurrentEvent = NULL;
-static otPlatNetifEventHandler sEventHandler = NULL;
-static otInstance *            sInstance     = NULL;
-static int                     sTunFd        = -1; ///< Used to exchange IPv6 packets.
-static int                     sIpFd         = -1; ///< Used to manage IPv6 stack on Thread interface.
-static int                     sNetlinkFd    = -1; ///< Used to receive netlink events.
-static unsigned int            sTunIndex     = 0;
-static char                    sTunName[IFNAMSIZ];
-static const size_t            kMaxIp6Size = 1536;
+static otInstance * sInstance  = NULL;
+static int          sTunFd     = -1; ///< Used to exchange IPv6 packets.
+static int          sIpFd      = -1; ///< Used to manage IPv6 stack on Thread interface.
+static int          sNetlinkFd = -1; ///< Used to receive netlink events.
+static unsigned int sTunIndex  = 0;
+static char         sTunName[IFNAMSIZ];
+static const size_t kMaxIp6Size = 1536;
 
 #ifndef OPENTHREAD_POSIX_TUN_DEVICE
 #define OPENTHREAD_POSIX_TUN_DEVICE "/dev/net/tun"
 #endif // OPENTHREAD_TUN_DEVICE
 
-void otPlatNetifInit(otInstance *aInstance, otPlatNetifEventHandler aHandler)
+static otError platformNetifAddAddress(otInstance *aInstance, const struct in6_addr &aAddress, uint32_t aPrefixLength)
+{
+    struct in6_ifreq ifr6;
+    otError          error = OT_ERROR_NONE;
+
+    assert(sInstance == aInstance);
+
+    VerifyOrExit(sIpFd > 0, error = OT_ERROR_INVALID_STATE);
+
+    memcpy(&ifr6.ifr6_addr, &aAddress, sizeof(ifr6.ifr6_addr));
+
+    ifr6.ifr6_ifindex   = sTunIndex;
+    ifr6.ifr6_prefixlen = aPrefixLength;
+
+    VerifyOrExit(ioctl(sIpFd, SIOCSIFADDR, &ifr6) == 0, perror("ioctl"); error = OT_ERROR_FAILED);
+
+exit:
+    return error;
+}
+
+static otError platformNetifRemoveAddress(otInstance *           aInstance,
+                                          const struct in6_addr &aAddress,
+                                          uint32_t               aPrefixLength)
+{
+    struct in6_ifreq ifr6;
+    otError          error = OT_ERROR_NONE;
+
+    assert(sInstance == aInstance);
+
+    VerifyOrExit(sIpFd > 0);
+    memcpy(&ifr6.ifr6_addr, &aAddress, sizeof(ifr6.ifr6_addr));
+    ifr6.ifr6_ifindex   = sTunIndex;
+    ifr6.ifr6_prefixlen = aPrefixLength;
+
+    VerifyOrExit(ioctl(sIpFd, SIOCDIFADDR, &ifr6) == 0, perror("ioctl"); error = OT_ERROR_FAILED);
+
+exit:
+    return error;
+}
+
+static void processRoleChanged(otInstance *aInstance)
+{
+    otError      error = OT_ERROR_NONE;
+    struct ifreq ifr;
+
+    assert(sInstance == aInstance);
+
+    VerifyOrExit(sIpFd > 0);
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, sTunName, sizeof(ifr.ifr_name));
+    VerifyOrExit(ioctl(sIpFd, SIOCGIFFLAGS, &ifr) == 0, error = OT_ERROR_FAILED);
+
+    if (otIp6IsEnabled(aInstance))
+    {
+        ifr.ifr_flags |= IFF_UP;
+    }
+    else
+    {
+        ifr.ifr_flags &= ~IFF_UP;
+    }
+
+    VerifyOrExit(ioctl(sIpFd, SIOCSIFFLAGS, &ifr) == 0, perror("ioctl"); error = OT_ERROR_FAILED);
+
+exit:
+    if (error != OT_ERROR_NONE)
+    {
+        otLogWarnPlat(sInstance, "%s: %s", __func__, otThreadErrorToString(error));
+    }
+}
+
+static void processAddrRemoved(otInstance *aInstance)
+{
+    otError         error  = OT_ERROR_NONE;
+    struct ifaddrs *ifaddr = NULL;
+
+    VerifyOrExit(0 == getifaddrs(&ifaddr), perror("getifaddrs"); error = OT_ERROR_FAILED);
+    for (const struct ifaddrs *ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+    {
+        const otNetifAddress * netAddr = NULL;
+        const struct in6_addr &addr    = reinterpret_cast<const struct sockaddr_in6 *>(ifa->ifa_addr)->sin6_addr;
+
+        if (ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET6 ||
+            strncmp(ifa->ifa_name, sTunName, sizeof(sTunName)) != 0)
+        {
+            continue;
+        }
+
+        for (netAddr = otIp6GetUnicastAddresses(aInstance); netAddr != NULL; netAddr = netAddr->mNext)
+        {
+            if (0 == memcmp(&netAddr->mAddress, &addr, sizeof(netAddr->mAddress)))
+            {
+                break;
+            }
+        }
+
+        if (netAddr == NULL)
+        {
+            uint32_t         prefixLength = 0;
+            struct in6_addr &netmask      = reinterpret_cast<struct sockaddr_in6 *>(ifa->ifa_netmask)->sin6_addr;
+
+            for (size_t i = 0; i < sizeof(netmask); ++i)
+            {
+                if (netmask.s6_addr[i] == 0xff)
+                {
+                    prefixLength += 8;
+                }
+                else
+                {
+                    while (netmask.s6_addr[i] & 0x80)
+                    {
+                        ++prefixLength;
+                    }
+                }
+            }
+
+            SuccessOrExit(error = platformNetifRemoveAddress(aInstance, addr, prefixLength));
+        }
+    }
+
+exit:
+    if (ifaddr != NULL)
+    {
+        freeifaddrs(ifaddr);
+    }
+
+    if (error != OT_ERROR_NONE)
+    {
+        otLogWarnPlat(sInstance, "%s: %s", __func__, otThreadErrorToString(error));
+    }
+}
+
+static void processAddrAdded(otInstance *aInstance)
+{
+    otError         error  = OT_ERROR_NONE;
+    struct ifaddrs *ifaddr = NULL;
+
+    VerifyOrExit(0 == getifaddrs(&ifaddr), perror("getifaddrs"); error = OT_ERROR_FAILED);
+
+    for (const otNetifAddress *netAddr = otIp6GetUnicastAddresses(aInstance); netAddr != NULL; netAddr = netAddr->mNext)
+    {
+        const struct ifaddrs *ifa = NULL;
+
+        for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
+        {
+            const struct in6_addr &addr = reinterpret_cast<const struct sockaddr_in6 *>(ifa->ifa_addr)->sin6_addr;
+
+            if (ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET6 ||
+                strncmp(ifa->ifa_name, sTunName, sizeof(sTunName)) != 0)
+            {
+                continue;
+            }
+
+            if (0 == memcmp(&netAddr->mAddress, &addr, sizeof(netAddr->mAddress)))
+            {
+                break;
+            }
+        }
+
+        if (ifa == NULL)
+        {
+            SuccessOrExit(
+                error = platformNetifAddAddress(
+                    aInstance, *reinterpret_cast<const struct in6_addr *>(&netAddr->mAddress), netAddr->mPrefixLength));
+        }
+    }
+
+exit:
+    if (ifaddr != NULL)
+    {
+        freeifaddrs(ifaddr);
+    }
+
+    if (error != OT_ERROR_NONE)
+    {
+        otLogWarnPlat(sInstance, "%s: %s", __func__, otThreadErrorToString(error));
+    }
+}
+
+static void processStateChange(otChangedFlags aFlags, void *aContext)
+{
+    if (OT_CHANGED_THREAD_ROLE | aFlags)
+    {
+        processRoleChanged(static_cast<otInstance *>(aContext));
+    }
+
+    if (OT_CHANGED_IP6_ADDRESS_REMOVED | OT_CHANGED_THREAD_RLOC_REMOVED | aFlags)
+    {
+        processAddrRemoved(static_cast<otInstance *>(aContext));
+    }
+
+    if (OT_CHANGED_IP6_ADDRESS_ADDED | OT_CHANGED_THREAD_RLOC_ADDED | aFlags)
+    {
+        processAddrAdded(static_cast<otInstance *>(aContext));
+    }
+}
+
+static void processReceive(otMessage *aMessage, void *aContext)
+{
+    char     packet[kMaxIp6Size];
+    otError  error  = OT_ERROR_NONE;
+    uint16_t length = otMessageGetLength(aMessage);
+
+    assert(sInstance == aContext);
+
+    VerifyOrExit(sTunFd > 0);
+
+    VerifyOrExit(otMessageRead(aMessage, 0, packet, sizeof(packet)) == length, error = OT_ERROR_NO_BUFS);
+
+    VerifyOrExit(write(sTunFd, packet, length) == length, perror("write"); error = OT_ERROR_FAILED);
+
+exit:
+    otMessageFree(aMessage);
+
+    if (error != OT_ERROR_NONE)
+    {
+        otLogWarnPlat(aInstance, "%s: %s", __func__, otThreadErrorToString(error));
+    }
+}
+
+static void processTransmit(otInstance *aInstance)
+{
+    otError    error   = OT_ERROR_NONE;
+    otMessage *message = NULL;
+
+    assert(sInstance == aInstance);
+
+    {
+        ssize_t rval;
+        char    packet[kMaxIp6Size];
+
+        rval = read(sTunFd, packet, sizeof(packet));
+        VerifyOrExit(rval > 0, error = OT_ERROR_FAILED);
+
+        message = otIp6NewMessage(aInstance, false);
+        VerifyOrExit(message != NULL, error = OT_ERROR_NO_BUFS);
+
+        SuccessOrExit(error = otMessageAppend(message, packet, rval));
+
+        error   = otIp6Send(aInstance, message);
+        message = NULL;
+    }
+
+exit:
+    if (message != NULL)
+    {
+        otMessageFree(message);
+    }
+
+    if (error != OT_ERROR_NONE)
+    {
+        otLogWarnPlat(aInstance, "%s: %s", __func__, otThreadErrorToString(error));
+    }
+}
+
+static void processNetifAddrEvent(otInstance *aInstance, struct nlmsghdr *aNetlinkMessage)
+{
+    otError           error  = OT_ERROR_NONE;
+    struct ifaddrmsg *ifaddr = reinterpret_cast<struct ifaddrmsg *>(NLMSG_DATA(aNetlinkMessage));
+    size_t            rtaLength;
+
+    VerifyOrExit(ifaddr->ifa_index == static_cast<unsigned int>(sTunIndex) && ifaddr->ifa_family == AF_INET6);
+
+    rtaLength = IFA_PAYLOAD(aNetlinkMessage);
+
+    for (struct rtattr *rta = reinterpret_cast<struct rtattr *>(IFA_RTA(ifaddr)); RTA_OK(rta, rtaLength);
+         rta                = RTA_NEXT(rta, rtaLength))
+    {
+        switch (rta->rta_type)
+        {
+        case IFA_ADDRESS:
+        case IFA_LOCAL:
+        case IFA_BROADCAST:
+        case IFA_ANYCAST:
+        {
+            ot::Ip6::Address addr;
+            memcpy(&addr, RTA_DATA(rta), sizeof(addr));
+
+            if (aNetlinkMessage->nlmsg_type == RTM_NEWADDR)
+            {
+                if (!addr.IsMulticast())
+                {
+                    otNetifAddress netAddr;
+
+                    netAddr.mAddress      = addr;
+                    netAddr.mPrefixLength = ifaddr->ifa_prefixlen;
+                    SuccessOrExit(error = otIp6AddUnicastAddress(aInstance, &netAddr));
+                }
+                else
+                {
+                    SuccessOrExit(error = otIp6SubscribeMulticastAddress(aInstance, &addr));
+                }
+            }
+            else if (aNetlinkMessage->nlmsg_type == RTM_DELADDR)
+            {
+                if (!addr.IsMulticast())
+                {
+                    otIp6RemoveUnicastAddress(aInstance, &addr);
+                }
+                else
+                {
+                    otIp6UnsubscribeMulticastAddress(aInstance, &addr);
+                }
+            }
+            else
+            {
+                continue;
+            }
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+exit:
+    if (error != OT_ERROR_NONE)
+    {
+        otLogWarnPlat(aInstance, "%s: %s", __func__, otThreadErrorToString(error));
+    }
+}
+
+static void processNetifLinkEvent(otInstance *aInstance, struct nlmsghdr *aNetlinkMessage)
+{
+    otError           error  = OT_ERROR_NONE;
+    struct ifinfomsg *ifinfo = reinterpret_cast<struct ifinfomsg *>(NLMSG_DATA(aNetlinkMessage));
+
+    VerifyOrExit(ifinfo->ifi_index == static_cast<int>(sTunIndex));
+    SuccessOrExit(error = otIp6SetEnabled(aInstance, ifinfo->ifi_flags & IFF_UP));
+
+exit:
+    if (error != OT_ERROR_NONE)
+    {
+        otLogWarnPlat(aInstance, "%s: %s", __func__, otThreadErrorToString(error));
+    }
+}
+
+static void processNetifEvent(otInstance *aInstance)
+{
+    const size_t kMaxNetifEvent = 8192;
+    char         buffer[kMaxNetifEvent];
+    ssize_t      length;
+
+    length = recv(sNetlinkFd, buffer, sizeof(buffer), 0);
+
+    VerifyOrExit(length > 0);
+
+    for (struct nlmsghdr *msg = reinterpret_cast<struct nlmsghdr *>(buffer); NLMSG_OK(msg, length);
+         msg                  = NLMSG_NEXT(msg, length))
+    {
+        switch (msg->nlmsg_type)
+        {
+        case RTM_NEWADDR:
+        case RTM_DELADDR:
+            processNetifAddrEvent(aInstance, msg);
+            break;
+
+        case RTM_NEWLINK:
+        case RTM_DELLINK:
+            processNetifLinkEvent(aInstance, msg);
+            break;
+
+        default:
+            break;
+        }
+    }
+
+exit:
+    return;
+}
+
+void platformNetifInit(otInstance *aInstance)
 {
     struct ifreq ifr;
 
@@ -125,8 +496,9 @@ void otPlatNetifInit(otInstance *aInstance, otPlatNetifEventHandler aHandler)
     platformUdpInit(sTunName);
 #endif
 
-    sInstance     = aInstance;
-    sEventHandler = aHandler;
+    otIp6SetReceiveCallback(aInstance, processReceive, aInstance);
+    otSetStateChangedCallback(aInstance, processStateChange, aInstance);
+    sInstance = aInstance;
 
 exit:
     if (sTunIndex == 0)
@@ -151,267 +523,6 @@ exit:
 
         exit(OT_EXIT_FAILURE);
     }
-}
-
-otError otPlatNetifUp(otInstance *aInstance)
-{
-    otError      error = OT_ERROR_NONE;
-    struct ifreq ifr;
-
-    assert(sInstance == aInstance);
-
-    VerifyOrExit(sIpFd > 0);
-    memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, sTunName, sizeof(ifr.ifr_name));
-    VerifyOrExit(ioctl(sIpFd, SIOCGIFFLAGS, &ifr) == 0, error = OT_ERROR_FAILED);
-
-    ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
-    VerifyOrExit(ioctl(sIpFd, SIOCSIFFLAGS, &ifr) == 0, error = OT_ERROR_FAILED);
-
-exit:
-    if (error != OT_ERROR_NONE)
-    {
-        perror(__func__);
-    }
-
-    return error;
-}
-
-otError otPlatNetifDown(otInstance *aInstance)
-{
-    otError      error = OT_ERROR_NONE;
-    struct ifreq ifr;
-
-    assert(sInstance == aInstance);
-
-    VerifyOrExit(sIpFd > 0);
-    memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, sTunName, sizeof(ifr.ifr_name));
-    VerifyOrExit(ioctl(sIpFd, SIOCGIFFLAGS, &ifr) == 0, error = OT_ERROR_FAILED);
-
-    ifr.ifr_flags &= ~IFF_UP;
-    VerifyOrExit(ioctl(sIpFd, SIOCSIFFLAGS, &ifr) == 0, error = OT_ERROR_FAILED);
-
-exit:
-    if (error != OT_ERROR_NONE)
-    {
-        perror(__func__);
-    }
-
-    return error;
-}
-
-otError otPlatNetifAddAddress(otInstance *aInstance, const otNetifAddress *aNetifAddress)
-{
-    struct in6_ifreq ifr6;
-    otError          error = OT_ERROR_NONE;
-
-    assert(sInstance == aInstance);
-
-    VerifyOrExit(sIpFd > 0, error = OT_ERROR_INVALID_STATE);
-
-    VerifyOrExit(sCurrentEvent == NULL || sCurrentEvent->mType != OT_PLAT_NETIF_EVENT_ADDR_ADDED);
-    memcpy(&ifr6.ifr6_addr, &aNetifAddress->mAddress, sizeof(ifr6.ifr6_addr));
-
-    ifr6.ifr6_ifindex   = sTunIndex;
-    ifr6.ifr6_prefixlen = aNetifAddress->mPrefixLength;
-
-    VerifyOrExit(ioctl(sIpFd, SIOCSIFADDR, &ifr6) == 0, error = OT_ERROR_FAILED);
-
-exit:
-    if (error != OT_ERROR_NONE)
-    {
-        perror(__func__);
-    }
-
-    return error;
-}
-
-otError otPlatNetifRemoveAddress(otInstance *aInstance, const otNetifAddress *aNetifAddress)
-{
-    struct in6_ifreq ifr6;
-    otError          error = OT_ERROR_NONE;
-
-    assert(sInstance == aInstance);
-
-    VerifyOrExit(sIpFd > 0);
-    VerifyOrExit(sCurrentEvent == NULL || sCurrentEvent->mType != OT_PLAT_NETIF_EVENT_ADDR_REMOVED);
-    memcpy(&ifr6.ifr6_addr, &aNetifAddress->mAddress, sizeof(ifr6.ifr6_addr));
-    ifr6.ifr6_ifindex   = sTunIndex;
-    ifr6.ifr6_prefixlen = aNetifAddress->mPrefixLength;
-
-    VerifyOrExit(ioctl(sIpFd, SIOCDIFADDR, &ifr6) == 0, error = OT_ERROR_FAILED);
-
-exit:
-    if (error != OT_ERROR_NONE)
-    {
-        perror(__func__);
-    }
-
-    return error;
-}
-
-void otPlatNetifReceive(otInstance *aInstance, otMessage *aMessage)
-{
-    char     packet[kMaxIp6Size];
-    otError  error  = OT_ERROR_NONE;
-    uint16_t length = otMessageGetLength(aMessage);
-
-    assert(sInstance == aInstance);
-
-    VerifyOrExit(sTunFd > 0);
-
-    VerifyOrExit(otMessageRead(aMessage, 0, packet, sizeof(packet)) == length, error = OT_ERROR_NO_BUFS);
-
-    VerifyOrExit(write(sTunFd, packet, length) == length, error = OT_ERROR_FAILED);
-
-exit:
-    if (error != OT_ERROR_NONE)
-    {
-        switch (error)
-        {
-        case OT_ERROR_FAILED:
-            perror(__func__);
-            break;
-        default:
-            otLogWarnPlat(aInstance, "failed to deliver netif: %s", otThreadErrorToString(error));
-            break;
-        }
-    }
-
-    otMessageFree(aMessage);
-}
-
-static void processTransmit(otInstance *aInstance)
-{
-    char       packet[kMaxIp6Size];
-    otError    error   = OT_ERROR_NONE;
-    otMessage *message = NULL;
-
-    assert(sInstance == aInstance);
-
-    {
-        ssize_t rval;
-        rval = read(sTunFd, packet, sizeof(packet));
-
-        VerifyOrExit(rval > 0, error = OT_ERROR_FAILED);
-
-        message = otIp6NewMessage(aInstance, false);
-        VerifyOrExit(message != NULL, error = OT_ERROR_NO_BUFS);
-
-        SuccessOrExit(error = otMessageAppend(message, packet, rval));
-
-        error   = otIp6Send(aInstance, message);
-        message = NULL;
-    }
-
-exit:
-    if (error != OT_ERROR_NONE)
-    {
-        if (message != NULL)
-        {
-            otMessageFree(message);
-        }
-
-        otLogWarnPlat(aInstance, "Failed to transmit IPv6 packet: %s", otThreadErrorToString(error));
-    }
-}
-
-static void processNetifAddrEvent(otInstance *aInstance, struct nlmsghdr *aNetlinkMessage)
-{
-    struct ifaddrmsg *ifaddr = reinterpret_cast<struct ifaddrmsg *>(NLMSG_DATA(aNetlinkMessage));
-    size_t            rtaLength;
-    otPlatNetifEvent  event;
-
-    VerifyOrExit(ifaddr->ifa_index == static_cast<unsigned int>(sTunIndex) && ifaddr->ifa_family == AF_INET6);
-
-    rtaLength = IFA_PAYLOAD(aNetlinkMessage);
-
-    for (struct rtattr *rta = reinterpret_cast<struct rtattr *>(IFA_RTA(ifaddr)); RTA_OK(rta, rtaLength);
-         rta                = RTA_NEXT(rta, rtaLength))
-    {
-        otNetifAddress &address = event.mData.mNetifAddress;
-
-        switch (rta->rta_type)
-        {
-        case IFA_ADDRESS:
-        case IFA_LOCAL:
-        case IFA_BROADCAST:
-        case IFA_ANYCAST:
-            memcpy(&address.mAddress, RTA_DATA(rta), sizeof(address.mAddress));
-            address.mPrefixLength = ifaddr->ifa_prefixlen;
-
-            if (aNetlinkMessage->nlmsg_type == RTM_NEWADDR)
-            {
-                event.mType = OT_PLAT_NETIF_EVENT_ADDR_ADDED;
-            }
-            else if (aNetlinkMessage->nlmsg_type == RTM_DELADDR)
-            {
-                event.mType = OT_PLAT_NETIF_EVENT_ADDR_REMOVED;
-            }
-            else
-            {
-                continue;
-            }
-
-            sCurrentEvent = &event;
-            sEventHandler(aInstance, &event);
-            sCurrentEvent = NULL;
-            break;
-        default:
-            break;
-        }
-    }
-
-exit:
-    return;
-}
-
-static void processNetifLinkEvent(otInstance *aInstance, struct nlmsghdr *aNetlinkMessage)
-{
-    struct ifinfomsg *ifinfo = reinterpret_cast<struct ifinfomsg *>(NLMSG_DATA(aNetlinkMessage));
-    otPlatNetifEvent  event;
-
-    VerifyOrExit(ifinfo->ifi_index == static_cast<int>(sTunIndex));
-    event.mType   = (ifinfo->ifi_flags & IFF_UP) ? OT_PLAT_NETIF_EVENT_UP : OT_PLAT_NETIF_EVENT_DOWN;
-    sCurrentEvent = &event;
-    sEventHandler(aInstance, &event);
-    sCurrentEvent = NULL;
-
-exit:
-    return;
-}
-
-static void processNetifEvent(otInstance *aInstance)
-{
-    const size_t kMaxNetifEvent = 8192;
-    char         buffer[kMaxNetifEvent];
-    ssize_t      length;
-
-    length = recv(sNetlinkFd, buffer, sizeof(buffer), 0);
-
-    VerifyOrExit(length > 0);
-
-    for (struct nlmsghdr *msg = reinterpret_cast<struct nlmsghdr *>(buffer); NLMSG_OK(msg, length);
-         msg                  = NLMSG_NEXT(msg, length))
-    {
-        switch (msg->nlmsg_type)
-        {
-        case RTM_NEWADDR:
-        case RTM_DELADDR:
-            processNetifAddrEvent(aInstance, msg);
-            break;
-        case RTM_NEWLINK:
-        case RTM_DELLINK:
-            processNetifLinkEvent(aInstance, msg);
-            break;
-        default:
-            break;
-        }
-    }
-
-exit:
-    return;
 }
 
 void platformNetifUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aErrorFdSet, int *aMaxFd)

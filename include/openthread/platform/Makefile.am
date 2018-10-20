@@ -35,7 +35,6 @@ ot_platform_headers                     = \
     diag.h                                \
     memory.h                              \
     misc.h                                \
-    netif.h                               \
     logging.h                             \
     radio.h                               \
     random.h                              \

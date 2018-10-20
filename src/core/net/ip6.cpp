@@ -35,8 +35,6 @@
 
 #include "ip6.hpp"
 
-#include <openthread/platform/netif.h>
-
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
 #include "common/instance.hpp"
@@ -606,9 +604,7 @@ otError Ip6::ProcessReceiveCallback(const Message &    aMessage,
     Message *messageCopy = NULL;
 
     VerifyOrExit(aFromNcpHost == false, error = OT_ERROR_DROP);
-#if OPENTHREAD_ENABLE_PLATFORM_NETIF == 0
     VerifyOrExit(mReceiveIp6DatagramCallback != NULL, error = OT_ERROR_NO_ROUTE);
-#endif
 
     if (mIsReceiveIp6FilterEnabled)
     {
@@ -681,11 +677,7 @@ otError Ip6::ProcessReceiveCallback(const Message &    aMessage,
     // make a copy of the datagram to pass to host
     VerifyOrExit((messageCopy = aMessage.Clone()) != NULL, error = OT_ERROR_NO_BUFS);
     RemoveMplOption(*messageCopy);
-#if OPENTHREAD_ENABLE_PLATFORM_NETIF
-    otPlatNetifReceive(&GetInstance(), messageCopy);
-#else
     mReceiveIp6DatagramCallback(messageCopy, mReceiveIp6DatagramCallbackContext);
-#endif
 
 exit:
 

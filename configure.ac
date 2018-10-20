@@ -855,7 +855,7 @@ fi
 
 AC_MSG_RESULT(${enable_platform_netif})
 AC_SUBST(OPENTHREAD_ENABLE_PLATFORM_NETIF)
-AM_CONDITIONAL([OPENTHREAD_ENABLE_PLATFORM_NETIF], [test "${enable_platform_netif}" = "yes"])
+AM_CONDITIONAL([OPENTHREAD_ENABLE_PLATFORM_NETIF], [test "${enable_platform_netif}" = 'yes'])
 AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_PLATFORM_NETIF], [${OPENTHREAD_ENABLE_PLATFORM_NETIF}], [Define to 1 to enable platform Netif.])
 
 #
