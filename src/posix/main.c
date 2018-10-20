@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 
     otSysInit(argc, argv);
 
-    sInstance = otInstanceInitSingle();
+    sInstance = otSysInitOpenThread();
     assert(sInstance);
 
 #if OPENTHREAD_POSIX_APP == OPENTHREAD_POSIX_APP_NCP

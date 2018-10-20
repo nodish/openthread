@@ -56,6 +56,7 @@
 
 #include "common/code_utils.hpp"
 #include "common/logging.hpp"
+#include "net/ip6_address.hpp"
 
 #if OPENTHREAD_ENABLE_PLATFORM_NETIF
 
@@ -81,7 +82,34 @@ static const size_t            kMaxIp6Size = 1536;
 #define OPENTHREAD_POSIX_TUN_DEVICE "/dev/net/tun"
 #endif // OPENTHREAD_TUN_DEVICE
 
-void otPlatNetifInit(otInstance *aInstance, otPlatNetifEventHandler aHandler)
+void HandleStateChange(otInstance *aInstance, otChangedFlags aFlags)
+{
+    ThreadNetif &netif = static_cast<Instance *>(aInstance)->GetThreadNetif();
+
+    switch (aEvent->mType)
+    {
+    case OT_PLAT_NETIF_EVENT_UP:
+        netif.Up();
+        break;
+
+    case OT_PLAT_NETIF_EVENT_DOWN:
+        netif.Down();
+        break;
+
+    case OT_PLAT_NETIF_EVENT_ADDR_ADDED:
+        netif.AddExternalUnicastAddress(*static_cast<const NetifUnicastAddress *>(&aEvent->mData.mNetifAddress));
+        break;
+
+    case OT_PLAT_NETIF_EVENT_ADDR_REMOVED:
+        netif.RemoveExternalUnicastAddress(*static_cast<const Address *>(&aEvent->mData.mNetifAddress.mAddress));
+        break;
+
+    default:
+        assert(false);
+    }
+}
+
+otError platformNetifInit(otInstance *aInstance)
 {
     struct ifreq ifr;
 
@@ -125,8 +153,8 @@ void otPlatNetifInit(otInstance *aInstance, otPlatNetifEventHandler aHandler)
     platformUdpInit(sTunName);
 #endif
 
-    sInstance     = aInstance;
-    sEventHandler = aHandler;
+    otSetStateChangedCallback(aInstance, HandleStateChange, NULL);
+    sInstance = aInstance;
 
 exit:
     if (sTunIndex == 0)
@@ -319,9 +347,9 @@ exit:
 
 static void processNetifAddrEvent(otInstance *aInstance, struct nlmsghdr *aNetlinkMessage)
 {
+    otError           error  = OT_ERROR_NONE;
     struct ifaddrmsg *ifaddr = reinterpret_cast<struct ifaddrmsg *>(NLMSG_DATA(aNetlinkMessage));
     size_t            rtaLength;
-    otPlatNetifEvent  event;
 
     VerifyOrExit(ifaddr->ifa_index == static_cast<unsigned int>(sTunIndex) && ifaddr->ifa_family == AF_INET6);
 
@@ -330,56 +358,70 @@ static void processNetifAddrEvent(otInstance *aInstance, struct nlmsghdr *aNetli
     for (struct rtattr *rta = reinterpret_cast<struct rtattr *>(IFA_RTA(ifaddr)); RTA_OK(rta, rtaLength);
          rta                = RTA_NEXT(rta, rtaLength))
     {
-        otNetifAddress &address = event.mData.mNetifAddress;
-
         switch (rta->rta_type)
         {
         case IFA_ADDRESS:
         case IFA_LOCAL:
         case IFA_BROADCAST:
         case IFA_ANYCAST:
-            memcpy(&address.mAddress, RTA_DATA(rta), sizeof(address.mAddress));
-            address.mPrefixLength = ifaddr->ifa_prefixlen;
+        {
+            ot::Ip6::Address addr;
+            memcpy(&addr, RTA_DATA(rta), sizeof(addr));
 
             if (aNetlinkMessage->nlmsg_type == RTM_NEWADDR)
             {
-                event.mType = OT_PLAT_NETIF_EVENT_ADDR_ADDED;
+                ot::Ip6::Address &addr = *static_cast<ot::Ip6::Address *>(&netAddr.mAddress);
+
+                if (addr.IsUnicastAddress())
+                {
+                    otNetifAddress netAddr;
+
+                    netAddr.mAddress      = addr;
+                    netAddr.mPrefixLength = ifaddr->ifa_prefixlen;
+                    SuccessOrExit(error = otIp6AddUnicastAddress(sInstance, netAddr));
+                }
+                else if (addr.IsMulticast())
+                {
+                    SuccessOrExit(error = otIp6SubscribeMulticastAddress(sInstance, addr));
+                }
             }
             else if (aNetlinkMessage->nlmsg_type == RTM_DELADDR)
             {
-                event.mType = OT_PLAT_NETIF_EVENT_ADDR_REMOVED;
+                if (addr.IsUnicastAddress())
+                {
+                    otIp6RemoveUnicastAddress(sInstance, address);
+                }
+                else
+                {
+                    otIp6UnsubscribeMulticastAddress(sInstance, address);
+                }
             }
             else
             {
                 continue;
             }
-
-            sCurrentEvent = &event;
-            sEventHandler(aInstance, &event);
-            sCurrentEvent = NULL;
             break;
+        }
         default:
             break;
         }
     }
 
 exit:
-    return;
+    otLogInfoPlat(sInstance, "%s: %s", __func__, otThreadErrorToString(error));
 }
 
 static void processNetifLinkEvent(otInstance *aInstance, struct nlmsghdr *aNetlinkMessage)
 {
+    otError           error  = OT_ERROR_NONE;
     struct ifinfomsg *ifinfo = reinterpret_cast<struct ifinfomsg *>(NLMSG_DATA(aNetlinkMessage));
     otPlatNetifEvent  event;
 
     VerifyOrExit(ifinfo->ifi_index == static_cast<int>(sTunIndex));
-    event.mType   = (ifinfo->ifi_flags & IFF_UP) ? OT_PLAT_NETIF_EVENT_UP : OT_PLAT_NETIF_EVENT_DOWN;
-    sCurrentEvent = &event;
-    sEventHandler(aInstance, &event);
-    sCurrentEvent = NULL;
+    SuccessOrExit(error = otIp6SetEnabled(ifinfo->ifi_flags & IFF_UP));
 
 exit:
-    return;
+    otLogInfoPlat(sInstance, "%s: %s", __func__, otThreadErrorToString(error));
 }
 
 static void processNetifEvent(otInstance *aInstance)

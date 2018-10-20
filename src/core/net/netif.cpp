@@ -82,35 +82,6 @@ const otNetifMulticastAddress Netif::kLinkLocalAllRoutersMulticastAddress = {
     {{{0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02}}},
     &Netif::kRealmLocalAllRoutersMulticastAddress};
 
-#if OPENTHREAD_ENABLE_PLATFORM_NETIF
-void HandlePlatNetifEvent(otInstance *aInstance, const otPlatNetifEvent *aEvent)
-{
-    ThreadNetif &netif = static_cast<Instance *>(aInstance)->GetThreadNetif();
-
-    switch (aEvent->mType)
-    {
-    case OT_PLAT_NETIF_EVENT_UP:
-        netif.Up();
-        break;
-
-    case OT_PLAT_NETIF_EVENT_DOWN:
-        netif.Down();
-        break;
-
-    case OT_PLAT_NETIF_EVENT_ADDR_ADDED:
-        netif.AddExternalUnicastAddress(*static_cast<const NetifUnicastAddress *>(&aEvent->mData.mNetifAddress));
-        break;
-
-    case OT_PLAT_NETIF_EVENT_ADDR_REMOVED:
-        netif.RemoveExternalUnicastAddress(*static_cast<const Address *>(&aEvent->mData.mNetifAddress.mAddress));
-        break;
-
-    default:
-        assert(false);
-    }
-}
-#endif // OPENTHREAD_ENABLE_PLATFORM_NETIF
-
 Netif::Netif(Instance &aInstance, int8_t aInterfaceId)
     : InstanceLocator(aInstance)
     , mUnicastAddresses(NULL)

@@ -140,6 +140,8 @@ void otSysInit(int aArgCount, char *aArgVector[])
     platformAlarmInit(speedUpFactor);
     platformRadioInit(radioFile, radioConfig);
     platformRandomInit();
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+#endif
 #if OPENTHREAD_ENABLE_PLATFORM_UDP && OPENTHREAD_ENABLE_PLATFORM_NETIF == 0
     platformUdpInit(getenv("PLATFORM_NETIF");
 #endif
@@ -148,6 +150,12 @@ void otSysInit(int aArgCount, char *aArgVector[])
     {
         exit(OT_EXIT_SUCCESS);
     }
+}
+
+otInstance *otSysInitOpenThread(void)
+{
+    sInstance = otInstanceInitSingle();
+    platformNetifInit(sInstance);
 }
 
 bool otSysPseudoResetWasRequested(void)
