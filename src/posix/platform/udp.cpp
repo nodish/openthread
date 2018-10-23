@@ -40,6 +40,7 @@
 
 #include <arpa/inet.h>
 #include <assert.h>
+#include <errno.h>
 #include <net/if.h>
 #include <stdio.h>
 #include <stdlib.h>
