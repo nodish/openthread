@@ -247,10 +247,13 @@ private:
         kPetitionRetryDelay   = 1,  ///< COMM_PET_RETRY_DELAY (seconds)
         kKeepAliveTimeout     = 50, ///< TIMEOUT_COMM_PET (seconds)
         kRemoveJoinerDelay    = 20, ///< Delay to remove successfully joined joiner
+        kResumeCoapsDelay     = 1,  ///< Delay to resume CoAP Secure after previous joiner is disconnected
     };
 
     void AddCoapResources(void);
     void RemoveCoapResources(void);
+
+    otError StartCoaps(void);
 
     static void HandleTimer(Timer &aTimer);
     void        HandleTimer(void);
@@ -323,6 +326,12 @@ private:
     otError SendCommissionerSet(void);
     otError SendPetition(void);
     otError SendKeepAlive(void);
+
+    static void HandleConnected(bool aConnected, void *aContext)
+    {
+        static_cast<Commissioner *>(aContext)->HandleConnected(aConnected);
+    }
+    void HandleConnected(bool aConnected);
 
     struct Joiner
     {

@@ -95,13 +95,24 @@ void Commissioner::RemoveCoapResources(void)
     netif.GetCoapSecure().RemoveResource(mJoinerFinalize);
 }
 
+otError Commissioner::StartCoaps(void)
+{
+    otError error = OT_ERROR_NONE;
+
+    SuccessOrExit(error = GetNetif().GetCoapSecure().Start(OPENTHREAD_CONFIG_JOINER_UDP_PORT, SendRelayTransmit, this));
+    GetNetif().GetCoapSecure().SetConnectedCallback(HandleConnected, this);
+
+exit:
+    return error;
+}
+
 otError Commissioner::Start(void)
 {
     otError error = OT_ERROR_NONE;
 
     VerifyOrExit(mState == OT_COMMISSIONER_STATE_DISABLED, error = OT_ERROR_INVALID_STATE);
 
-    SuccessOrExit(error = GetNetif().GetCoapSecure().Start(OPENTHREAD_CONFIG_JOINER_UDP_PORT, SendRelayTransmit, this));
+    SuccessOrExit(error = StartCoaps());
 
     mState            = OT_COMMISSIONER_STATE_PETITION;
     mTransmitAttempts = 0;
@@ -110,6 +121,23 @@ otError Commissioner::Start(void)
 
 exit:
     return error;
+}
+
+void Commissioner::HandleConnected(bool aConnected)
+{
+    if (aConnected)
+    {
+        otLogInfoMeshCoP(GetInstance(), "Joiner connected");
+    }
+    else
+    {
+        ThreadNetif &     netif = GetNetif();
+        Coap::CoapSecure &coaps = netif.GetCoapSecure();
+
+        otLogInfoMeshCoP(GetInstance(), "Joiner disconnected");
+        coaps.Stop();
+        mTimer.Start(kResumeCoapsDelay);
+    }
 }
 
 otError Commissioner::Stop(void)
@@ -352,6 +380,13 @@ void Commissioner::HandleTimer(void)
 
     case OT_COMMISSIONER_STATE_ACTIVE:
         SendKeepAlive();
+
+        if (!GetNetif().GetCoapSecure().IsConnectionActive())
+        {
+            otError error = StartCoaps();
+
+            assert(error == OT_ERROR_NONE);
+        }
         break;
     }
 }
