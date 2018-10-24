@@ -700,6 +700,11 @@ template <> inline AnnounceSender &Instance::Get(void)
 }
 #endif
 
+template <> inline Ip6::Icmp &Instance::Get(void)
+{
+    return GetIp6().GetIcmp();
+}
+
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
 
 #if OPENTHREAD_RADIO || OPENTHREAD_ENABLE_RAW_LINK_API

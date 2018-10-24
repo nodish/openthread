@@ -81,7 +81,7 @@ PLATFORM_COMMON_SOURCES                                                         
     alarm.c                                                                                                  \
     fem.c                                                                                                    \
     flash.c                                                                                                  \
-    gpio.c                                                                                                  \
+    gpio.c                                                                                                   \
     logging.c                                                                                                \
     misc.c                                                                                                   \
     platform-config.h                                                                                        \

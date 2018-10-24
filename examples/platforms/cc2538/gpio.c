@@ -34,9 +34,9 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdint.h>
 
 #include <common/code_utils.hpp>
-#include <openthread/types.h>
 #include <openthread/platform/gpio.h>
 
 #include "platform-cc2538.h"

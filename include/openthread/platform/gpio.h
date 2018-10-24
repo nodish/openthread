@@ -35,8 +35,6 @@
 #ifndef GPIO_H_
 #define GPIO_H_
 
-#include "openthread/types.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

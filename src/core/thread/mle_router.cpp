@@ -4470,19 +4470,16 @@ otError MleRouter::AppendRouteInfo(Message &aMessage)
     uint8_t neighborNum = 0;
     uint8_t neighbor[kMaxRouterId] = {0};
 
-    for (uint8_t i = 0; i <= kMaxRouterId; i++)
+    for (RouterTable::Iterator it(GetInstance()); it.GetRouter() != NULL; it++)
     {
-        if (mRouters[i].IsAllocated() == false)
-        {
-            continue;
-        }
+        Router *router = it.GetRouter();
 
-        if (i != mRouterId)
+        if (router->GetRouterId() != mRouterId)
         {
-            if (mRouters[i].GetLinkQualityOut() != 0 && mRouters[i].GetLinkInfo().GetLinkQuality() != 0)
-	    {
-                neighbor[neighborNum++] = i;
-	    }
+            if (router->GetLinkQualityOut() != 0 && router->GetLinkInfo().GetLinkQuality() != 0)
+            {
+                neighbor[neighborNum++] = router->GetRouterId();
+            }
         }
     }
 
