@@ -151,7 +151,16 @@ bool CoapSecure::IsConnected(void)
 
 otError CoapSecure::Disconnect(void)
 {
-    return GetNetif().GetDtls().Stop();
+    Ip6::SockAddr sockAddr;
+    otError       error = OT_ERROR_NONE;
+
+    // Disconnect from previous peer
+    SuccessOrExit(error = mSocket.Connect(sockAddr));
+    SuccessOrExit(error = GetNetif().GetDtls().Stop());
+    memset(&mPeerAddress, 0, sizeof(mPeerAddress));
+
+exit:
+    return error;
 }
 
 MeshCoP::Dtls &CoapSecure::GetDtls(void)
