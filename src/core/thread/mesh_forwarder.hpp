@@ -406,6 +406,9 @@ private:
                        otLogLevel          aLogLevel);
 #endif // #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_NOTE) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
 
+    static void HandleLedTimer(Timer &aTimer);
+    void        HandleLedTimer(void);
+
     TimerMilli mDiscoverTimer;
     TimerMilli mReassemblyTimer;
 

@@ -31,7 +31,7 @@
  *
  */
 
-#include <openthread/types.h>
+#include <stdint.h>
 #include <openthread/platform/gpio.h>
 
 #include <hal/nrf_gpio.h>
