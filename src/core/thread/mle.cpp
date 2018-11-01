@@ -133,7 +133,6 @@ Mle::Mle(Instance &aInstance)
     mLinkLocal64.mPrefixLength = 64;
     mLinkLocal64.mPreferred    = true;
     mLinkLocal64.mValid        = true;
-    GetNetif().AddUnicastAddress(mLinkLocal64);
 
     // Leader Aloc
     mLeaderAloc.mPrefixLength       = 128;
@@ -216,7 +215,8 @@ otError Mle::Enable(void)
     otError       error = OT_ERROR_NONE;
     Ip6::SockAddr sockaddr;
 
-    // memcpy(&sockaddr.mAddr, &mLinkLocal64.GetAddress(), sizeof(sockaddr.mAddr));
+    SuccessOrExit(error = GetNetif().AddUnicastAddress(mLinkLocal64));
+
     sockaddr.mPort = kUdpPort;
     SuccessOrExit(error = mSocket.Open(&Mle::HandleUdpReceive, this));
     SuccessOrExit(error = mSocket.Bind(sockaddr));
@@ -231,6 +231,7 @@ otError Mle::Disable(void)
 
     SuccessOrExit(error = Stop(false));
     SuccessOrExit(error = mSocket.Close());
+    SuccessOrExit(error = GetNetif().RemoveUnicastAddress(mLinkLocal64));
 
 exit:
     return error;
@@ -244,6 +245,9 @@ otError Mle::Start(bool aEnableReattach, bool aAnnounceAttach)
     // cannot bring up the interface if IEEE 802.15.4 promiscuous mode is enabled
     VerifyOrExit(otPlatRadioGetPromiscuous(&netif.GetInstance()) == false, error = OT_ERROR_INVALID_STATE);
     VerifyOrExit(netif.IsUp(), error = OT_ERROR_INVALID_STATE);
+
+    SetMeshLocalPrefix(GetMeshLocalPrefix());
+    SetRloc16(GetRloc16());
 
     SetStateDetached();
     mAttachCounter = 0;
@@ -292,6 +296,7 @@ otError Mle::Stop(bool aClearNetworkDatasets)
     netif.GetKeyManager().Stop();
     SetStateDetached();
     netif.RemoveUnicastAddress(mMeshLocal16);
+    netif.RemoveUnicastAddress(mMeshLocal64);
 
     SetRole(OT_DEVICE_ROLE_DISABLED);
 
@@ -382,9 +387,8 @@ otError Mle::Restore(void)
     }
 
     mDeviceMode = networkInfo.mDeviceMode;
-    SetRloc16(networkInfo.mRloc16);
+    netif.GetMac().SetShortAddress(networkInfo.mRloc16);
     netif.GetMac().SetExtAddress(networkInfo.mExtAddress);
-    UpdateLinkLocalAddress();
 
     memcpy(&mMeshLocal64.GetAddress().mFields.m8[OT_IP6_PREFIX_SIZE], networkInfo.mMlIid,
            OT_IP6_ADDRESS_SIZE - OT_IP6_PREFIX_SIZE);
@@ -868,7 +872,7 @@ otError Mle::SetMeshLocalPrefix(const otMeshLocalPrefix &aMeshLocalPrefix)
 {
     ThreadNetif &netif = GetNetif();
 
-    if (memcmp(mMeshLocal64.GetAddress().mFields.m8, aMeshLocalPrefix.m8, sizeof(aMeshLocalPrefix)) == 0)
+    if (memcmp(mLeaderAloc.GetAddress().mFields.m8, aMeshLocalPrefix.m8, sizeof(aMeshLocalPrefix)) == 0)
     {
         GetNotifier().SignalIfFirst(OT_CHANGED_THREAD_ML_ADDR);
         ExitNow();
@@ -882,6 +886,10 @@ otError Mle::SetMeshLocalPrefix(const otMeshLocalPrefix &aMeshLocalPrefix)
 
     memcpy(mMeshLocal64.GetAddress().mFields.m8, aMeshLocalPrefix.m8, sizeof(aMeshLocalPrefix));
     memcpy(mMeshLocal16.GetAddress().mFields.m8, mMeshLocal64.GetAddress().mFields.m8, 8);
+
+    // Just keep mesh local prefix if network interface is down
+    VerifyOrExit(netif.IsUp());
+    memcpy(mLeaderAloc.GetAddress().mFields.m8, aMeshLocalPrefix.m8, sizeof(aMeshLocalPrefix));
 
 #if OPENTHREAD_ENABLE_SERVICE
 

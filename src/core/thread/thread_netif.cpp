@@ -1,4 +1,3 @@
-
 /*
  *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
@@ -115,17 +114,18 @@ otError ThreadNetif::Up(void)
     {
         // Enable the MAC just in case it was disabled while the Interface was down.
         mMac.SetEnabled(true);
-        GetIp6().AddNetif(*this);
         mMeshForwarder.Start();
+#if OPENTHREAD_ENABLE_CHANNEL_MONITOR
+        GetInstance().GetChannelMonitor().Start();
+#endif
+        GetIp6().AddNetif(*this);
+        mIsUp = true;
+
+        mMleRouter.Enable();
         mCoap.Start(kCoapUdpPort);
 #if OPENTHREAD_ENABLE_DNS_CLIENT
         mDnsClient.Start();
 #endif
-#if OPENTHREAD_ENABLE_CHANNEL_MONITOR
-        GetInstance().GetChannelMonitor().Start();
-#endif
-        mMleRouter.Enable();
-        mIsUp = true;
     }
 
     return OT_ERROR_NONE;
@@ -133,23 +133,23 @@ otError ThreadNetif::Up(void)
 
 otError ThreadNetif::Down(void)
 {
+#if OPENTHREAD_ENABLE_DTLS
+    mDtls.Stop();
+#endif
     mCoap.Stop();
 #if OPENTHREAD_ENABLE_DNS_CLIENT
     mDnsClient.Stop();
 #endif
+    mMleRouter.Disable();
+
+    mIsUp = false;
+    RemoveAllExternalUnicastAddresses();
+    UnsubscribeAllExternalMulticastAddresses();
+    GetIp6().RemoveNetif(*this);
 #if OPENTHREAD_ENABLE_CHANNEL_MONITOR
     GetInstance().GetChannelMonitor().Stop();
 #endif
-    mMleRouter.Disable();
     mMeshForwarder.Stop();
-    GetIp6().RemoveNetif(*this);
-    RemoveAllExternalUnicastAddresses();
-    UnsubscribeAllExternalMulticastAddresses();
-    mIsUp = false;
-
-#if OPENTHREAD_ENABLE_DTLS
-    mDtls.Stop();
-#endif
 
     return OT_ERROR_NONE;
 }
