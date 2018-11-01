@@ -217,4 +217,54 @@ exit:
     return rval;
 }
 
+void ThreadNetif::SetAddressCallback(otIp6AddressCallback aCallback, void *aCallbackContext)
+{
+    mAddressCallback        = aCallback;
+    mAddressCallbackContext = aCallbackContext;
+}
+
+otError ThreadNetif::AddUnicastAddress(Ip6::NetifUnicastAddress &aAddress)
+{
+    otError error = Netif::AddUnicastAddress(aAddress);
+
+    VerifyOrExit(error == OT_ERROR_NONE && mAddressCallback != NULL);
+    mAddressCallback(&aAddress.mAddress, aAddress.mPrefixLength, true, mAddressCallbackContext);
+
+exit:
+    return error;
+}
+
+otError ThreadNetif::RemoveUnicastAddress(const Ip6::NetifUnicastAddress &aAddress)
+{
+    otError error = Netif::RemoveUnicastAddress(aAddress);
+
+    VerifyOrExit(error == OT_ERROR_NONE && mAddressCallback != NULL);
+    mAddressCallback(&aAddress.mAddress, aAddress.mPrefixLength, false, mAddressCallbackContext);
+
+exit:
+    return error;
+}
+
+otError ThreadNetif::SubscribeMulticast(Ip6::NetifMulticastAddress &aAddress)
+{
+    otError error = Netif::SubscribeMulticast(aAddress);
+
+    VerifyOrExit(error == OT_ERROR_NONE && mAddressCallback != NULL);
+    mAddressCallback(&aAddress.mAddress, 0, true, mAddressCallbackContext);
+
+exit:
+    return error;
+}
+
+otError ThreadNetif::UnsubscribeMulticast(const Ip6::NetifMulticastAddress &aAddress)
+{
+    otError error = Netif::UnsubscribeMulticast(aAddress);
+
+    VerifyOrExit(error == OT_ERROR_NONE && mAddressCallback != NULL);
+    mAddressCallback(&aAddress.mAddress, 0, false, mAddressCallbackContext);
+
+exit:
+    return error;
+}
+
 } // namespace ot

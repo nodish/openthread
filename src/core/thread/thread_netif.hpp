@@ -439,6 +439,59 @@ public:
      */
     bool IsTmfMessage(const Ip6::MessageInfo &aMessageInfo);
 
+    /**
+     * This method registers a callback to provide received raw IPv6 datagrams.
+     *
+     * @param[in]  aCallback         A pointer to a function that is called when an IPv6 address is added or removed.
+     * @param[in]  aCallbackContext  A pointer to application-specific context.
+     *
+     */
+    void SetAddressCallback(otIp6AddressCallback aCallback, void *aCallbackContext);
+
+    /**
+     * This method adds a unicast address to the network interface.
+     *
+     * @param[in]  aAddress  A reference to the unicast address.
+     *
+     * @retval OT_ERROR_NONE      Successfully added the unicast address.
+     * @retval OT_ERROR_ALREADY  The unicast address was already added.
+     *
+     */
+    otError AddUnicastAddress(Ip6::NetifUnicastAddress &aAddress);
+
+    /**
+     * This method removes a unicast address from the network interface.
+     *
+     * @param[in]  aAddress  A reference to the unicast address.
+     *
+     * @retval OT_ERROR_NONE       Successfully removed the unicast address.
+     * @retval OT_ERROR_NOT_FOUND  The unicast address wasn't found to be removed.
+     *
+     */
+    otError RemoveUnicastAddress(const Ip6::NetifUnicastAddress &aAddress);
+
+    /**
+     * This method subscribes the network interface to a multicast address.
+     *
+     * @param[in]  aAddress  A reference to the multicast address.
+     *
+     * @retval OT_ERROR_NONE     Successfully subscribed to @p aAddress.
+     * @retval OT_ERROR_ALREADY  The multicast address is already subscribed.
+     *
+     */
+    otError SubscribeMulticast(Ip6::NetifMulticastAddress &aAddress);
+
+    /**
+     * This method unsubscribes the network interface to a multicast address.
+     *
+     * @param[in]  aAddress  A reference to the multicast address.
+     *
+     * @retval OT_ERROR_NONE       Successfully unsubscribed @p aAddress.
+     * @retval OT_ERROR_NOT_FOUND  The multicast address was not found.
+     *
+     */
+    otError UnsubscribeMulticast(const Ip6::NetifMulticastAddress &aAddress);
+
 private:
     static otError TmfFilter(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo, void *aContext);
 
@@ -497,6 +550,9 @@ private:
     MeshCoP::Leader       mLeader;
     AddressResolver       mAddressResolver;
 #endif // OPENTHREAD_FTD
+
+    otIp6AddressCallback mAddressCallback;
+    void *               mAddressCallbackContext;
 
     Utils::ChildSupervisor     mChildSupervisor;
     Utils::SupervisionListener mSupervisionListener;
