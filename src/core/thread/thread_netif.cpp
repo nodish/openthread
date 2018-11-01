@@ -154,7 +154,7 @@ otError ThreadNetif::Down(void)
     mMleRouter.Disable();
     mMeshForwarder.Stop();
     GetIp6().RemoveNetif(*this);
-    RemoveAllExternalUnicastAddresses();
+    RemoveAllDynamicUnicastAddresses();
     UnsubscribeAllExternalMulticastAddresses();
     mIsUp = false;
 
