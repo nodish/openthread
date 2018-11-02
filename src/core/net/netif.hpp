@@ -447,6 +447,9 @@ public:
         return OT_ERROR_NOT_IMPLEMENTED;
     }
 
+    static const otNetifMulticastAddress kLinkLocalAllNodesMulticastAddress;
+    static const otNetifMulticastAddress kLinkLocalAllRoutersMulticastAddress;
+
 private:
     NetifUnicastAddress *  mUnicastAddresses;
     NetifMulticastAddress *mMulticastAddresses;
@@ -458,9 +461,7 @@ private:
     NetifMulticastAddress mExtMulticastAddresses[OPENTHREAD_CONFIG_MAX_EXT_MULTICAST_IP_ADDRS];
 
     static const otNetifMulticastAddress kRealmLocalAllMplForwardersMulticastAddress;
-    static const otNetifMulticastAddress kLinkLocalAllNodesMulticastAddress;
     static const otNetifMulticastAddress kRealmLocalAllNodesMulticastAddress;
-    static const otNetifMulticastAddress kLinkLocalAllRoutersMulticastAddress;
     static const otNetifMulticastAddress kRealmLocalAllRoutersMulticastAddress;
 };
 

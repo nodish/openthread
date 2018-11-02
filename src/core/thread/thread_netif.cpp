@@ -48,6 +48,8 @@ using ot::Encoding::BigEndian::HostSwap16;
 
 namespace ot {
 
+static const uint8_t kMulticastPrefixLength = 128;
+
 ThreadNetif::ThreadNetif(Instance &aInstance)
     : Netif(aInstance, OT_NETIF_INTERFACE_ID_THREAD)
     , mCoap(aInstance)
@@ -250,7 +252,7 @@ otError ThreadNetif::SubscribeMulticast(Ip6::NetifMulticastAddress &aAddress)
     otError error = Netif::SubscribeMulticast(aAddress);
 
     VerifyOrExit(error == OT_ERROR_NONE && mAddressCallback != NULL);
-    mAddressCallback(&aAddress.mAddress, 0, true, mAddressCallbackContext);
+    mAddressCallback(&aAddress.mAddress, kMulticastPrefixLength, true, mAddressCallbackContext);
 
 exit:
     return error;
@@ -261,9 +263,51 @@ otError ThreadNetif::UnsubscribeMulticast(const Ip6::NetifMulticastAddress &aAdd
     otError error = Netif::UnsubscribeMulticast(aAddress);
 
     VerifyOrExit(error == OT_ERROR_NONE && mAddressCallback != NULL);
-    mAddressCallback(&aAddress.mAddress, 0, false, mAddressCallbackContext);
+    mAddressCallback(&aAddress.mAddress, kMulticastPrefixLength, false, mAddressCallbackContext);
 
 exit:
+    return error;
+}
+
+otError ThreadNetif::SubscribeAllRoutersMulticast(void)
+{
+    otError error;
+
+    SuccessOrExit(error = Netif::SubscribeAllRoutersMulticast());
+    VerifyOrExit(mAddressCallback != NULL);
+
+    for (const otNetifMulticastAddress *entry                = &kLinkLocalAllRoutersMulticastAddress;
+         entry != &kLinkLocalAllNodesMulticastAddress; entry = entry->mNext)
+    {
+        mAddressCallback(&entry->mAddress, kMulticastPrefixLength, true, mAddressCallbackContext);
+    }
+
+    GetNotifier().Signal(OT_CHANGED_IP6_MULTICAST_SUBSRCRIBED);
+
+exit:
+    return error;
+}
+
+otError ThreadNetif::UnsubscribeAllRoutersMulticast(void)
+{
+    otError error;
+
+    SuccessOrExit(error = Netif::UnsubscribeAllRoutersMulticast());
+    VerifyOrExit(mAddressCallback != NULL);
+
+    for (const otNetifMulticastAddress *entry                = &kLinkLocalAllRoutersMulticastAddress;
+         entry != &kLinkLocalAllNodesMulticastAddress; entry = entry->mNext)
+    {
+        mAddressCallback(&entry->mAddress, kMulticastPrefixLength, false, mAddressCallbackContext);
+    }
+
+exit:
+
+    if (error != OT_ERROR_NOT_FOUND)
+    {
+        GetNotifier().Signal(OT_CHANGED_IP6_MULTICAST_UNSUBSRCRIBED);
+    }
+
     return error;
 }
 

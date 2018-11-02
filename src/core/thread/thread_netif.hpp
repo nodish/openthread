@@ -492,6 +492,24 @@ public:
      */
     otError UnsubscribeMulticast(const Ip6::NetifMulticastAddress &aAddress);
 
+    /**
+     * This method subscribes the network interface to the link-local and realm-local all routers address.
+     *
+     * @retval OT_ERROR_NONE     Successfully subscribed to the link-local and realm-local all routers address
+     * @retval OT_ERROR_ALREADY  The multicast addresses are already subscribed.
+     *
+     */
+    otError SubscribeAllRoutersMulticast(void);
+
+    /**
+     * This method unsubscribes the network interface to the link-local and realm-local all routers address.
+     *
+     * @retval OT_ERROR_NONE       Successfully unsubscribed from the link-local and realm-local all routers address
+     * @retval OT_ERROR_NOT_FOUND  The multicast addresses were not found.
+     *
+     */
+    otError UnsubscribeAllRoutersMulticast(void);
+
 private:
     static otError TmfFilter(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo, void *aContext);
 
