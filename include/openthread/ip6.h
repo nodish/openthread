@@ -394,7 +394,7 @@ typedef void (*otIp6ReceiveCallback)(otMessage *aMessage, void *aContext);
  * @param[in]   aAddress            A pointer to the IPv6 address.
  * @param[in]   aPrefixLength       The prefix length if @p aAddress is unicast address, and 128 for multicast address.
  * @param[in]   aIsAdded            TRUE if the @p aAddress was added, FALSE if @p aAddress was removed.
- * @param[in]   aCallbackContext    A pointer to application-specific context.
+ * @param[in]   aContext            A pointer to application-specific context.
  *
  */
 typedef void (*otIp6AddressCallback)(const otIp6Address *aAddress,

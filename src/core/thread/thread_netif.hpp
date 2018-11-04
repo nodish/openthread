@@ -440,7 +440,7 @@ public:
     bool IsTmfMessage(const Ip6::MessageInfo &aMessageInfo);
 
     /**
-     * This method registers a callback to provide received raw IPv6 datagrams.
+     * This method registers a callback to notify internal IPv6 address changes.
      *
      * @param[in]  aCallback         A pointer to a function that is called when an IPv6 address is added or removed.
      * @param[in]  aCallbackContext  A pointer to application-specific context.
@@ -453,8 +453,8 @@ public:
      *
      * @param[in]  aAddress  A reference to the unicast address.
      *
-     * @retval OT_ERROR_NONE      Successfully added the unicast address.
-     * @retval OT_ERROR_ALREADY  The unicast address was already added.
+     * @retval OT_ERROR_NONE        Successfully added the unicast address.
+     * @retval OT_ERROR_ALREADY     The unicast address was already added.
      *
      */
     otError AddUnicastAddress(Ip6::NetifUnicastAddress &aAddress);
