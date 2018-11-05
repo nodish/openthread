@@ -66,7 +66,6 @@
 #include <openthread/dhcp6_client.h>
 #include <openthread/dhcp6_server.h>
 #include <openthread/diag.h>
-#include <openthread/icmp6.h>
 #include <openthread/platform/uart.h>
 
 #include "common/new.hpp"

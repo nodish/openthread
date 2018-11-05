@@ -42,20 +42,17 @@
 #include <openthread/ip6.h>
 #include <openthread/udp.h>
 
-#include "cli/cli_server.hpp"
-#include "cli/cli_udp_example.hpp"
+#include "cli_server.hpp"
+#include "cli_udp_example.hpp"
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
-#include <coap/coap_header.hpp>
-#include "cli/cli_coap.hpp"
+#include "cli_coap.hpp"
 #endif
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
-#include <coap/coap_header.hpp>
-#include "cli/cli_coap_secure.hpp"
+#include "cli_coap_secure.hpp"
 #endif
 
-#include "common/code_utils.hpp"
 #include "common/instance.hpp"
 
 #ifndef OTDLL
@@ -63,7 +60,6 @@
 #include <openthread/dns.h>
 #include <openthread/sntp.h>
 #include "common/timer.hpp"
-#include "net/icmp6.hpp"
 #endif
 
 #ifdef OTDLL

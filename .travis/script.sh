@@ -37,9 +37,7 @@ set -x
 python --version || die
 
 [ $BUILD_TARGET != pretty-check ] || {
-    ./bootstrap || die
-    ./configure || die
-    make pretty-check || die
+    .travis/check-code-style || die "Code style check failed!"
 }
 
 [ $BUILD_TARGET != scan-build ] || {

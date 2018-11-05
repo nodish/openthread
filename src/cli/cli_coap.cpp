@@ -37,7 +37,7 @@
 
 #include <ctype.h>
 
-#include "cli/cli.hpp"
+#include "cli.hpp"
 #include "coap/coap_header.hpp"
 
 namespace ot {

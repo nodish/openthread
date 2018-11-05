@@ -60,6 +60,7 @@ cd /tmp || die
 
     [ $BUILD_TARGET != pretty-check ] || {
         clang-format --version || die
+        pip install --user cppclean || die
     }
 
     [ $BUILD_TARGET != posix-app-pty ] || {
