@@ -471,6 +471,21 @@ public:
         return OT_ERROR_NOT_IMPLEMENTED;
     }
 
+protected:
+    /**
+     * This method subscribes the network interface to the realm-local all MPL forwarders, link-local and
+     * realm-local all nodes address.
+     *
+     */
+    void SubscribeAllNodesMulticast(void);
+
+    /**
+     * This method unsubscribes the network interface from the realm-local all MPL forwarders, link-local and
+     * realm-local all nodes address.
+     *
+     */
+    void UnsubscribeAllNodesMulticast(void);
+
     static const otNetifMulticastAddress kLinkLocalAllNodesMulticastAddress;
     static const otNetifMulticastAddress kLinkLocalAllRoutersMulticastAddress;
 
