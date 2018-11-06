@@ -559,6 +559,7 @@ OTAPI uint8_t OTCALL otIp6PrefixMatch(const otIp6Address *aFirst, const otIp6Add
  */
 bool otIp6IsAddressUnspecified(const otIp6Address *aAddress);
 
+otError otIp6SelectSourceAddress(otInstance *aInstance, otMessageInfo *aMessageInfo);
 /**
  * @}
  *
