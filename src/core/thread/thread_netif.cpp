@@ -254,6 +254,29 @@ exit:
     return error;
 }
 
+otError ThreadNetif::AddInternalUnicastAddress(const Ip6::NetifUnicastAddress &aAddress)
+{
+    otError error = Netif::AddInternalUnicastAddress(aAddress);
+
+    VerifyOrExit(error == OT_ERROR_NONE && mAddressCallback != NULL);
+    mAddressCallback(&aAddress.mAddress, aAddress.mPrefixLength, true, mAddressCallbackContext);
+
+exit:
+    return error;
+}
+
+otError ThreadNetif::RemoveInternalUnicastAddress(const Ip6::Address &aAddress)
+{
+    uint8_t prefixLength = 0;
+    otError error        = Netif::RemoveInternalUnicastAddress(aAddress, &prefixLength);
+
+    VerifyOrExit(error == OT_ERROR_NONE && mAddressCallback != NULL);
+    mAddressCallback(&aAddress, prefixLength, false, mAddressCallbackContext);
+
+exit:
+    return error;
+}
+
 otError ThreadNetif::SubscribeMulticast(Ip6::NetifMulticastAddress &aAddress)
 {
     otError error = Netif::SubscribeMulticast(aAddress);

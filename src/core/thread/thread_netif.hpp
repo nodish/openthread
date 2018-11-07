@@ -471,6 +471,30 @@ public:
     otError RemoveUnicastAddress(const Ip6::NetifUnicastAddress &aAddress);
 
     /**
+     * This method adds an internal (to OpenThread) unicast address to the network interface.
+     *
+     * @param[in]  aAddress  A reference to the unicast address.
+     *
+     * @retval OT_ERROR_NONE          Successfully added (or updated) the unicast address.
+     * @retval OT_ERROR_INVALID_ARGS  The address indicated by @p aAddress is link-local address or an external address.
+     * @retval OT_ERROR_NO_BUFS       The maximum number of allowed internal addresses are already added.
+     *
+     */
+    otError AddInternalUnicastAddress(const Ip6::NetifUnicastAddress &aAddress);
+
+    /**
+     * This method removes an internal (to OpenThread) unicast address from the network interface.
+     *
+     * @param[in]  aAddress  A reference to the unicast address.
+     *
+     * @retval OT_ERROR_NONE          Successfully removed the unicast address.
+     * @retval OT_ERROR_INVALID_ARGS  The address indicated by @p aAddress is an external address.
+     * @retval OT_ERROR_NOT_FOUND     The unicast address was not found.
+     *
+     */
+    otError RemoveInternalUnicastAddress(const Ip6::Address &aAddress);
+
+    /**
      * This method subscribes the network interface to a multicast address.
      *
      * @param[in]  aAddress  A reference to the multicast address.

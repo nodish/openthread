@@ -254,14 +254,15 @@ public:
     /**
      * This method removes an internal (to OpenThread) unicast address from the network interface.
      *
-     * @param[in]  aAddress  A reference to the unicast address.
+     * @param[in]  aAddress         A reference to the unicast address.
+     * @param[out] aPrefixLength    A pointer to to receive the prefix length of the removed address.
      *
      * @retval OT_ERROR_NONE          Successfully removed the unicast address.
      * @retval OT_ERROR_INVALID_ARGS  The address indicated by @p aAddress is an external address.
      * @retval OT_ERROR_NOT_FOUND     The unicast address was not found.
      *
      */
-    otError RemoveInternalUnicastAddress(const Address &aAddress);
+    otError RemoveInternalUnicastAddress(const Address &aAddress, uint8_t *aPrefixLength = NULL);
 
     /**
      * This method adds an external (to OpenThread) unicast address to the network interface.
@@ -278,7 +279,7 @@ public:
     /**
      * This method removes an external (to OpenThread) unicast address from the network interface.
      *
-     * @param[in]  aAddress  A reference to the unicast address.
+     * @param[in]  aAddress         A reference to the unicast address.
      *
      * @retval OT_ERROR_NONE          Successfully removed the unicast address.
      * @retval OT_ERROR_INVALID_ARGS  The address indicated by @p aAddress is an internal address.

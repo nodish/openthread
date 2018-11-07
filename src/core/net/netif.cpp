@@ -581,7 +581,7 @@ exit:
     return error;
 }
 
-otError Netif::RemoveInternalUnicastAddress(const Address &aAddress)
+otError Netif::RemoveInternalUnicastAddress(const Address &aAddress, uint8_t *aPrefixLength)
 {
     otError              error  = OT_ERROR_NONE;
     NetifUnicastAddress *prev   = NULL;
@@ -604,6 +604,11 @@ otError Netif::RemoveInternalUnicastAddress(const Address &aAddress)
     }
 
     VerifyOrExit(target != NULL, error = OT_ERROR_NOT_FOUND);
+
+    if (aPrefixLength)
+    {
+        *aPrefixLength = target->mPrefixLength;
+    }
 
     --mInternalDynamicUnicastsNumber;
 
