@@ -3751,7 +3751,7 @@ void Mle::SendHeartBeat(void)
     uint8_t parentId = GetRouterId(mParent.GetRloc16());
     uint8_t leaderId = GetLeaderId();
 
-    header.Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
+    header.Init(OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_POST);
     header.SetToken(Coap::Header::kDefaultTokenLength);
     header.AppendUriPathOptions(OT_URI_PATH_HEART_BEAT);
     header.SetPayloadMarker();

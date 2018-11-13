@@ -147,7 +147,7 @@ void Instance::AfterInit(void)
 
 #if OPENTHREAD_CONFIG_ENABLE_AUTO_START_SUPPORT
 
-    if (otThreadGetAutoStart(this))
+    if (true)
     {
         if (otIp6SetEnabled(this, true) == OT_ERROR_NONE)
         {
