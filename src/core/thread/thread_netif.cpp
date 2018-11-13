@@ -108,6 +108,7 @@ ThreadNetif::ThreadNetif(Instance &aInstance)
     , mTimeSync(aInstance)
 #endif
 {
+    memset(mOnMeshPrefixAddresses, 0, sizeof(mOnMeshPrefixAddresses));
     mCoap.SetInterceptor(&ThreadNetif::TmfFilter, this);
 }
 

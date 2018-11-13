@@ -70,31 +70,6 @@ enum
 };
 
 /**
- * Status of IdentityAssociation
- *
- */
-enum IaStatus
-{
-    kIaStatusInvalid,
-    kIaStatusSolicit,
-    kIaStatusSoliciting,
-    kIaStatusSolicitReplied,
-};
-
-/**
- * This class implements IdentityAssociation.
- *
- */
-struct IdentityAssociation
-{
-    otNetifAddress mNetifAddress;      ///< the NetifAddress
-    uint32_t       mPreferredLifetime; ///< The preferred lifetime.
-    uint32_t       mValidLifetime;     ///< The valid lifetime.
-    uint16_t       mPrefixAgentRloc;   ///< Rloc of Prefix Agent
-    uint8_t        mStatus;            ///< Status of IdentityAssocation
-};
-
-/**
  * This class implements DHCPv6 Client.
  *
  */
@@ -156,9 +131,6 @@ private:
 
     uint8_t  mTransactionId[kTransactionIdSize];
     uint32_t mStartTime;
-
-    IdentityAssociation  mIdentityAssociations[OPENTHREAD_CONFIG_NUM_DHCP_PREFIXES];
-    IdentityAssociation *mIdentityAssociationCurrent;
 };
 
 } // namespace Dhcp6

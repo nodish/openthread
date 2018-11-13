@@ -86,6 +86,39 @@
 namespace ot {
 
 /**
+ * This class implements IdentityAssociation.
+ *
+ */
+struct OnMeshPrefixAddress
+{
+    /**
+     * Status of IdentityAssociation
+     *
+     */
+    enum
+    {
+        kStatusInvalid,
+        kStatusSlaac,
+        kStatusDhcpSolicit,
+        kStatusDhcpSoliciting,
+        kStatusDhcpSolicitReplied,
+    };
+
+    otNetifAddress *mNetifAddress; ///< the NetifAddress
+    union
+    {
+        OT_TOOL_PACKED_BEGIN
+        struct
+        {
+            uint32_t mPreferredLifetime; ///< The preferred lifetime.
+            uint32_t mValidLifetime;     ///< The valid lifetime.
+            uint16_t mPrefixAgentRloc;   ///< Rloc of Prefix Agent
+        } OT_TOOL_PACKED_END mDhcp;
+    } OT_TOOL_PACKED_FIELD;
+    uint8_t mStatus; ///< Status of IdentityAssocation
+};
+
+/**
  * @addtogroup core-netif
  *
  * @brief
@@ -125,6 +158,8 @@ public:
      *
      */
     bool IsUp(void) const { return mIsUp; }
+
+    OnMeshPrefixAddress *GetOnMeshPrefixAddresses(uint8_t &aSize);
 
     /**
      * This method retrieves the link address.
@@ -503,6 +538,7 @@ private:
     AnnounceBeginServer        mAnnounceBegin;
     PanIdQueryServer           mPanIdQuery;
     EnergyScanServer           mEnergyScan;
+    OnMeshPrefixAddress        mOnMeshPrefixAddresses[OPENTHREAD_CONFIG_NUM_DHCP_PREFIXES];
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
     TimeSync mTimeSync;
 #endif

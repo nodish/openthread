@@ -59,9 +59,8 @@ Dhcp6Client::Dhcp6Client(Instance &aInstance)
     , mSocket(aInstance.GetThreadNetif().GetIp6().GetUdp())
     , mTrickleTimer(aInstance, &Dhcp6Client::HandleTrickleTimer, NULL, this)
     , mStartTime(0)
-    , mIdentityAssociationCurrent(NULL)
+    , mOnMeshPrefixAddressCurrent(NULL)
 {
-    memset(mIdentityAssociations, 0, sizeof(mIdentityAssociations));
 }
 
 bool Dhcp6Client::MatchNetifAddressWithPrefix(const otNetifAddress &aNetifAddress, const otIp6Prefix &aIp6Prefix)
@@ -76,13 +75,15 @@ void Dhcp6Client::UpdateAddresses(void)
     bool                  newAgent = false;
     otNetworkDataIterator iterator;
     otBorderRouterConfig  config;
+    uint8_t               size;
+    OnMeshPrefixAddress * ias = GetNetif().GetOnMeshPrefixAddresses(size);
 
     // remove addresses directly if prefix not valid in network data
-    for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mIdentityAssociations); i++)
+    for (uint8_t i = 0; i < size; i++)
     {
-        IdentityAssociation &ia = mIdentityAssociations[i];
+        OnMeshPrefixAddress &address = ias[i];
 
-        if (ia.mStatus == kIaStatusInvalid || ia.mValidLifetime == 0)
+        if (address.mStatus == OnMeshPrefixAddress::kStatusInvalid || address.mDhcp.mValidLifetime == 0)
         {
             continue;
         }
@@ -97,7 +98,7 @@ void Dhcp6Client::UpdateAddresses(void)
                 continue;
             }
 
-            if (MatchNetifAddressWithPrefix(ia.mNetifAddress, config.mPrefix))
+            if (MatchNetifAddressWithPrefix(*address.mNetifAddress, config.mPrefix))
             {
                 found = true;
                 break;
@@ -106,17 +107,17 @@ void Dhcp6Client::UpdateAddresses(void)
 
         if (!found)
         {
-            otIp6RemoveUnicastAddress(&GetInstance(), &ia.mNetifAddress.mAddress);
-            mIdentityAssociations[i].mStatus = kIaStatusInvalid;
+            otIp6RemoveUnicastAddress(&GetInstance(), &address.mNetifAddress->mAddress);
+            address.mStatus = OnMeshPrefixAddress::kStatusInvalid;
         }
     }
 
-    // add IdentityAssociation for new configured prefix
+    // add OnMeshPrefixAddress for new configured prefix
     iterator = OT_NETWORK_DATA_ITERATOR_INIT;
 
     while (otNetDataGetNextOnMeshPrefix(&GetInstance(), &iterator, &config) == OT_ERROR_NONE)
     {
-        IdentityAssociation *ia = NULL;
+        OnMeshPrefixAddress *address = NULL;
 
         if (!config.mDhcp)
         {
@@ -125,17 +126,17 @@ void Dhcp6Client::UpdateAddresses(void)
 
         found = false;
 
-        for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mIdentityAssociations); i++)
+        for (uint8_t i = 0; i < size; i++)
         {
-            if (mIdentityAssociations[i].mStatus == kIaStatusInvalid)
+            if (ias[i].mStatus == OnMeshPrefixAddress::kStatusInvalid)
             {
                 // record an available ia
-                if (ia == NULL)
+                if (address == NULL)
                 {
-                    ia = &mIdentityAssociations[i];
+                    address = &ias[i];
                 }
             }
-            else if (MatchNetifAddressWithPrefix(mIdentityAssociations[i].mNetifAddress, config.mPrefix))
+            else if (MatchNetifAddressWithPrefix(*ias[i].mNetifAddress, config.mPrefix))
             {
                 found = true;
                 break;
@@ -178,7 +179,7 @@ otError Dhcp6Client::Start(void)
     mSocket.Open(&Dhcp6Client::HandleUdpReceive, this);
     mSocket.Bind(sockaddr);
 
-    ProcessNextIdentityAssociation();
+    ProcessNextOnMeshPrefixAddress();
 
     return OT_ERROR_NONE;
 }
@@ -189,18 +190,18 @@ otError Dhcp6Client::Stop(void)
     return OT_ERROR_NONE;
 }
 
-bool Dhcp6Client::ProcessNextIdentityAssociation()
+bool Dhcp6Client::ProcessNextOnMeshPrefixAddress()
 {
     bool rval = false;
 
     // not interrupt in-progress solicit
-    VerifyOrExit(mIdentityAssociationCurrent == NULL || mIdentityAssociationCurrent->mStatus != kIaStatusSoliciting);
+    VerifyOrExit(mOnMeshPrefixAddressCurrent == NULL || mOnMeshPrefixAddressCurrent->mStatus != kIaStatusSoliciting);
 
     mTrickleTimer.Stop();
 
-    for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mIdentityAssociations); ++i)
+    for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mOnMeshPrefixAddresss); ++i)
     {
-        if (mIdentityAssociations[i].mStatus != kIaStatusSolicit)
+        if (mOnMeshPrefixAddresss[i].mStatus != kIaStatusSolicit)
         {
             continue;
         }
@@ -208,7 +209,7 @@ bool Dhcp6Client::ProcessNextIdentityAssociation()
         // new transaction id
         Random::FillBuffer(mTransactionId, kTransactionIdSize);
 
-        mIdentityAssociationCurrent = &mIdentityAssociations[i];
+        mOnMeshPrefixAddressCurrent = &mOnMeshPrefixAddresss[i];
 
         mTrickleTimer.Start(TimerMilli::SecToMsec(kTrickleTimerImin), TimerMilli::SecToMsec(kTrickleTimerImax),
                             TrickleTimer::kModeNormal);
@@ -231,24 +232,24 @@ bool Dhcp6Client::HandleTrickleTimer(void)
 {
     bool rval = true;
 
-    VerifyOrExit(mIdentityAssociationCurrent != NULL, rval = false);
+    VerifyOrExit(mOnMeshPrefixAddressCurrent != NULL, rval = false);
 
-    switch (mIdentityAssociationCurrent->mStatus)
+    switch (mOnMeshPrefixAddressCurrent->mStatus)
     {
     case kIaStatusSolicit:
         mStartTime                           = TimerMilli::GetNow();
-        mIdentityAssociationCurrent->mStatus = kIaStatusSoliciting;
+        mOnMeshPrefixAddressCurrent->mStatus = kIaStatusSoliciting;
 
         // fall through
 
     case kIaStatusSoliciting:
-        Solicit(mIdentityAssociationCurrent->mPrefixAgentRloc);
+        Solicit(mOnMeshPrefixAddressCurrent->mPrefixAgentRloc);
         break;
 
     case kIaStatusSolicitReplied:
-        mIdentityAssociationCurrent = NULL;
+        mOnMeshPrefixAddressCurrent = NULL;
 
-        if (!ProcessNextIdentityAssociation())
+        if (!ProcessNextOnMeshPrefixAddress())
         {
             mTrickleTimer.Stop();
             Stop();
@@ -341,16 +342,16 @@ otError Dhcp6Client::AppendIaNa(Message &aMessage, uint16_t aRloc16)
     uint16_t length = 0;
     IaNa     option;
 
-    VerifyOrExit(mIdentityAssociationCurrent != NULL, error = OT_ERROR_DROP);
+    VerifyOrExit(mOnMeshPrefixAddressCurrent != NULL, error = OT_ERROR_DROP);
 
-    for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mIdentityAssociations); ++i)
+    for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mOnMeshPrefixAddresss); ++i)
     {
-        if (mIdentityAssociations[i].mStatus == kIaStatusSolicitReplied)
+        if (mOnMeshPrefixAddresss[i].mStatus == kIaStatusSolicitReplied)
         {
             continue;
         }
 
-        if (mIdentityAssociations[i].mPrefixAgentRloc == aRloc16)
+        if (mOnMeshPrefixAddresss[i].mPrefixAgentRloc == aRloc16)
         {
             count++;
         }
@@ -375,16 +376,16 @@ otError Dhcp6Client::AppendIaAddress(Message &aMessage, uint16_t aRloc16)
     otError   error = OT_ERROR_NONE;
     IaAddress option;
 
-    VerifyOrExit(mIdentityAssociationCurrent, error = OT_ERROR_DROP);
+    VerifyOrExit(mOnMeshPrefixAddressCurrent, error = OT_ERROR_DROP);
 
     option.Init();
 
-    for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mIdentityAssociations); ++i)
+    for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mOnMeshPrefixAddresss); ++i)
     {
-        if ((mIdentityAssociations[i].mStatus != kIaStatusSolicitReplied) &&
-            (mIdentityAssociations[i].mPrefixAgentRloc == aRloc16))
+        if ((mOnMeshPrefixAddresss[i].mStatus != kIaStatusSolicitReplied) &&
+            (mOnMeshPrefixAddresss[i].mPrefixAgentRloc == aRloc16))
         {
-            option.SetAddress(mIdentityAssociations[i].mNetifAddress.mAddress);
+            option.SetAddress(mOnMeshPrefixAddresss[i].mNetifAddress.mAddress);
             option.SetPreferredLifetime(0);
             option.SetValidLifetime(0);
             SuccessOrExit(error = aMessage.Append(&option, sizeof(option)));
@@ -562,25 +563,26 @@ otError Dhcp6Client::ProcessIaAddress(Message &aMessage, uint16_t aOffset)
                   (option.GetLength() == (sizeof(option) - sizeof(Dhcp6Option)))),
                  error = OT_ERROR_PARSE);
 
-    for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mIdentityAssociations); ++i)
+    for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mOnMeshPrefixAddresss); ++i)
     {
-        IdentityAssociation &ia = mIdentityAssociations[i];
+        OnMeshPrefixAddress &ia = mOnMeshPrefixAddresss[i];
 
-        if (ia.mStatus == kIaStatusInvalid || ia.mValidLifetime != 0)
+        if (address.mStatus == kIaStatusInvalid || address.mDhcp.mValidLifetime != 0)
         {
             continue;
         }
 
-        if (otIp6PrefixMatch(&ia.mNetifAddress.mAddress, &option.GetAddress()) >= ia.mNetifAddress.mPrefixLength)
+        if (otIp6PrefixMatch(&address.mNetifAddress.mAddress, &option.GetAddress()) >=
+            address.mNetifAddress.mPrefixLength)
         {
-            mIdentityAssociations[i].mNetifAddress.mAddress   = option.GetAddress();
-            mIdentityAssociations[i].mPreferredLifetime       = option.GetPreferredLifetime();
-            mIdentityAssociations[i].mValidLifetime           = option.GetValidLifetime();
-            mIdentityAssociations[i].mNetifAddress.mPreferred = option.GetPreferredLifetime() != 0;
-            mIdentityAssociations[i].mNetifAddress.mValid     = option.GetValidLifetime() != 0;
-            otIp6AddUnicastAddress(&GetNetif().GetInstance(), &ia.mNetifAddress);
-            // mark IdentityAssociation as replied
-            mIdentityAssociations[i].mStatus = kIaStatusSolicitReplied;
+            mOnMeshPrefixAddresss[i].mNetifAddress.mAddress   = option.GetAddress();
+            mOnMeshPrefixAddresss[i].mPreferredLifetime       = option.GetPreferredLifetime();
+            mOnMeshPrefixAddresss[i].mValidLifetime           = option.GetValidLifetime();
+            mOnMeshPrefixAddresss[i].mNetifAddress.mPreferred = option.GetPreferredLifetime() != 0;
+            mOnMeshPrefixAddresss[i].mNetifAddress.mValid     = option.GetValidLifetime() != 0;
+            otIp6AddUnicastAddress(&GetNetif().GetInstance(), &address.mNetifAddress);
+            // mark OnMeshPrefixAddress as replied
+            mOnMeshPrefixAddresss[i].mStatus = kIaStatusSolicitReplied;
             break;
         }
     }
