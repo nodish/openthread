@@ -82,8 +82,10 @@ KeyManager::KeyManager(Instance &aInstance)
     , mKekFrameCounter(0)
     , mSecurityPolicyFlags(0xff)
 {
+#if OPENTHREAD_FTD
     uint8_t pskc[16] = {0x32, 0x39, 0x77, 0x00, 0xd9, 0xe2, 0xc4, 0xce, 0x39, 0xff, 0x54, 0x44, 0x7d, 0x84, 0x67, 0x81};
     memcpy(mPSKc, pskc, sizeof(pskc));
+#endif
     ComputeKey(mKeySequence, mKey);
 }
 
