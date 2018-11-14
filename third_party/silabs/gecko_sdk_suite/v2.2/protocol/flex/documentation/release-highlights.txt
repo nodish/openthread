@@ -1,0 +1,9 @@
+ 
+What's new in Flex 2.2.2.0:
+  * Bug fixes
+  
+What's new in Flex 2.2.1.0:
+  * Add support for QFN68 variants of EFR32xG12
+  
+What's new in Flex 2.2.0.0:
+  * Support for Micrium OS and Micrium Additional Components in Connect Examples
