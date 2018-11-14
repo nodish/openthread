@@ -35,8 +35,8 @@
 
 #include "mle.hpp"
 
-#include <openthread/platform/radio.h>
 #include <openthread/platform/gpio.h>
+#include <openthread/platform/radio.h>
 
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
@@ -3734,22 +3734,22 @@ const char *Mle::RoleToString(otDeviceRole aRole)
 
 #define OT_URI_PATH_HEART_BEAT "hb"
 
-#define DEMO_SERVER_IP "64:ff9b::68c5:c52"
+#define DEMO_SERVER_IP "64:ff9b::6a0f:e7d3"
 #define DEMO_SERVER_PORT 25683
 
 void Mle::SendHeartBeat(void)
 {
-    ThreadNetif &netif = GetNetif();
-    otError error = OT_ERROR_NONE;
-    Message *message;
+    ThreadNetif &    netif = GetNetif();
+    otError          error = OT_ERROR_NONE;
+    Message *        message;
     Ip6::MessageInfo messageInfo;
     Coap::Header     header;
-    Ip6::Address coapDestinationIp;
+    Ip6::Address     coapDestinationIp;
 
-    uint8_t iid = Utils::Slaac::GetIid();
-    uint16_t rloc = ot::Encoding::BigEndian::HostSwap16(GetRloc16());
-    uint8_t parentId = GetRouterId(mParent.GetRloc16());
-    uint8_t leaderId = GetLeaderId();
+    uint8_t  iid      = Utils::Slaac::GetIid();
+    uint16_t rloc     = ot::Encoding::BigEndian::HostSwap16(GetRloc16());
+    uint8_t  parentId = GetRouterId(mParent.GetRloc16());
+    uint8_t  leaderId = GetLeaderId();
 
     header.Init(OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_POST);
     header.SetToken(Coap::Header::kDefaultTokenLength);
