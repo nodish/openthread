@@ -80,11 +80,12 @@ AbsTopSourceDir                := $(dir $(realpath $(firstword $(MAKEFILE_LIST))
 CONFIG_FILE      = OPENTHREAD_PROJECT_CORE_CONFIG_FILE='\"openthread-core-posix-config.h\"'
 CONFIG_FILE_PATH = $(AbsTopSourceDir)/examples/platforms/posix/
 
-COMMONCFLAGS                   := \
-    -O1                           \
-    -g                            \
-    -D$(CONFIG_FILE)              \
-    -I$(CONFIG_FILE_PATH)         \
+COMMONCFLAGS                             := \
+    -O1                                     \
+    -g                                      \
+    -DOPENTHREAD_CONFIG_ENABLE_TIME_SYNC=1  \
+    -D$(CONFIG_FILE)                        \
+    -I$(CONFIG_FILE_PATH)                   \
     $(NULL)
 
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/common-switches.mk
