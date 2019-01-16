@@ -265,11 +265,17 @@ void platformNetifUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *a
  */
 void platformNetifProcess(const fd_set *aReadFdSet, const fd_set *aWriteFdSet, const fd_set *aErrorFdSet);
 
+typedef struct otSysConfig
+{
+    bool mDaemon;
+} otSysConfig;
+
 /**
- * This function restores the Uart.
+ * This function retrieves global configurations.
  *
+ * @return  A pointer to the global configuration.
  */
-void platformUartRestore(void);
+otSysConfig *otSysGetConfig(void);
 
 /**
  * This function initialize simulation.

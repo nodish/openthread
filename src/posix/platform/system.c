@@ -55,9 +55,13 @@ static void PrintUsage(const char *aProgramName, FILE *aStream, int aExitCode)
 {
     fprintf(aStream,
             "Syntax:\n"
-            "    %s [Options] NodeId|Device|Command [DeviceConfig|CommandArgs]\n"
+            "    %s [Options] [NodeId|Device|Command] [DeviceConfig|CommandArgs]\n"
             "Options:\n"
-            "    -n  --dry-run               Just verify if arguments is valid and radio spinel is compatible.\n"
+            "    -n  --dry-run               Just verify if arguments is valid and radio spinel is "
+            "compatible.\n"
+#if OPENTHREAD_ENABLE_POSIX_APP_DAEMON
+            "        --daemon                Run OpenThread in daemon mode\n"
+#endif
             "        --radio-version         Print radio firmware version\n"
             "    -s  --time-speed factor     Time speed up factor.\n"
             "    -h  --help                  Display this usage information.\n",
@@ -73,6 +77,9 @@ otInstance *otSysInit(int aArgCount, char *aArgVector[])
     uint32_t    speedUpFactor     = 1;
     bool        isDryRun          = false;
     bool        printRadioVersion = false;
+#if OPENTHREAD_ENABLE_POSIX_APP_DAEMON
+    bool isDaemon = false;
+#endif
 
     while (true)
     {
@@ -80,6 +87,7 @@ otInstance *otSysInit(int aArgCount, char *aArgVector[])
         int                 option;
         const struct option options[] = {{"dry-run", no_argument, NULL, 'n'},
                                          {"radio-version", no_argument, NULL, 0},
+                                         {"daemon", no_argument, NULL, 0},
                                          {"help", no_argument, NULL, 'h'},
                                          {"time-speed", required_argument, NULL, 's'},
                                          {0, 0, 0, 0}};
@@ -116,6 +124,12 @@ otInstance *otSysInit(int aArgCount, char *aArgVector[])
             {
                 printRadioVersion = true;
             }
+#if OPENTHREAD_ENABLE_POSIX_APP_DAEMON
+            else if (!strcmp(options[index].name, "daemon"))
+            {
+                isDaemon = true;
+            }
+#endif
             break;
         case '?':
             PrintUsage(aArgVector[0], stderr, OT_EXIT_INVALID_ARGUMENTS);

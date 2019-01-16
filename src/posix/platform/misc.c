@@ -47,7 +47,6 @@ void otPlatReset(otInstance *aInstance)
     OT_UNUSED_VARIABLE(aInstance);
 
     otSysDeinit();
-    platformUartRestore();
 
     longjmp(gResetJump, 1);
     assert(false);
