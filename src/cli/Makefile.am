@@ -145,12 +145,12 @@ SOURCES_COMMON =                      \
     cli.cpp                           \
     cli_coap.cpp                      \
     cli_coap_secure.cpp               \
+    cli_console.cpp                   \
     cli_dataset.cpp                   \
     cli_uart.cpp                      \
     cli_udp_example.cpp               \
     $(NULL)
 
-#    cli_console.cpp
 
 libopenthread_cli_ftd_a_SOURCES =     \
     $(SOURCES_COMMON)                 \

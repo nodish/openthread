@@ -42,65 +42,26 @@
 #include "common/instance.hpp"
 #include "common/new.hpp"
 
+#if OPENTHREAD_CONFIG_CLI_BUS == OPENTHREAD_CLI_BUS_CONSOLE
+
 namespace ot {
 namespace Cli {
-
-static Console *sServer;
-
-static otDEFINE_ALIGNED_VAR(sCliConsoleRaw, sizeof(Console), uint64_t);
 
 extern "C" void otCliConsoleInit(otInstance *aInstance, otCliConsoleOutputCallback aCallback, void *aContext)
 {
     Instance *instance = static_cast<Instance *>(aInstance);
 
-    sServer = new (&sCliConsoleRaw) Console(instance);
-    sServer->SetOutputCallback(aCallback);
-    sServer->SetContext(aContext);
+    gCli = new (&sCliRaw) Interpreter(instance);
+    gCli->SetOutputCallback(aCallback);
+    gCli->SetContext(aContext);
 }
 
 extern "C" void otCliConsoleInputLine(char *aBuf, uint16_t aBufLength)
 {
-    sServer->ReceiveTask(aBuf, aBufLength);
-}
-
-Console::Console(Instance *aInstance)
-    : mCallback(NULL)
-    , mContext(NULL)
-    , mInterpreter(aInstance)
-{
-}
-
-void Console::SetContext(void *aContext)
-{
-    mContext = aContext;
-}
-
-void Console::SetOutputCallback(otCliConsoleOutputCallback aCallback)
-{
-    mCallback = aCallback;
-}
-
-void Console::ReceiveTask(char *aBuf, uint16_t aBufLength)
-{
-    mInterpreter.ProcessLine(aBuf, aBufLength, *this);
-}
-
-int Console::Output(const char *aBuf, uint16_t aBufLength)
-{
-    return mCallback(aBuf, aBufLength, mContext);
-}
-
-int Console::OutputFormat(const char *fmt, ...)
-{
-    char    buf[kMaxLineLength];
-    va_list ap;
-
-    va_start(ap, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, ap);
-    va_end(ap);
-
-    return Output(buf, static_cast<uint16_t>(strlen(buf)));
+    gCli->ReceiveTask(aBuf, aBufLength);
 }
 
 } // namespace Cli
 } // namespace ot
+
+#endif // OPENTHREAD_CONFIG_CLI_BUS == OPENTHREAD_CLI_BUS_CONSOLE

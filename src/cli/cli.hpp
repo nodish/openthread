@@ -42,7 +42,6 @@
 #include <openthread/ip6.h>
 #include <openthread/udp.h>
 
-#include "cli/cli_uart.hpp"
 #include "cli/cli_udp_example.hpp"
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
@@ -69,6 +68,25 @@
 #define MAX_CLI_OT_INSTANCES 64
 #endif
 
+#define OPENTHREAD_CLI_BUS_NONE 0
+#define OPENTHREAD_CLI_BUS_CONSOLE 1
+#define OPENTHREAD_CLI_BUS_SPI 2
+#define OPENTHREAD_CLI_BUS_UART 3
+
+#define OPENTHREAD_CONFIG_CLI_BUS OPENTHREAD_CLI_BUS_CONSOLE
+
+#ifndef OPENTHREAD_CONFIG_CLI_BUS
+#define OPENTHREAD_CONFIG_CLI_BUS OPENTHREAD_CLI_BUS_UART
+#endif
+
+#if OPENTHREAD_CONFIG_CLI_BUS == OPENTHREAD_CLI_BUS_UART
+#include "cli/cli_uart.hpp"
+#elif OPENTHREAD_CONFIG_CLI_BUS == OPENTHREAD_CLI_BUS_CONSOLE
+#include "cli/cli_console.hpp"
+#endif
+
+#include "cli/line_reader.hpp"
+
 namespace ot {
 
 /**
@@ -81,6 +99,12 @@ namespace ot {
 namespace Cli {
 
 class Interpreter;
+
+#if OPENTHREAD_CONFIG_CLI_BUS == OPENTHREAD_CLI_BUS_UART
+typedef Uart<Interpreter> BusType;
+#elif OPENTHREAD_CONFIG_CLI_BUS == OPENTHREAD_CLI_BUS_CONSOLE
+typedef Console<Interpreter> BusType;
+#endif
 
 extern Interpreter *gCli;
 
@@ -98,7 +122,7 @@ struct Command
  * This class implements the CLI interpreter.
  *
  */
-class Interpreter : public LineReader<Interpreter>, public Uart<Interpreter>
+class Interpreter : public LineReader<Interpreter>, public BusType
 {
     friend class Coap;
     friend class CoapSecure;

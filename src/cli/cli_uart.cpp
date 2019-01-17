@@ -48,6 +48,8 @@
 #include "common/new.hpp"
 #include "common/tasklet.hpp"
 
+#if OPENTHREAD_CONFIG_CLI_BUS == OPENTHREAD_CLI_BUS_UART
+
 namespace ot {
 namespace Cli {
 
@@ -84,3 +86,5 @@ exit:
 
 } // namespace Cli
 } // namespace ot
+
+#endif // OPENTHREAD_CONFIG_CLI_BUS == OPENTHREAD_CLI_BUS_UART

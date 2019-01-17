@@ -38,9 +38,6 @@
 
 #include <openthread/cli.h>
 
-#include "cli/cli.hpp"
-#include "cli/cli_server.hpp"
-
 namespace ot {
 namespace Cli {
 
@@ -48,7 +45,7 @@ namespace Cli {
  * This class implements the CLI server on top of the CONSOLE platform abstraction.
  *
  */
-class Console : public Server
+template <typename kReader> class Console
 {
 public:
     /**
@@ -57,7 +54,11 @@ public:
      * @param[in]  aInstance  The OpenThread instance structure.
      *
      */
-    Console(Instance *aInstance);
+    Console(void)
+        : mCallback(NULL)
+        , mContext(NULL)
+    {
+    }
 
     /**
      * This method delivers raw characters to the client.
@@ -68,18 +69,7 @@ public:
      * @returns The number of bytes placed in the output queue.
      *
      */
-    virtual int Output(const char *aBuf, uint16_t aBufLength);
-
-    /**
-     * This method delivers formatted output to the client.
-     *
-     * @param[in]  aFmt  A pointer to the format string.
-     * @param[in]  ...   A variable list of arguments to format.
-     *
-     * @returns The number of bytes placed in the output queue.
-     *
-     */
-    virtual int OutputFormat(const char *fmt, ...);
+    int Output(const char *aBuf, uint16_t aBufLength) { return mCallback(aBuf, aBufLength, mContext); }
 
     /**
      * This method sets a callback that is called when console has some output.
@@ -87,7 +77,7 @@ public:
      * @param[in]  aCallback   A pointer to a callback method.
      *
      */
-    void SetOutputCallback(otCliConsoleOutputCallback aCallback);
+    void SetOutputCallback(otCliConsoleOutputCallback aCallback) { mCallback = aCallback; }
 
     /**
      * This method sets a context that is returned with the callback.
@@ -95,9 +85,9 @@ public:
      * @param[in]  aContext   A pointer to a user context.
      *
      */
-    void SetContext(void *aContext);
+    void SetContext(void *aContext) { mContext = aContext; }
 
-    void ReceiveTask(char *aBuf, uint16_t aBufLength);
+    void ReceiveTask(char *aBuf, uint16_t aBufLength) { static_cast<kReader *>(this)->ProcessLine(aBuf, aBufLength); }
 
 private:
     enum
@@ -107,8 +97,6 @@ private:
 
     otCliConsoleOutputCallback mCallback;
     void *                     mContext;
-
-    Interpreter mInterpreter;
 };
 
 } // namespace Cli
