@@ -42,7 +42,7 @@
 #include <openthread/ip6.h>
 #include <openthread/udp.h>
 
-#include "cli/cli_server.hpp"
+#include "cli/cli_uart.hpp"
 #include "cli/cli_udp_example.hpp"
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
@@ -82,6 +82,8 @@ namespace Cli {
 
 class Interpreter;
 
+extern Interpreter *gCli;
+
 /**
  * This structure represents a CLI command.
  *
@@ -96,7 +98,7 @@ struct Command
  * This class implements the CLI interpreter.
  *
  */
-class Interpreter
+class Interpreter : public LineReader<Interpreter>, public Uart<Interpreter>
 {
     friend class Coap;
     friend class CoapSecure;
@@ -110,15 +112,17 @@ public:
      */
     Interpreter(Instance *aInstance);
 
+    int OutputFormat(const char *fmt, ...);
+    int OutputFormatV(const char *aFmt, va_list aAp);
+
     /**
      * This method interprets a CLI command.
      *
      * @param[in]  aBuf        A pointer to a string.
      * @param[in]  aBufLength  The length of the string in bytes.
-     * @param[in]  aServer     A reference to the CLI server.
      *
      */
-    void ProcessLine(char *aBuf, uint16_t aBufLength, Server &aServer);
+    void ProcessLine(char *aBuf, uint16_t aBufLength);
 
     /**
      * This method parses an ASCII string as a long.
@@ -160,7 +164,7 @@ public:
      *
      * @param[in]  aError Error code value.
      */
-    void AppendResult(otError error) const;
+    void AppendResult(otError error);
 
     /**
      * Write a number of bytes to the CLI console as a hex string.
@@ -168,7 +172,7 @@ public:
      * @param[in]  aBytes   A pointer to data which should be printed.
      * @param[in]  aLength  @p aBytes length.
      */
-    void OutputBytes(const uint8_t *aBytes, uint8_t aLength) const;
+    void OutputBytes(const uint8_t *aBytes, uint8_t aLength);
 
     /**
      * Set a user command table.
@@ -184,6 +188,7 @@ private:
         kMaxArgs              = 32,
         kMaxAutoAddresses     = 8,
         kDefaultJoinerTimeout = 120, ///< Default timeout for Joiners, in seconds.
+        kMaxLineLength        = OPENTHREAD_CONFIG_CLI_MAX_LINE_LENGTH,
     };
 
     void ProcessHelp(int argc, char *argv[]);
@@ -404,8 +409,6 @@ private:
     static const struct Command sCommands[];
     const otCliCommand *        mUserCommands;
     uint8_t                     mUserCommandsLength;
-
-    Server *mServer;
 
 #ifdef OTDLL
 

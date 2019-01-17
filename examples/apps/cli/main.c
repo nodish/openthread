@@ -102,7 +102,7 @@ pseudo_reset:
 #endif
     assert(instance);
 
-    otCliUartInit(instance);
+    otCliInit(instance);
 
 #if OPENTHREAD_ENABLE_DIAG
     otDiagInit(instance);

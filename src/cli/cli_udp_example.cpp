@@ -61,7 +61,7 @@ otError UdpExample::ProcessHelp(int argc, char *argv[])
 
     for (unsigned int i = 0; i < OT_ARRAY_LENGTH(sCommands); i++)
     {
-        mInterpreter.mServer->OutputFormat("%s\r\n", sCommands[i].mName);
+        mInterpreter.OutputFormat("%s\r\n", sCommands[i].mName);
     }
 
     return OT_ERROR_NONE;
@@ -209,8 +209,8 @@ void UdpExample::HandleUdpReceive(otMessage *aMessage, const otMessageInfo *aMes
     uint8_t buf[1500];
     int     length;
 
-    mInterpreter.mServer->OutputFormat("%d bytes from ", otMessageGetLength(aMessage) - otMessageGetOffset(aMessage));
-    mInterpreter.mServer->OutputFormat(
+    mInterpreter.OutputFormat("%d bytes from ", otMessageGetLength(aMessage) - otMessageGetOffset(aMessage));
+    mInterpreter.OutputFormat(
         "%x:%x:%x:%x:%x:%x:%x:%x %d ", HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[0]),
         HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[1]), HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[2]),
         HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[3]), HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[4]),
@@ -220,7 +220,7 @@ void UdpExample::HandleUdpReceive(otMessage *aMessage, const otMessageInfo *aMes
     length      = otMessageRead(aMessage, otMessageGetOffset(aMessage), buf, sizeof(buf) - 1);
     buf[length] = '\0';
 
-    mInterpreter.mServer->OutputFormat("%s\r\n", buf);
+    mInterpreter.OutputFormat("%s\r\n", buf);
 }
 
 } // namespace Cli

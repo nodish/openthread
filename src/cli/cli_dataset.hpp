@@ -40,7 +40,7 @@
 
 #include <openthread/dataset.h>
 
-#include "cli/cli_server.hpp"
+#include "cli/cli.hpp"
 
 namespace ot {
 namespace Cli {
@@ -69,7 +69,7 @@ public:
      * @param[in]  argv  A pointer to an array of command line arguments.
      *
      */
-    static otError Process(otInstance *aInstance, int argc, char *argv[], Server &aServer);
+    static otError Process(otInstance *aInstance, int argc, char *argv[]);
 
 private:
     static void    OutputBytes(const uint8_t *aBytes, uint8_t aLength);
@@ -97,7 +97,6 @@ private:
 
     static const DatasetCommand sCommands[];
     static otOperationalDataset sDataset;
-    static Server *             sServer;
 };
 
 } // namespace Cli

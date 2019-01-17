@@ -34,7 +34,7 @@
 #ifndef CLI_SERVER_HPP_
 #define CLI_SERVER_HPP_
 
-#include "openthread-core-config.h"
+#include <stdint.h>
 
 namespace ot {
 namespace Cli {
@@ -43,7 +43,7 @@ namespace Cli {
  * This class implements the CLI server.
  *
  */
-class Server
+template <typename kDeviceType> class Server
 {
 public:
     /**
@@ -57,28 +57,9 @@ public:
      * @retval  -1  Driver is broken.
      *
      */
-    virtual int Output(const char *aBuf, uint16_t aBufLength)
+    int Output(const char *aBuf, uint16_t aBufLength)
     {
-        OT_UNUSED_VARIABLE(aBuf);
-        OT_UNUSED_VARIABLE(aBufLength);
-        return -1;
-    }
-
-    /**
-     * This method delivers formatted output to the client.
-     *
-     * @param[in]  aFormat  A pointer to the format string.
-     * @param[in]  ...      A variable list of arguments to format.
-     *
-     * @returns The number of bytes placed in the output queue.
-     *
-     * @retval  -1  Driver is broken.
-     *
-     */
-    virtual int OutputFormat(const char *aFormat, ...)
-    {
-        OT_UNUSED_VARIABLE(aFormat);
-        return -1;
+        return static_cast<kDeviceType *>(this)->Output(aBuf, aBufLength);
     }
 };
 

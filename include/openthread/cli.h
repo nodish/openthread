@@ -102,7 +102,7 @@ void otCliConsoleInputLine(char *aBuf, uint16_t aBufLength);
  * @param[in]  aInstance  The OpenThread instance structure.
  *
  */
-void otCliUartInit(otInstance *aInstance);
+void otCliInit(otInstance *aInstance);
 
 /**
  * Set a user command table.

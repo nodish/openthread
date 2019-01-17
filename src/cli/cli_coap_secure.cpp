@@ -65,29 +65,29 @@ void CoapSecure::PrintHeaderInfos(otMessage *aMessage) const
     mCoapCode = otCoapMessageGetCode(aMessage);
     mCoapType = otCoapMessageGetType(aMessage);
 
-    mInterpreter.mServer->OutputFormat("\r\n    CoapSecure RX Header Information:"
-                                       "\r\n        Type %d => ",
-                                       static_cast<uint16_t>(mCoapType));
+    mInterpreter.OutputFormat("\r\n    CoapSecure RX Header Information:"
+                              "\r\n        Type %d => ",
+                              static_cast<uint16_t>(mCoapType));
 
     switch (mCoapType)
     {
     case OT_COAP_TYPE_ACKNOWLEDGMENT:
-        mInterpreter.mServer->OutputFormat("Ack");
+        mInterpreter.OutputFormat("Ack");
         break;
     case OT_COAP_TYPE_CONFIRMABLE:
-        mInterpreter.mServer->OutputFormat("Confirmable");
+        mInterpreter.OutputFormat("Confirmable");
         break;
     case OT_COAP_TYPE_NON_CONFIRMABLE:
-        mInterpreter.mServer->OutputFormat("NonConfirmable");
+        mInterpreter.OutputFormat("NonConfirmable");
         break;
     case OT_COAP_TYPE_RESET:
-        mInterpreter.mServer->OutputFormat("Reset");
+        mInterpreter.OutputFormat("Reset");
         break;
     default:
         break;
     }
-    mInterpreter.mServer->OutputFormat("\r\n        Code %d => %s\r\n", static_cast<uint16_t>(mCoapCode),
-                                       static_cast<const char *>(otCoapMessageCodeToString(aMessage)));
+    mInterpreter.OutputFormat("\r\n        Code %d => %s\r\n", static_cast<uint16_t>(mCoapCode),
+                              static_cast<const char *>(otCoapMessageCodeToString(aMessage)));
 }
 
 void CoapSecure::PrintPayload(otMessage *aMessage) const
@@ -99,7 +99,7 @@ void CoapSecure::PrintPayload(otMessage *aMessage) const
 
     if (length > 0)
     {
-        mInterpreter.mServer->OutputFormat("    With payload [UTF8]:\r\n", aMessage);
+        mInterpreter.OutputFormat("    With payload [UTF8]:\r\n", aMessage);
 
         while (length > 0)
         {
@@ -108,9 +108,9 @@ void CoapSecure::PrintPayload(otMessage *aMessage) const
 
             for (int i = 0; i < bytesToPrint; i++)
             {
-                mInterpreter.mServer->OutputFormat("%c", buf[i]);
+                mInterpreter.OutputFormat("%c", buf[i]);
             }
-            mInterpreter.mServer->OutputFormat("\r\n");
+            mInterpreter.OutputFormat("\r\n");
 
             length -= bytesToPrint;
             bytesPrinted += bytesToPrint;
@@ -118,10 +118,10 @@ void CoapSecure::PrintPayload(otMessage *aMessage) const
     }
     else
     {
-        mInterpreter.mServer->OutputFormat("    No payload.");
+        mInterpreter.OutputFormat("    No payload.");
     }
 
-    mInterpreter.mServer->OutputFormat("\r\n> ");
+    mInterpreter.OutputFormat("\r\n> ");
 }
 
 otError CoapSecure::Process(int argc, char *argv[])
@@ -154,8 +154,8 @@ otError CoapSecure::Process(int argc, char *argv[])
 #ifdef MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
         if (mUseCertificate)
         {
-            mInterpreter.mServer->OutputFormat("Verify Peer Certificate: %s. Coap Secure service started: ",
-                                               mVerifyPeerCert ? "true" : "false");
+            mInterpreter.OutputFormat("Verify Peer Certificate: %s. Coap Secure service started: ",
+                                      mVerifyPeerCert ? "true" : "false");
         }
 #endif // MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
     }
@@ -176,7 +176,7 @@ otError CoapSecure::Process(int argc, char *argv[])
                     SuccessOrExit(
                         error = otCoapSecureSetPsk(mInterpreter.mInstance, mPsk, mPskLength, mPskId, mPskIdLength));
                     mUseCertificate = false;
-                    mInterpreter.mServer->OutputFormat("Coap Secure set PSK: ");
+                    mInterpreter.OutputFormat("Coap Secure set PSK: ");
                 }
                 else
                 {
@@ -196,7 +196,7 @@ otError CoapSecure::Process(int argc, char *argv[])
                                   sizeof(OT_CLI_COAPS_TRUSTED_ROOT_CERTIFICATE)));
                 mUseCertificate = true;
 
-                mInterpreter.mServer->OutputFormat("Coap Secure set own .X509 certificate: ");
+                mInterpreter.OutputFormat("Coap Secure set own .X509 certificate: ");
 #else
                 ExitNow(error = OT_ERROR_DISABLED_FEATURE);
 #endif // MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
@@ -233,7 +233,7 @@ otError CoapSecure::Process(int argc, char *argv[])
 
             SuccessOrExit(
                 error = otCoapSecureConnect(mInterpreter.mInstance, &sockaddr, &CoapSecure::HandleClientConnect, this));
-            mInterpreter.mServer->OutputFormat("Coap Secure connect: ");
+            mInterpreter.OutputFormat("Coap Secure connect: ");
         }
         else
         {
@@ -252,7 +252,7 @@ otError CoapSecure::Process(int argc, char *argv[])
             SuccessOrExit(error = otCoapSecureAddResource(mInterpreter.mInstance, &mResource));
         }
 
-        mInterpreter.mServer->OutputFormat("Resource name is '%s': ", mResource.mUriPath);
+        mInterpreter.OutputFormat("Resource name is '%s': ", mResource.mUriPath);
     }
     else if (strcmp(argv[0], "disconnect") == 0)
     {
@@ -272,28 +272,28 @@ otError CoapSecure::Process(int argc, char *argv[])
     }
     else if (strcmp(argv[0], "help") == 0)
     {
-        mInterpreter.mServer->OutputFormat("CLI CoAPS help:\r\n\r\n");
-        mInterpreter.mServer->OutputFormat(">'coaps start (false)'                               "
-                                           ": start coap secure service, false disable peer cert verification\r\n");
-        mInterpreter.mServer->OutputFormat(">'coaps set psk <psk> <client id>'                   "
-                                           ": set Preshared Key and Client Identity (Ciphersuite PSK_AES128)\r\n");
-        mInterpreter.mServer->OutputFormat(">'coaps set x509'                                    "
-                                           ": set X509 Cert und Private Key (Ciphersuite ECDHE_ECDSA_AES128)\r\n");
-        mInterpreter.mServer->OutputFormat(">'coaps connect <servers ipv6 addr> (port)'          "
-                                           ": start dtls session with a server\r\n");
-        mInterpreter.mServer->OutputFormat(">'coaps get' 'coaps put' 'coaps post' 'coaps delete' "
-                                           ": interact with coap resource from server, ipv6 is not need as client\r\n");
-        mInterpreter.mServer->OutputFormat(
+        mInterpreter.OutputFormat("CLI CoAPS help:\r\n\r\n");
+        mInterpreter.OutputFormat(">'coaps start (false)'                               "
+                                  ": start coap secure service, false disable peer cert verification\r\n");
+        mInterpreter.OutputFormat(">'coaps set psk <psk> <client id>'                   "
+                                  ": set Preshared Key and Client Identity (Ciphersuite PSK_AES128)\r\n");
+        mInterpreter.OutputFormat(">'coaps set x509'                                    "
+                                  ": set X509 Cert und Private Key (Ciphersuite ECDHE_ECDSA_AES128)\r\n");
+        mInterpreter.OutputFormat(">'coaps connect <servers ipv6 addr> (port)'          "
+                                  ": start dtls session with a server\r\n");
+        mInterpreter.OutputFormat(">'coaps get' 'coaps put' 'coaps post' 'coaps delete' "
+                                  ": interact with coap resource from server, ipv6 is not need as client\r\n");
+        mInterpreter.OutputFormat(
             "    >> args:(ipv6_addr_srv) <coap_src> and, if you have payload: <con> <payload>\r\n");
-        mInterpreter.mServer->OutputFormat(">'coaps resource <uri>'                              "
-                                           ": add a coap server resource with 'helloWorld' as content.\r\n");
-        mInterpreter.mServer->OutputFormat(">'coaps disconnect'                                  "
-                                           ": stop dtls session with a server\r\n");
-        mInterpreter.mServer->OutputFormat(">'coaps stop'                                        "
-                                           ": stop coap secure service\r\n");
-        mInterpreter.mServer->OutputFormat("\r\n legend: <>: must, (): opt                       "
-                                           "\r\n");
-        mInterpreter.mServer->OutputFormat("\r\n");
+        mInterpreter.OutputFormat(">'coaps resource <uri>'                              "
+                                  ": add a coap server resource with 'helloWorld' as content.\r\n");
+        mInterpreter.OutputFormat(">'coaps disconnect'                                  "
+                                  ": stop dtls session with a server\r\n");
+        mInterpreter.OutputFormat(">'coaps stop'                                        "
+                                  ": stop coap secure service\r\n");
+        mInterpreter.OutputFormat("\r\n legend: <>: must, (): opt                       "
+                                  "\r\n");
+        mInterpreter.OutputFormat("\r\n");
     }
     else
     {
@@ -309,7 +309,7 @@ otError CoapSecure::Stop(void)
     otError error = OT_ERROR_ABORT;
     otCoapRemoveResource(mInterpreter.mInstance, &mResource);
     error = otCoapSecureStop(mInterpreter.mInstance);
-    mInterpreter.mServer->OutputFormat("Coap Secure service stopped: ");
+    mInterpreter.OutputFormat("Coap Secure service stopped: ");
     return error;
 }
 
@@ -324,24 +324,24 @@ void CoapSecure::HandleClientConnect(bool aConnected)
 
     if (aConnected)
     {
-        mInterpreter.mServer->OutputFormat("CoAP Secure connected!\r\n> ");
+        mInterpreter.OutputFormat("CoAP Secure connected!\r\n> ");
     }
     else
     {
         if (!mShutdownFlag)
         {
-            mInterpreter.mServer->OutputFormat("CoAP Secure not connected or disconnected.\r\n> ");
+            mInterpreter.OutputFormat("CoAP Secure not connected or disconnected.\r\n> ");
         }
         else
         {
-            mInterpreter.mServer->OutputFormat("CoAP Secure disconnected before stop.\r\n> ");
+            mInterpreter.OutputFormat("CoAP Secure disconnected before stop.\r\n> ");
             if (Stop() == OT_ERROR_NONE)
             {
-                mInterpreter.mServer->OutputFormat(" Done\r\n> ");
+                mInterpreter.OutputFormat(" Done\r\n> ");
             }
             else
             {
-                mInterpreter.mServer->OutputFormat(" With error\r\n> ");
+                mInterpreter.OutputFormat(" With error\r\n> ");
             }
             mShutdownFlag = false;
         }
@@ -360,7 +360,7 @@ void CoapSecure::HandleServerResponse(otMessage *aMessage, const otMessageInfo *
     otCoapCode responseCode      = OT_COAP_CODE_EMPTY;
     char       responseContent[] = "helloWorld";
 
-    mInterpreter.mServer->OutputFormat(
+    mInterpreter.OutputFormat(
         "Received coap secure request from [%x:%x:%x:%x:%x:%x:%x:%x]: ",
         HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[0]), HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[1]),
         HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[2]), HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[3]),
@@ -370,23 +370,23 @@ void CoapSecure::HandleServerResponse(otMessage *aMessage, const otMessageInfo *
     switch (otCoapMessageGetCode(aMessage))
     {
     case OT_COAP_CODE_GET:
-        mInterpreter.mServer->OutputFormat("GET");
+        mInterpreter.OutputFormat("GET");
         break;
 
     case OT_COAP_CODE_DELETE:
-        mInterpreter.mServer->OutputFormat("DELETE");
+        mInterpreter.OutputFormat("DELETE");
         break;
 
     case OT_COAP_CODE_PUT:
-        mInterpreter.mServer->OutputFormat("PUT");
+        mInterpreter.OutputFormat("PUT");
         break;
 
     case OT_COAP_CODE_POST:
-        mInterpreter.mServer->OutputFormat("POST");
+        mInterpreter.OutputFormat("POST");
         break;
 
     default:
-        mInterpreter.mServer->OutputFormat("Undefined\r\n");
+        mInterpreter.OutputFormat("Undefined\r\n");
         return;
     }
 
@@ -428,13 +428,13 @@ exit:
 
     if (error != OT_ERROR_NONE && responseMessage != NULL)
     {
-        mInterpreter.mServer->OutputFormat("Cannot send coap secure response message: Error %d: %s\r\n", error,
-                                           otThreadErrorToString(error));
+        mInterpreter.OutputFormat("Cannot send coap secure response message: Error %d: %s\r\n", error,
+                                  otThreadErrorToString(error));
         otMessageFree(responseMessage);
     }
     else if (responseCode >= OT_COAP_CODE_RESPONSE_MIN)
     {
-        mInterpreter.mServer->OutputFormat("coap secure response sent successfully!\r\n");
+        mInterpreter.OutputFormat("coap secure response sent successfully!\r\n");
     }
 }
 
@@ -549,7 +549,7 @@ otError CoapSecure::ProcessRequest(int argc, char *argv[])
         error = otCoapSecureSendRequest(mInterpreter.mInstance, message, NULL, NULL);
     }
 
-    mInterpreter.mServer->OutputFormat("Sending coap secure request: ");
+    mInterpreter.OutputFormat("Sending coap secure request: ");
 
 exit:
 
@@ -575,12 +575,12 @@ void CoapSecure::HandleClientResponse(otMessage *aMessage, const otMessageInfo *
 
     if (aError != OT_ERROR_NONE)
     {
-        mInterpreter.mServer->OutputFormat("Error receiving coap secure response message: Error %d: %s\r\n", aError,
-                                           otThreadErrorToString(aError));
+        mInterpreter.OutputFormat("Error receiving coap secure response message: Error %d: %s\r\n", aError,
+                                  otThreadErrorToString(aError));
     }
     else
     {
-        mInterpreter.mServer->OutputFormat("Received coap secure response");
+        mInterpreter.OutputFormat("Received coap secure response");
         PrintHeaderInfos(aMessage);
         PrintPayload(aMessage);
     }
@@ -616,7 +616,7 @@ void CoapSecure::DefaultHandle(otCoapMessage *aHeader, otMessage *aMessage, cons
 
 exit:
 
-    mInterpreter.mServer->OutputFormat("Default handler called.\r\n> ");
+    mInterpreter.OutputFormat("Default handler called.\r\n> ");
 }
 #endif // CLI_COAP_SECURE_USE_COAP_DEFAULT_HANDLER
 

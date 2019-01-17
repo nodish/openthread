@@ -66,14 +66,13 @@ const DatasetCommand Dataset::sCommands[] = {
     {"securitypolicy", &ProcessSecurityPolicy},
 };
 
-Server *             Dataset::sServer;
 otOperationalDataset Dataset::sDataset;
 
 void Dataset::OutputBytes(const uint8_t *aBytes, uint8_t aLength)
 {
     for (int i = 0; i < aLength; i++)
     {
-        sServer->OutputFormat("%02x", aBytes[i]);
+        gCli->OutputFormat("%02x", aBytes[i]);
     }
 }
 
@@ -81,110 +80,108 @@ otError Dataset::Print(otOperationalDataset &aDataset)
 {
     if (aDataset.mComponents.mIsPendingTimestampPresent)
     {
-        sServer->OutputFormat("Pending Timestamp: %d\r\n", aDataset.mPendingTimestamp);
+        gCli->OutputFormat("Pending Timestamp: %d\r\n", aDataset.mPendingTimestamp);
     }
 
     if (aDataset.mComponents.mIsActiveTimestampPresent)
     {
-        sServer->OutputFormat("Active Timestamp: %d\r\n", aDataset.mActiveTimestamp);
+        gCli->OutputFormat("Active Timestamp: %d\r\n", aDataset.mActiveTimestamp);
     }
 
     if (aDataset.mComponents.mIsChannelPresent)
     {
-        sServer->OutputFormat("Channel: %d\r\n", aDataset.mChannel);
+        gCli->OutputFormat("Channel: %d\r\n", aDataset.mChannel);
     }
 
     if (aDataset.mComponents.mIsChannelMaskPage0Present)
     {
-        sServer->OutputFormat("Channel Mask Page 0: %08x\r\n", aDataset.mChannelMaskPage0);
+        gCli->OutputFormat("Channel Mask Page 0: %08x\r\n", aDataset.mChannelMaskPage0);
     }
 
     if (aDataset.mComponents.mIsDelayPresent)
     {
-        sServer->OutputFormat("Delay: %d\r\n", aDataset.mDelay);
+        gCli->OutputFormat("Delay: %d\r\n", aDataset.mDelay);
     }
 
     if (aDataset.mComponents.mIsExtendedPanIdPresent)
     {
-        sServer->OutputFormat("Ext PAN ID: ");
+        gCli->OutputFormat("Ext PAN ID: ");
         OutputBytes(aDataset.mExtendedPanId.m8, sizeof(aDataset.mExtendedPanId));
-        sServer->OutputFormat("\r\n");
+        gCli->OutputFormat("\r\n");
     }
 
     if (aDataset.mComponents.mIsMeshLocalPrefixPresent)
     {
         const uint8_t *prefix = aDataset.mMeshLocalPrefix.m8;
-        sServer->OutputFormat(
-            "Mesh Local Prefix: %x:%x:%x:%x/64\r\n", (static_cast<uint16_t>(prefix[0]) << 8) | prefix[1],
-            (static_cast<uint16_t>(prefix[2]) << 8) | prefix[3], (static_cast<uint16_t>(prefix[4]) << 8) | prefix[5],
-            (static_cast<uint16_t>(prefix[6]) << 8) | prefix[7]);
+        gCli->OutputFormat("Mesh Local Prefix: %x:%x:%x:%x/64\r\n", (static_cast<uint16_t>(prefix[0]) << 8) | prefix[1],
+                           (static_cast<uint16_t>(prefix[2]) << 8) | prefix[3],
+                           (static_cast<uint16_t>(prefix[4]) << 8) | prefix[5],
+                           (static_cast<uint16_t>(prefix[6]) << 8) | prefix[7]);
     }
 
     if (aDataset.mComponents.mIsMasterKeyPresent)
     {
-        sServer->OutputFormat("Master Key: ");
+        gCli->OutputFormat("Master Key: ");
         OutputBytes(aDataset.mMasterKey.m8, sizeof(aDataset.mMasterKey));
-        sServer->OutputFormat("\r\n");
+        gCli->OutputFormat("\r\n");
     }
 
     if (aDataset.mComponents.mIsNetworkNamePresent)
     {
-        sServer->OutputFormat("Network Name: ");
-        sServer->OutputFormat("%.*s\r\n", sizeof(aDataset.mNetworkName), aDataset.mNetworkName.m8);
+        gCli->OutputFormat("Network Name: ");
+        gCli->OutputFormat("%.*s\r\n", sizeof(aDataset.mNetworkName), aDataset.mNetworkName.m8);
     }
 
     if (aDataset.mComponents.mIsPanIdPresent)
     {
-        sServer->OutputFormat("PAN ID: 0x%04x\r\n", aDataset.mPanId);
+        gCli->OutputFormat("PAN ID: 0x%04x\r\n", aDataset.mPanId);
     }
 
     if (aDataset.mComponents.mIsPSKcPresent)
     {
-        sServer->OutputFormat("PSKc: ");
+        gCli->OutputFormat("PSKc: ");
         OutputBytes(aDataset.mPSKc.m8, sizeof(aDataset.mPSKc.m8));
-        sServer->OutputFormat("\r\n");
+        gCli->OutputFormat("\r\n");
     }
 
     if (aDataset.mComponents.mIsSecurityPolicyPresent)
     {
-        sServer->OutputFormat("Security Policy: %d, ", aDataset.mSecurityPolicy.mRotationTime);
+        gCli->OutputFormat("Security Policy: %d, ", aDataset.mSecurityPolicy.mRotationTime);
 
         if (aDataset.mSecurityPolicy.mFlags & OT_SECURITY_POLICY_OBTAIN_MASTER_KEY)
         {
-            sServer->OutputFormat("o");
+            gCli->OutputFormat("o");
         }
 
         if (aDataset.mSecurityPolicy.mFlags & OT_SECURITY_POLICY_NATIVE_COMMISSIONING)
         {
-            sServer->OutputFormat("n");
+            gCli->OutputFormat("n");
         }
 
         if (aDataset.mSecurityPolicy.mFlags & OT_SECURITY_POLICY_ROUTERS)
         {
-            sServer->OutputFormat("r");
+            gCli->OutputFormat("r");
         }
 
         if (aDataset.mSecurityPolicy.mFlags & OT_SECURITY_POLICY_EXTERNAL_COMMISSIONER)
         {
-            sServer->OutputFormat("c");
+            gCli->OutputFormat("c");
         }
 
         if (aDataset.mSecurityPolicy.mFlags & OT_SECURITY_POLICY_BEACONS)
         {
-            sServer->OutputFormat("b");
+            gCli->OutputFormat("b");
         }
 
-        sServer->OutputFormat("\r\n");
+        gCli->OutputFormat("\r\n");
     }
 
     return OT_ERROR_NONE;
 }
 
-otError Dataset::Process(otInstance *aInstance, int argc, char *argv[], Server &aServer)
+otError Dataset::Process(otInstance *aInstance, int argc, char *argv[])
 {
     otError error = OT_ERROR_PARSE;
-
-    sServer = &aServer;
 
     if (argc == 0)
     {
@@ -212,7 +209,7 @@ otError Dataset::ProcessHelp(otInstance *aInstance, int argc, char *argv[])
 
     for (unsigned int i = 0; i < OT_ARRAY_LENGTH(sCommands); i++)
     {
-        sServer->OutputFormat("%s\r\n", sCommands[i].mName);
+        gCli->OutputFormat("%s\r\n", sCommands[i].mName);
     }
 
     return OT_ERROR_NONE;

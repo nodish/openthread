@@ -58,7 +58,7 @@ void Coap::PrintPayload(otMessage *aMessage) const
 
     if (length > 0)
     {
-        mInterpreter.mServer->OutputFormat(" with payload: ");
+        mInterpreter.OutputFormat(" with payload: ");
 
         while (length > 0)
         {
@@ -72,7 +72,7 @@ void Coap::PrintPayload(otMessage *aMessage) const
         }
     }
 
-    mInterpreter.mServer->OutputFormat("\r\n");
+    mInterpreter.OutputFormat("\r\n");
 }
 
 otError Coap::Process(int argc, char *argv[])
@@ -84,13 +84,13 @@ otError Coap::Process(int argc, char *argv[])
     if (strcmp(argv[0], "start") == 0)
     {
         SuccessOrExit(error = otCoapStart(mInterpreter.mInstance, OT_DEFAULT_COAP_PORT));
-        mInterpreter.mServer->OutputFormat("Coap service started: ");
+        mInterpreter.OutputFormat("Coap service started: ");
     }
     else if (strcmp(argv[0], "stop") == 0)
     {
         otCoapRemoveResource(mInterpreter.mInstance, &mResource);
         SuccessOrExit(error = otCoapStop(mInterpreter.mInstance));
-        mInterpreter.mServer->OutputFormat("Coap service stopped: ");
+        mInterpreter.OutputFormat("Coap service stopped: ");
     }
     else if (strcmp(argv[0], "resource") == 0)
     {
@@ -104,7 +104,7 @@ otError Coap::Process(int argc, char *argv[])
             SuccessOrExit(error = otCoapAddResource(mInterpreter.mInstance, &mResource));
         }
 
-        mInterpreter.mServer->OutputFormat("Resource name is '%s': ", mResource.mUriPath);
+        mInterpreter.OutputFormat("Resource name is '%s': ", mResource.mUriPath);
     }
     else
     {
@@ -127,7 +127,7 @@ void Coap::HandleServerResponse(otMessage *aMessage, const otMessageInfo *aMessa
     otCoapCode responseCode    = OT_COAP_CODE_EMPTY;
     char       responseContent = '0';
 
-    mInterpreter.mServer->OutputFormat(
+    mInterpreter.OutputFormat(
         "Received coap request from [%x:%x:%x:%x:%x:%x:%x:%x]: ", HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[0]),
         HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[1]), HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[2]),
         HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[3]), HostSwap16(aMessageInfo->mPeerAddr.mFields.m16[4]),
@@ -137,23 +137,23 @@ void Coap::HandleServerResponse(otMessage *aMessage, const otMessageInfo *aMessa
     switch (otCoapMessageGetCode(aMessage))
     {
     case OT_COAP_CODE_GET:
-        mInterpreter.mServer->OutputFormat("GET");
+        mInterpreter.OutputFormat("GET");
         break;
 
     case OT_COAP_CODE_DELETE:
-        mInterpreter.mServer->OutputFormat("DELETE");
+        mInterpreter.OutputFormat("DELETE");
         break;
 
     case OT_COAP_CODE_PUT:
-        mInterpreter.mServer->OutputFormat("PUT");
+        mInterpreter.OutputFormat("PUT");
         break;
 
     case OT_COAP_CODE_POST:
-        mInterpreter.mServer->OutputFormat("POST");
+        mInterpreter.OutputFormat("POST");
         break;
 
     default:
-        mInterpreter.mServer->OutputFormat("Undefined\r\n");
+        mInterpreter.OutputFormat("Undefined\r\n");
         ExitNow(error = OT_ERROR_PARSE);
     }
 
@@ -197,14 +197,14 @@ exit:
     {
         if (responseMessage != NULL)
         {
-            mInterpreter.mServer->OutputFormat("Cannot send coap response message: Error %d: %s\r\n", error,
-                                               otThreadErrorToString(error));
+            mInterpreter.OutputFormat("Cannot send coap response message: Error %d: %s\r\n", error,
+                                      otThreadErrorToString(error));
             otMessageFree(responseMessage);
         }
     }
     else if (responseCode >= OT_COAP_CODE_RESPONSE_MIN)
     {
-        mInterpreter.mServer->OutputFormat("coap response sent successfully!\r\n");
+        mInterpreter.OutputFormat("coap response sent successfully!\r\n");
     }
 }
 
@@ -311,7 +311,7 @@ otError Coap::ProcessRequest(int argc, char *argv[])
         error = otCoapSendRequest(mInterpreter.mInstance, message, &messageInfo, NULL, NULL);
     }
 
-    mInterpreter.mServer->OutputFormat("Sending coap request: ");
+    mInterpreter.OutputFormat("Sending coap request: ");
 
 exit:
 
@@ -337,12 +337,12 @@ void Coap::HandleClientResponse(otMessage *aMessage, const otMessageInfo *aMessa
 
     if (aError != OT_ERROR_NONE)
     {
-        mInterpreter.mServer->OutputFormat("Error receiving coap response message: Error %d: %s\r\n", aError,
-                                           otThreadErrorToString(aError));
+        mInterpreter.OutputFormat("Error receiving coap response message: Error %d: %s\r\n", aError,
+                                  otThreadErrorToString(aError));
     }
     else
     {
-        mInterpreter.mServer->OutputFormat("Received coap response");
+        mInterpreter.OutputFormat("Received coap response");
         PrintPayload(aMessage);
     }
 }
