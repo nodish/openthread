@@ -141,10 +141,9 @@ otError CoapBase::SendMessage(Message &               aMessage,
                               otCoapResponseHandler   aHandler,
                               void *                  aContext)
 {
-    otError      error;
-    CoapMetadata coapMetadata;
-    Message *    storedCopy = NULL;
-    uint16_t     copyLength = 0;
+    otError  error;
+    Message *storedCopy = NULL;
+    int16_t  copyLength = -1;
 
     if ((aMessage.GetType() == OT_COAP_TYPE_ACKNOWLEDGMENT || aMessage.GetType() == OT_COAP_TYPE_RESET) &&
         aMessage.GetCode() != OT_COAP_CODE_EMPTY)
@@ -169,14 +168,16 @@ otError CoapBase::SendMessage(Message &               aMessage,
     else if (aMessage.IsNonConfirmable() && (aHandler != NULL))
     {
         // As we do not retransmit non confirmable messages, create a copy of header only, for token information.
-        copyLength = aMessage.GetOptionStart();
+        // The header is already saved in HelpData.
+        copyLength = 0;
     }
 
-    if (copyLength > 0)
+    if (copyLength >= 0)
     {
-        coapMetadata = CoapMetadata(aMessage.IsConfirmable(), aMessageInfo, aHandler, aContext);
-        VerifyOrExit((storedCopy = CopyAndEnqueueMessage(aMessage, copyLength, coapMetadata)) != NULL,
-                     error = OT_ERROR_NO_BUFS);
+        CoapMetadata coapMetadata(aMessage.IsConfirmable(), aMessageInfo, aHandler, aContext);
+
+        storedCopy = CopyAndEnqueueMessage(aMessage, static_cast<uint16_t>(copyLength), coapMetadata);
+        VerifyOrExit(storedCopy != NULL, error = OT_ERROR_NO_BUFS);
     }
 
     SuccessOrExit(error = Send(aMessage, aMessageInfo));
@@ -369,7 +370,6 @@ Message *CoapBase::CopyAndEnqueueMessage(const Message &     aMessage,
 {
     otError  error       = OT_ERROR_NONE;
     Message *messageCopy = NULL;
-    uint32_t alarmFireTime;
 
     // Create a message copy of requested size.
     VerifyOrExit((messageCopy = aMessage.Clone(aCopyLength)) != NULL, error = OT_ERROR_NO_BUFS);
@@ -380,6 +380,8 @@ Message *CoapBase::CopyAndEnqueueMessage(const Message &     aMessage,
     // Setup the timer.
     if (mRetransmissionTimer.IsRunning())
     {
+        uint32_t alarmFireTime;
+
         // If timer is already running, check if it should be restarted with earlier fire time.
         alarmFireTime = mRetransmissionTimer.GetFireTime();
 
