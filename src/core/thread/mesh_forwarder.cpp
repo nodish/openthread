@@ -480,6 +480,16 @@ otError MeshForwarder::HandleFrameRequest(Mac::Frame &aFrame)
     VerifyOrExit(mSendMessage != NULL, error = OT_ERROR_ABORT);
 
     mSendBusy = true;
+#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+    if (!mMacDest.IsBroadcast())
+    {
+        aFrame.mRadioInfo = Get<Mle::MleRouter>().GetRadioInfo(mMacDest);
+    }
+    else
+    {
+        memset(&aFrame.mRadioInfo, 0xff, sizeof(aFrame.mRadioInfo));
+    }
+#endif
 
     switch (mSendMessage->GetType())
     {
@@ -1105,6 +1115,9 @@ void MeshForwarder::HandleReceivedFrame(Mac::Frame &aFrame)
     linkInfo.mRss          = aFrame.GetRssi();
     linkInfo.mLqi          = aFrame.GetLqi();
     linkInfo.mLinkSecurity = aFrame.GetSecurityEnabled();
+#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+    linkInfo.mRadioInfo = aFrame.mRadioInfo;
+#endif
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
     linkInfo.mNetworkTimeOffset = aFrame.GetNetworkTimeOffset();
     linkInfo.mTimeSyncSeq       = aFrame.GetTimeSyncSeq();
