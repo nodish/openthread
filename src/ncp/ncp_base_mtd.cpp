@@ -3259,7 +3259,7 @@ void NcpBase::HandlePcapFrame(const otRadioFrame *aFrame)
 
     VerifyOrExit(mPcapEnabled);
 
-    if (aFrame->mDidTx)
+    if (aFrame->mInfo.mTxInfo.mDidTx)
     {
         flags |= SPINEL_MD_FLAG_TX;
     }

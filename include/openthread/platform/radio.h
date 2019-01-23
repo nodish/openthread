@@ -153,11 +153,10 @@ typedef struct otRadioIeInfo
  */
 typedef struct otRadioFrame
 {
-    uint8_t *      mPsdu;      ///< The PSDU.
-    uint8_t        mLength;    ///< Length of the PSDU.
-    uint8_t        mChannel;   ///< Channel used to transmit/receive the frame.
-    bool           mDidTx : 1; ///< Set to true if this frame sent from the radio. Ignored by radio driver.
-    otRadioIeInfo *mIeInfo;    ///< The pointer to the Header IE(s) related information.
+    uint8_t *      mPsdu;    ///< The PSDU.
+    otRadioIeInfo *mIeInfo;  ///< The pointer to the Header IE(s) related information.
+    uint8_t        mLength;  ///< Length of the PSDU.
+    uint8_t        mChannel; ///< Channel used to transmit/receive the frame.
 
     /**
      * The union of transmit and receive information for a radio frame.
@@ -169,11 +168,12 @@ typedef struct otRadioFrame
          */
         struct
         {
+            const uint8_t *mAesKey;            ///< The key used for AES-CCM frame security.
             uint8_t        mMaxCsmaBackoffs;   ///< Maximum number of backoffs attempts before declaring CCA failure.
             uint8_t        mMaxFrameRetries;   ///< Maximum number of retries allowed after a transmission failure.
             bool           mIsARetx : 1;       ///< True if this frame is a retransmission (ignored by radio driver).
             bool           mCsmaCaEnabled : 1; ///< Set to true to enable CSMA-CA for this packet, false otherwise.
-            const uint8_t *mAesKey;            ///< The key used for AES-CCM frame security.
+            bool           mDidTx : 1;         ///< Whether sent by radio. Ignored by radio driver.
         } mTxInfo;
 
         /**
@@ -181,8 +181,12 @@ typedef struct otRadioFrame
          */
         struct
         {
-            int8_t  mRssi; ///< Received signal strength indicator in dBm for received frames.
-            uint8_t mLqi;  ///< Link Quality Indicator for received frames.
+            /**
+             * The timestamp when the frame was received (milliseconds).
+             * Applicable/Required only when raw-link-api feature (`OPENTHREAD_ENABLE_RAW_LINK_API`) is enabled.
+             *
+             */
+            uint32_t mMsec;
 
             /**
              * The timestamp when the frame was received (microseconds, the offset to mMsec).
@@ -191,12 +195,8 @@ typedef struct otRadioFrame
              */
             uint16_t mUsec;
 
-            /**
-             * The timestamp when the frame was received (milliseconds).
-             * Applicable/Required only when raw-link-api feature (`OPENTHREAD_ENABLE_RAW_LINK_API`) is enabled.
-             *
-             */
-            uint32_t mMsec;
+            int8_t  mRssi; ///< Received signal strength indicator in dBm for received frames.
+            uint8_t mLqi;  ///< Link Quality Indicator for received frames.
         } mRxInfo;
     } mInfo;
 } otRadioFrame;

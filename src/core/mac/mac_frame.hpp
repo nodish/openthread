@@ -1061,7 +1061,7 @@ public:
      * @param[in]  aDidTx  TRUE if frame is sent from the radio, FALSE otherwise.
      *
      */
-    void SetDidTx(bool aDidTx) { mDidTx = aDidTx; }
+    void SetDidTx(bool aDidTx) { mInfo.mTxInfo.mDidTx = aDidTx; }
 
     /**
      * This method indicates whether or not CSMA-CA is enabled.
