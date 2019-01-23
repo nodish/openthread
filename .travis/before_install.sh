@@ -61,6 +61,10 @@ cd /tmp || die
         ) || die
     }
 
+    [ $BUILD_TARGET != posix-backbone-link ] || {
+        sudo apt-get install expect || die
+    }
+
     [ $BUILD_TARGET != posix-app-pty ] || {
         sudo apt-get install socat expect || die
         JOBS=$(getconf _NPROCESSORS_ONLN)
