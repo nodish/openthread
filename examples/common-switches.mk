@@ -28,6 +28,7 @@
 
 # OpenThread Features (Makefile default configuration).
 
+BBLINK              ?= 0
 BIG_ENDIAN          ?= 0
 BORDER_AGENT        ?= 0
 BORDER_ROUTER       ?= 0
@@ -66,6 +67,9 @@ SNTP_CLIENT         ?= 0
 TIME_SYNC           ?= 0
 UDP_FORWARD         ?= 0
 
+ifeq ($(BBLINK),1)
+COMMONCFLAGS                   += -DOPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+endif
 
 ifeq ($(BIG_ENDIAN),1)
 COMMONCFLAGS                   += -DBYTE_ORDER_BIG_ENDIAN=1
