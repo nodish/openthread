@@ -1,0 +1,100 @@
+#!/bin/sh
+
+set -e
+
+readonly LEADER_OUTPUT=/tmp/ot-leader.log
+readonly ROUTER_OUTPUT=/tmp/ot-router.log
+readonly CORNER_NETNS=corner
+readonly OT_CLI="output/${SYSTEM_TRIPLET}/bin/ot-cli-ftd"
+
+at_exit() {
+    EXIT_CODE=$?
+
+    killall ot-cli-ftd || true
+    # killall tshark || true
+    delete_netns
+
+    exit $EXIT_CODE
+}
+
+delete_netns()
+{
+    sudo ip link del veth1 netns "${CORNER_NETNS}" || true
+    sudo ip link del veth0 || true
+    sudo ip netns del "${CORNER_NETNS}" || true
+}
+
+create_netns()
+{
+    sudo ip netns add "${CORNER_NETNS}"
+    sudo ip link add veth0 type veth peer name veth1
+    sudo ip link set veth1 netns "${CORNER_NETNS}"
+    sudo ip netns exec "${CORNER_NETNS}" ip link set veth1 multicast on
+    sudo ip netns exec "${CORNER_NETNS}" ip link set veth1 up
+    sudo ip netns exec "${CORNER_NETNS}" ip addr add 192.168.66.2/24 dev veth1
+    sudo ip link set veth0 multicast on
+    sudo ip link set veth0 up
+    sudo ip addr add 192.168.66.1/24 dev veth0
+    sudo ip netns exec "${CORNER_NETNS}" ip addr add 127.0.0.1 dev lo
+    sudo ip netns exec "${CORNER_NETNS}" sudo ip link set lo up
+    sudo ip netns exec "${CORNER_NETNS}" ip addr
+    ping -c 1 192.168.66.2
+}
+
+start_leader()
+{
+    sudo rm -rf tmp && sudo ./leader.exp | tee leader.log
+}
+
+start_router()
+{
+    sudo ip netns exec "${CORNER_NETNS}" expect -f router.exp
+}
+
+file_expect()
+{
+    while true; do
+        sleep 5
+        if grep -q "$1" "$2"; then
+            break
+        else
+            echo "Still waiting for $1"
+        fi
+    done
+    echo '>>>>>>>>>>>>>> well done!'
+}
+
+main()
+{
+    case "$1" in
+        create-netns)
+            create_netns
+            ;;
+        delete-netns)
+            delete_netns
+            ;;
+        divein-netns)
+            sudo ip netns exec corner su - me
+            ;;
+        start-leader)
+            start_leader
+            ;;
+        start-router)
+            start_router
+            ;;
+        *)
+            create_netns
+            echo waiting for network ready........................................
+            sleep 5
+            tshark -i veth0 -w current.pcap &
+            echo waiting for tshark ready........................................
+            sleep 5
+            trap at_exit INT TERM EXIT
+            start_leader &
+            file_expect '^leader' leader.log
+            start_router
+            ;;
+    esac
+}
+
+main "$@"

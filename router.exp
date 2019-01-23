@@ -1,0 +1,23 @@
+#!/usr/bin/expect -f
+spawn ip a
+expect eof
+spawn ./output/x86_64-unknown-linux-gnu/bin/ot-cli-ftd 2
+send "mode rsn\r\n"
+expect "Done"
+send "panid 0xface\r\n"
+expect "Done"
+send "ifconfig up\r\n"
+expect "Done"
+send "thread start\r\n"
+expect "Done"
+send "routerselectionjitter 1\r\n"
+expect "Done"
+sleep 10
+send "state\r\n"
+expect {
+    "child" { send_user  ">>>>>>>>>>>>>>>>>>>>>> Good Child <<<<<<<<<<<<<<<<<<<<<<<<<<<"}
+    "router" { send_user ">>>>>>>>>>>>>>>>>>>>>> Good Router <<<<<<<<<<<<<<<<<<<<<<<<<<<"}
+    "leader" { send_user ">>>>>>>>>>>>>>>>>>>>>> Good Leader <<<<<<<<<<<<<<<<<<<<<<<<<<<"}
+    timeout { exit 1 }
+}
+expect "Done"

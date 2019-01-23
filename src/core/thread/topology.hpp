@@ -355,6 +355,20 @@ public:
      */
     void SetTimeSyncEnabled(bool aEnabled) { mTimeSyncEnabled = aEnabled; }
 #endif
+    /**
+     * This method retrieves if this neighbor is linked through backlink link.
+     *
+     * @returns Whether this neighbor is linked through backbone link.
+     */
+    bool IsBackboneLink(void) const { return mBackboneLink; }
+
+    /**
+     * This method sets if this neighbor is linked through backbone link.
+     *
+     * @param[in]   aBackboneLink   Whether the neighbor is linked through backbone link.
+     *
+     */
+    void SetBackboneLink(bool aBackboneLink) { mBackboneLink = aBackboneLink; }
 
 private:
     Mac::ExtAddress mMacAddr;   ///< The IEEE 802.15.4 Extended Address
@@ -372,11 +386,12 @@ private:
         } mPending;
     } mValidPending;
 
-    uint32_t mKeySequence;     ///< Current key sequence
-    uint16_t mRloc16;          ///< The RLOC16
-    uint8_t  mState : 3;       ///< The link state
-    uint8_t  mMode : 4;        ///< The MLE device mode
-    bool     mDataRequest : 1; ///< Indicates whether or not a Data Poll was received
+    uint32_t mKeySequence;      ///< Current key sequence
+    uint16_t mRloc16;           ///< The RLOC16
+    uint8_t  mState : 3;        ///< The link state
+    uint8_t  mMode : 4;         ///< The MLE device mode
+    bool     mDataRequest : 1;  ///< Indicates whether or not a Data Poll was received
+    bool     mBackboneLink : 1; ///< Indicates whether or not the neighbor is linked through backbone link.
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
     uint8_t mLinkFailures : 7;    ///< Consecutive link failure count
     bool    mTimeSyncEnabled : 1; ///< Indicates whether or not time sync feature is enabled.

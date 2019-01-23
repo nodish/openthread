@@ -665,6 +665,8 @@ otError MleRouter::HandleLinkRequest(const Message &aMessage, const Ip6::Message
     }
 #endif
 
+    neighbor->SetBackboneLink(aMessage.IsBackboneLink());
+
     SuccessOrExit(error = SendLinkAccept(aMessageInfo, neighbor, tlvRequest, challenge));
 
 exit:
@@ -1639,6 +1641,7 @@ otError MleRouter::HandleParentRequest(const Message &aMessage, const Ip6::Messa
         child->ResetLinkFailures();
         child->SetState(Neighbor::kStateParentRequest);
         child->SetDataRequestPending(false);
+        child->SetBackboneLink(aMessage.IsBackboneLink());
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
         if (Tlv::GetTlv(aMessage, Tlv::kTimeRequest, sizeof(timeRequest), timeRequest) == OT_ERROR_NONE)
         {
@@ -2165,6 +2168,7 @@ otError MleRouter::HandleChildIdRequest(const Message &         aMessage,
     child->SetDeviceMode(mode.GetMode());
     child->GetLinkInfo().AddRss(Get<Mac::Mac>().GetNoiseFloor(), linkInfo->mRss);
     child->SetTimeout(timeout.GetTimeout());
+    child->SetBackboneLink(aMessage.IsBackboneLink());
 
     if (mode.GetMode() & ModeTlv::kModeFullNetworkData)
     {
@@ -3172,6 +3176,57 @@ void MleRouter::RemoveNeighbor(Neighbor &aNeighbor)
 
     aNeighbor.GetLinkInfo().Clear();
     aNeighbor.SetState(Neighbor::kStateInvalid);
+}
+
+bool MleRouter::IsBackboneLink(const Mac::Address &aAddress)
+{
+    Neighbor *neighbor = NULL;
+    assert(!aAddress.IsBroadcast());
+
+    switch (mRole)
+    {
+    case OT_DEVICE_ROLE_DISABLED:
+        break;
+
+    case OT_DEVICE_ROLE_DETACHED:
+    case OT_DEVICE_ROLE_CHILD:
+        neighbor = Mle::GetNeighbor(aAddress);
+        break;
+
+    case OT_DEVICE_ROLE_ROUTER:
+    case OT_DEVICE_ROLE_LEADER:
+        neighbor = mChildTable.FindChild(aAddress, ChildTable::kInStateAnyExceptInvalid);
+        VerifyOrExit(neighbor == NULL);
+
+        for (RouterTable::Iterator iter(GetInstance()); !iter.IsDone(); iter++)
+        {
+            neighbor = iter.GetRouter();
+
+            if (neighbor->GetState() == Neighbor::kStateInvalid)
+            {
+                continue;
+            }
+
+            if ((aAddress.GetType() == Mac::Address::kTypeShort && neighbor->GetRloc16() == aAddress.GetShort()) ||
+                neighbor->GetExtAddress() == aAddress.GetExtended())
+            {
+                break;
+            }
+        }
+
+        VerifyOrExit(neighbor == NULL);
+
+        if (mAttachState != kAttachStateIdle)
+        {
+            neighbor = Mle::GetNeighbor(aAddress);
+        }
+
+        break;
+    }
+
+exit:
+    assert(neighbor != NULL);
+    return neighbor != NULL && neighbor->IsBackboneLink();
 }
 
 Neighbor *MleRouter::GetNeighbor(uint16_t aAddress)
