@@ -306,9 +306,9 @@ void SubMac::HandleTransmitStarted(Frame &aFrame)
     if (ShouldHandleAckTimeout() && aFrame.GetAckRequest())
     {
 #if OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER
-        mTimer.Start(kAckTimeout * 1000UL);
+        mTimer.Start(kAckTimeout * kBackboneLinkFactor * 1000UL);
 #else
-        mTimer.Start(kAckTimeout);
+        mTimer.Start(kAckTimeout * kBackboneLinkFactor);
 #endif
     }
 }

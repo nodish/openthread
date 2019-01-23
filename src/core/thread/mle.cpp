@@ -1711,7 +1711,7 @@ exit:
 
     if (delay != 0)
     {
-        mAttachTimer.Start(delay);
+        mAttachTimer.Start(delay * kBackboneLinkFactor);
     }
 }
 
@@ -3235,6 +3235,7 @@ otError Mle::HandleParentResponse(const Message &aMessage, const Ip6::MessageInf
     memcpy(mChildIdRequest.mChallenge, challenge.GetChallenge(), challenge.GetLength());
     mChildIdRequest.mChallengeLength = challenge.GetLength();
 
+    mParentCandidate.SetBackboneLink(aMessage.IsBackboneLink());
     mParentCandidate.SetExtAddress(extAddress);
     mParentCandidate.SetRloc16(sourceAddress.GetRloc16());
     mParentCandidate.SetLinkFrameCounter(linkFrameCounter.GetFrameCounter());

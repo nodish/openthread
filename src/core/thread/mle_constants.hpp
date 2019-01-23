@@ -47,6 +47,7 @@ namespace Mle {
 enum
 {
     kMaxChildren               = OPENTHREAD_CONFIG_MAX_CHILDREN,
+    kBackboneLinkFactor        = 1, ///<
     kMaxChildKeepAliveAttempts = 4, ///< Maximum keep alive attempts before attempting to reattach to a new Parent
     kFailedChildTransmissions  = OPENTHREAD_CONFIG_FAILED_CHILD_TRANSMISSIONS, ///< FAILED_CHILD_TRANSMISSIONS
 };

@@ -410,6 +410,8 @@ public:
      */
     Neighbor *GetNeighbor(const Ip6::Address &aAddress);
 
+    bool IsBackboneLink(const Mac::Address &aAddress);
+
     /**
      * This method returns a pointer to a Neighbor object if a one-way link is maintained
      * as in the instance of an FTD child with neighbor routers.

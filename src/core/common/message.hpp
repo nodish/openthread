@@ -114,6 +114,7 @@ struct MessageInfo
     uint8_t mPriority : 2;     ///< Identifies the message priority level (lower value is higher priority).
     bool    mInPriorityQ : 1;  ///< Indicates whether the message is queued in normal or priority queue.
     bool    mTxSuccess : 1;    ///< Indicates whether the direct tx of the message was successful.
+    bool    mBackboneLink : 1; ///< Indicates whether received from backbone link.
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
     bool    mTimeSync : 1;      ///< Indicates whether the message is also used for time sync purpose.
     uint8_t mTimeSyncSeq;       ///< The time sync sequence.
@@ -652,6 +653,9 @@ public:
      *
      */
     void SetLinkSecurityEnabled(bool aEnabled) { mBuffer.mHead.mInfo.mLinkSecurity = aEnabled; }
+
+    bool IsBackboneLink(void) const { return mBuffer.mHead.mInfo.mBackboneLink; }
+    void SetBackboneLink(bool aBackboneLink) { mBuffer.mHead.mInfo.mBackboneLink = aBackboneLink; }
 
     /**
      * This method updates the average RSS (Received Signal Strength) associated with the message by adding the given

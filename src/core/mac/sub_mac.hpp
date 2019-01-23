@@ -80,6 +80,8 @@ public:
     enum
     {
         kInvalidRssiValue = 127, ///< Invalid Received Signal Strength Indicator (RSSI) value.
+
+        kBackboneLinkFactor = 1, ///<
     };
 
     /**

@@ -355,6 +355,8 @@ public:
      */
     void SetTimeSyncEnabled(bool aEnabled) { mTimeSyncEnabled = aEnabled; }
 #endif
+    bool IsBackboneLink(void) const { return mBackboneLink; }
+    void SetBackboneLink(bool aBackboneLink) { mBackboneLink = aBackboneLink; }
 
 private:
     Mac::ExtAddress mMacAddr;   ///< The IEEE 802.15.4 Extended Address
@@ -383,6 +385,7 @@ private:
 #else
     uint8_t mLinkFailures; ///< Consecutive link failure count
 #endif
+    bool            mBackboneLink;
     LinkQualityInfo mLinkInfo; ///< Link quality info (contains average RSS, link margin and link quality)
 };
 

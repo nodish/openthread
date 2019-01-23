@@ -153,10 +153,14 @@ typedef struct otRadioIeInfo
  */
 typedef struct otRadioFrame
 {
-    uint8_t *      mPsdu;    ///< The PSDU.
-    uint8_t        mLength;  ///< Length of the PSDU.
-    uint8_t        mChannel; ///< Channel used to transmit/receive the frame.
-    otRadioIeInfo *mIeInfo;  ///< The pointer to the Header IE(s) related information.
+    uint8_t *mPsdu;    ///< The PSDU.
+    uint8_t  mLength;  ///< Length of the PSDU.
+    uint8_t  mChannel; ///< Channel used to transmit/receive the frame.
+
+    bool mBackboneLink : 1; ///< Whether from or to the backbone link.
+    bool mRadioLink : 1;    ///< Whether from or to radio link.
+
+    otRadioIeInfo *mIeInfo; ///< The pointer to the Header IE(s) related information.
 
     /**
      * The union of transmit and receive information for a radio frame.

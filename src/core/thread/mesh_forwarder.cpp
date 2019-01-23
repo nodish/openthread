@@ -541,6 +541,19 @@ otError MeshForwarder::HandleFrameRequest(Mac::Frame &aFrame)
         ExitNow();
     }
 
+    if (!mMacDest.IsBroadcast())
+    {
+        bool isBackboneLink = netif.GetMle().IsBackboneLink(mMacDest);
+
+        aFrame.SetBackboneLink(isBackboneLink);
+        aFrame.SetRadioLink(!isBackboneLink);
+    }
+    else
+    {
+        aFrame.SetBackboneLink(true);
+        aFrame.SetRadioLink(true);
+    }
+
     switch (mSendMessage->GetType())
     {
     case Message::kTypeIp6:
@@ -1231,6 +1244,7 @@ void MeshForwarder::HandleReceivedFrame(Mac::Frame &aFrame)
     linkInfo.mRss          = aFrame.GetRssi();
     linkInfo.mLqi          = aFrame.GetLqi();
     linkInfo.mLinkSecurity = aFrame.GetSecurityEnabled();
+    linkInfo.mBackboneLink = aFrame.IsBackboneLink();
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
     linkInfo.mNetworkTimeOffset = aFrame.GetNetworkTimeOffset();
     linkInfo.mTimeSyncSeq       = aFrame.GetTimeSyncSeq();
@@ -1523,6 +1537,7 @@ void MeshForwarder::HandleLowpanHC(uint8_t *               aFrame,
     VerifyOrExit((message = GetInstance().GetMessagePool().New(Message::kTypeIp6, 0, priority)) != NULL,
                  error = OT_ERROR_NO_BUFS);
     message->SetLinkSecurityEnabled(aLinkInfo.mLinkSecurity);
+    message->SetBackboneLink(aLinkInfo.mBackboneLink);
     message->SetPanId(aLinkInfo.mPanId);
     message->AddRss(aLinkInfo.mRss);
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
