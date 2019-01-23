@@ -116,6 +116,7 @@ public:
         void Clear(void) { memset(this, 0, sizeof(*this)); }
 
         Mac::ExtAddress mExtAddress; ///< Extended Address
+        otRadioInfo     mRadioInfo;  ///< Radio info
     };
 
     /**
