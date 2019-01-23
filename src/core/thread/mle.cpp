@@ -428,6 +428,10 @@ otError Mle::Restore(void)
         mParent.SetRloc16(GetRloc16(GetRouterId(networkInfo.mRloc16)));
         mParent.SetState(Neighbor::kStateRestored);
 
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+        memset(&mParent.GetRadioInfo(), 0xff, sizeof(mParent.GetRadioInfo()));
+#endif
+
 #if OPENTHREAD_CONFIG_MLE_INFORM_PREVIOUS_PARENT_ON_REATTACH
         mPreviousParentRloc = mParent.GetRloc16();
 #endif
@@ -3347,6 +3351,9 @@ otError Mle::HandleParentResponse(const Message &aMessage, const Ip6::MessageInf
     mChildIdRequest.mChallengeLength = challenge.GetChallengeLength();
     memcpy(mChildIdRequest.mChallenge, challenge.GetChallenge(), mChildIdRequest.mChallengeLength);
 
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+    mParentCandidate.SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
+#endif
     mParentCandidate.SetExtAddress(extAddress);
     mParentCandidate.SetRloc16(sourceAddress.GetRloc16());
     mParentCandidate.SetLinkFrameCounter(linkFrameCounter.GetFrameCounter());

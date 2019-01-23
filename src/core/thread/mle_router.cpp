@@ -670,6 +670,10 @@ otError MleRouter::HandleLinkRequest(const Message &aMessage, const Ip6::Message
     }
 #endif
 
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+    neighbor->SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
+#endif
+
     SuccessOrExit(error = SendLinkAccept(aMessageInfo, neighbor, tlvRequest, challenge));
 
 exit:
@@ -1650,6 +1654,9 @@ otError MleRouter::HandleParentRequest(const Message &aMessage, const Ip6::Messa
         child->GetLinkInfo().AddRss(Get<Mac::Mac>().GetNoiseFloor(), linkInfo->mRss);
         child->ResetLinkFailures();
         child->SetState(Neighbor::kStateParentRequest);
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+        child->SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
+#endif
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
         if (Tlv::GetTlv(aMessage, Tlv::kTimeRequest, sizeof(timeRequest), timeRequest) == OT_ERROR_NONE)
         {
@@ -2174,6 +2181,9 @@ otError MleRouter::HandleChildIdRequest(const Message &         aMessage,
     child->SetDeviceMode(mode.GetMode());
     child->GetLinkInfo().AddRss(Get<Mac::Mac>().GetNoiseFloor(), linkInfo->mRss);
     child->SetTimeout(timeout.GetTimeout());
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+    child->SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
+#endif
 
     if (mode.GetMode().IsFullNetworkData())
     {
@@ -3167,6 +3177,59 @@ void MleRouter::RemoveNeighbor(Neighbor &aNeighbor)
     aNeighbor.SetState(Neighbor::kStateInvalid);
 }
 
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+const otRadioInfo &MleRouter::GetRadioInfo(const Mac::Address &aAddress)
+{
+    Neighbor *neighbor = NULL;
+    assert(!aAddress.IsBroadcast());
+
+    switch (mRole)
+    {
+    case OT_DEVICE_ROLE_DISABLED:
+        break;
+
+    case OT_DEVICE_ROLE_DETACHED:
+    case OT_DEVICE_ROLE_CHILD:
+        neighbor = Mle::GetNeighbor(aAddress);
+        break;
+
+    case OT_DEVICE_ROLE_ROUTER:
+    case OT_DEVICE_ROLE_LEADER:
+        neighbor = mChildTable.FindChild(aAddress, ChildTable::kInStateAnyExceptInvalid);
+        VerifyOrExit(neighbor == NULL);
+
+        for (RouterTable::Iterator iter(GetInstance()); !iter.IsDone(); iter++)
+        {
+            neighbor = iter.GetRouter();
+
+            if (neighbor->GetState() == Neighbor::kStateInvalid)
+            {
+                continue;
+            }
+
+            if ((aAddress.GetType() == Mac::Address::kTypeShort && neighbor->GetRloc16() == aAddress.GetShort()) ||
+                neighbor->GetExtAddress() == aAddress.GetExtended())
+            {
+                break;
+            }
+        }
+
+        VerifyOrExit(neighbor == NULL);
+
+        if (mAttachState != kAttachStateIdle)
+        {
+            neighbor = Mle::GetNeighbor(aAddress);
+        }
+
+        break;
+    }
+
+exit:
+    assert(neighbor != NULL);
+    return neighbor->GetRadioInfo();
+}
+#endif // OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+
 Neighbor *MleRouter::GetNeighbor(uint16_t aAddress)
 {
     Neighbor *rval = NULL;
@@ -3517,6 +3580,9 @@ void MleRouter::RestoreChildren(void)
         child->SetDeviceMode(DeviceMode(childInfo.mMode));
         child->SetState(Neighbor::kStateRestored);
         child->SetLastHeard(TimerMilli::GetNow());
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+        memset(&child->GetRadioInfo(), 0xff, sizeof(child->GetRadioInfo()));
+#endif
         Get<IndirectSender>().SetChildUseShortAddress(*child, true);
         numChildren++;
     }
