@@ -28,7 +28,9 @@
 
 include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 
+if OPENTHREAD_ENABLE_EXAMPLES
 lib_LIBRARIES                           = libopenthread-platform-utils.a
+endif
 
 libopenthread_platform_utils_a_CPPFLAGS                 = \
     -I$(top_srcdir)/include                               \
