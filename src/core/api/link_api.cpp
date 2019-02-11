@@ -39,20 +39,40 @@
 
 using namespace ot;
 
-static void HandleActiveScanResult(void *aContext, Mac::Frame *aFrame);
-static void HandleEnergyScanResult(void *aContext, otEnergyScanResult *aResult);
+static void HandleActiveScanResult(Instance &aInstance, Mac::Frame *aFrame);
+static void HandleEnergyScanResult(Instance &aInstance, otEnergyScanResult *aResult);
 
 uint8_t otLinkGetChannel(otInstance *aInstance)
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
+    uint8_t   channel;
 
-    return instance.GetThreadNetif().GetMac().GetPanChannel();
+#if OPENTHREAD_ENABLE_RAW_LINK_API
+    if (instance.GetLinkRaw().IsEnabled())
+    {
+        channel = instance.GetLinkRaw().GetChannel();
+    }
+    else
+#endif
+    {
+        channel = instance.GetThreadNetif().GetMac().GetPanChannel();
+    }
+
+    return channel;
 }
 
 otError otLinkSetChannel(otInstance *aInstance, uint8_t aChannel)
 {
     otError   error;
     Instance &instance = *static_cast<Instance *>(aInstance);
+
+#if OPENTHREAD_ENABLE_RAW_LINK_API
+    if (instance.GetLinkRaw().IsEnabled())
+    {
+        error = instance.GetLinkRaw().SetChannel(aChannel);
+        ExitNow();
+    }
+#endif
 
     VerifyOrExit(instance.GetThreadNetif().GetMle().GetRole() == OT_DEVICE_ROLE_DISABLED,
                  error = OT_ERROR_INVALID_STATE);
@@ -347,8 +367,7 @@ otError otLinkActiveScan(otInstance *             aInstance,
     Instance &instance = *static_cast<Instance *>(aInstance);
 
     instance.RegisterActiveScanCallback(aCallback, aCallbackContext);
-    return instance.GetThreadNetif().GetMac().ActiveScan(aScanChannels, aScanDuration, &HandleActiveScanResult,
-                                                         aInstance);
+    return instance.GetThreadNetif().GetMac().ActiveScan(aScanChannels, aScanDuration, &HandleActiveScanResult);
 }
 
 bool otLinkIsActiveScanInProgress(otInstance *aInstance)
@@ -358,20 +377,18 @@ bool otLinkIsActiveScanInProgress(otInstance *aInstance)
     return instance.GetThreadNetif().GetMac().IsActiveScanInProgress();
 }
 
-void HandleActiveScanResult(void *aContext, Mac::Frame *aFrame)
+void HandleActiveScanResult(Instance &aInstance, Mac::Frame *aFrame)
 {
-    Instance &instance = *static_cast<Instance *>(aContext);
-
     if (aFrame == NULL)
     {
-        instance.InvokeActiveScanCallback(NULL);
+        aInstance.InvokeActiveScanCallback(NULL);
     }
     else
     {
         otActiveScanResult result;
 
-        instance.GetThreadNetif().GetMac().ConvertBeaconToActiveScanResult(aFrame, result);
-        instance.InvokeActiveScanCallback(&result);
+        aInstance.GetThreadNetif().GetMac().ConvertBeaconToActiveScanResult(aFrame, result);
+        aInstance.InvokeActiveScanCallback(&result);
     }
 }
 
@@ -384,15 +401,12 @@ otError otLinkEnergyScan(otInstance *             aInstance,
     Instance &instance = *static_cast<Instance *>(aInstance);
 
     instance.RegisterEnergyScanCallback(aCallback, aCallbackContext);
-    return instance.GetThreadNetif().GetMac().EnergyScan(aScanChannels, aScanDuration, &HandleEnergyScanResult,
-                                                         aInstance);
+    return instance.GetThreadNetif().GetMac().EnergyScan(aScanChannels, aScanDuration, &HandleEnergyScanResult);
 }
 
-void HandleEnergyScanResult(void *aContext, otEnergyScanResult *aResult)
+void HandleEnergyScanResult(Instance &aInstance, otEnergyScanResult *aResult)
 {
-    Instance &instance = *static_cast<Instance *>(aContext);
-
-    instance.InvokeEnergyScanCallback(aResult);
+    aInstance.InvokeEnergyScanCallback(aResult);
 }
 
 bool otLinkIsEnergyScanInProgress(otInstance *aInstance)
