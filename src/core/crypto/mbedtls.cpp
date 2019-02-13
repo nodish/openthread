@@ -54,6 +54,10 @@ static void Free(void *aPointer)
 
 MbedTls::MbedTls(void)
 {
+#ifdef MBEDTLS_DEBUG_C
+    // mbedTLS's debug level is almost the same as OpenThread's
+    mbedtls_debug_set_threshold(OPENTHREAD_CONFIG_LOG_LEVEL);
+#endif
     mbedtls_platform_set_calloc_free(CAlloc, Free);
 }
 
