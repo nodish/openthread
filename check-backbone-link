@@ -11,7 +11,7 @@ at_exit() {
     EXIT_CODE=$?
 
     killall ot-cli-ftd || true
-    killall tshark || true
+    # killall tshark || true
     delete_netns
 
     exit $EXIT_CODE
@@ -84,9 +84,9 @@ main()
             create_netns
             echo waiting for network ready........................................
             sleep 5
-            tshark -i veth0 -w current.pcap &
-            echo waiting for tshark ready........................................
-            sleep 5
+            # tshark -i veth0 -w current.pcap &
+            # echo waiting for tshark ready........................................
+            # sleep 5
             trap at_exit INT TERM EXIT
             start_leader &
             file_expect '^leader' leader.log
