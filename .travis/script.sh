@@ -261,77 +261,77 @@ build_samr21() {
 [ $BUILD_TARGET != arm-gcc-4 ] || {
     export PATH=/tmp/gcc-arm-none-eabi-4_9-2015q3/bin:$PATH || die
 
-    build_cc1352
-    build_cc2538
-    build_cc2650
-    build_cc2652
-    build_da15000
-    build_kw41z
-    build_nrf52811
-    build_nrf52840
-    build_qpg6095
-    build_samr21
+    build_cc1352 &> build.log && echo PASS || cat build.log && die
+    build_cc2538 &> build.log && echo PASS || cat build.log && die
+    build_cc2650 &> build.log && echo PASS || cat build.log && die
+    build_cc2652 &> build.log && echo PASS || cat build.log && die
+    build_da15000 &> build.log && echo PASS || cat build.log && die
+    build_kw41z &> build.log && echo PASS || cat build.log && die
+    build_nrf52811 &> build.log && echo PASS || cat build.log && die
+    build_nrf52840 &> build.log && echo PASS || cat build.log && die
+    build_qpg6095 &> build.log && echo PASS || cat build.log && die
+    build_samr21 &> build.log && echo PASS || cat build.log && die
 }
 
 [ $BUILD_TARGET != arm-gcc-5 ] || {
     export PATH=/tmp/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH || die
 
-    build_cc1352
-    build_cc2538
-    build_cc2650
-    build_cc2652
-    build_da15000
-    build_kw41z
-    build_nrf52811
-    build_nrf52840
-    build_qpg6095
-    build_samr21
+    build_cc1352 &> build.log && echo PASS || cat build.log && die
+    build_cc2538 &> build.log && echo PASS || cat build.log && die
+    build_cc2650 &> build.log && echo PASS || cat build.log && die
+    build_cc2652 &> build.log && echo PASS || cat build.log && die
+    build_da15000 &> build.log && echo PASS || cat build.log && die
+    build_kw41z &> build.log && echo PASS || cat build.log && die
+    build_nrf52811 &> build.log && echo PASS || cat build.log && die
+    build_nrf52840 &> build.log && echo PASS || cat build.log && die
+    build_qpg6095 &> build.log && echo PASS || cat build.log && die
+    build_samr21 &> build.log && echo PASS || cat build.log && die
 }
 
 [ $BUILD_TARGET != arm-gcc-6 ] || {
     export PATH=/tmp/gcc-arm-none-eabi-6-2017-q2-update/bin:$PATH || die
 
-    build_cc1352
-    build_cc2538
-    build_cc2650
-    build_cc2652
-    build_da15000
-    build_kw41z
-    build_nrf52811
-    build_nrf52840
-    build_qpg6095
-    build_samr21
+    build_cc1352 &> build.log && echo PASS || cat build.log && die
+    build_cc2538 &> build.log && echo PASS || cat build.log && die
+    build_cc2650 &> build.log && echo PASS || cat build.log && die
+    build_cc2652 &> build.log && echo PASS || cat build.log && die
+    build_da15000 &> build.log && echo PASS || cat build.log && die
+    build_kw41z &> build.log && echo PASS || cat build.log && die
+    build_nrf52811 &> build.log && echo PASS || cat build.log && die
+    build_nrf52840 &> build.log && echo PASS || cat build.log && die
+    build_qpg6095 &> build.log && echo PASS || cat build.log && die
+    build_samr21 &> build.log && echo PASS || cat build.log && die
 
-    build_emsk
+    build_emsk &> build.log && echo PASS || cat build.log && die
 }
 
 [ $BUILD_TARGET != arm-gcc-7 ] || {
     export PATH=/tmp/gcc-arm-none-eabi-7-2018-q2-update/bin:$PATH || die
 
-    build_cc1352
-    build_cc2538
-    build_cc2650
-    build_cc2652
-    build_da15000
-    build_kw41z
-    build_nrf52811
-    build_nrf52840
-    build_qpg6095
-    build_samr21
+    build_cc1352 &> build.log && echo PASS || cat build.log && die
+    build_cc2538 &> build.log && echo PASS || cat build.log && die
+    build_cc2650 &> build.log && echo PASS || cat build.log && die
+    build_cc2652 &> build.log && echo PASS || cat build.log && die
+    build_da15000 &> build.log && echo PASS || cat build.log && die
+    build_kw41z &> build.log && echo PASS || cat build.log && die
+    build_nrf52811 &> build.log && echo PASS || cat build.log && die
+    build_nrf52840 &> build.log && echo PASS || cat build.log && die
+    build_qpg6095 &> build.log && echo PASS || cat build.log && die
+    build_samr21 &> build.log && echo PASS || cat build.log && die
 }
 
 [ $BUILD_TARGET != arm-gcc-8 ] || {
     export PATH=/tmp/gcc-arm-none-eabi-8-2018-q4-major/bin:$PATH || die
 
-    build_cc1352
-    build_cc2538
-    build_cc2650
-    build_cc2652
-    build_kw41z
-    build_nrf52811
-    build_nrf52840
-    build_qpg6095
-    build_samr21
+    build_cc1352 &> build.log && echo PASS || cat build.log && die
+    build_cc2538 &> build.log && echo PASS || cat build.log && die
+    build_cc2650 &> build.log && echo PASS || cat build.log && die
+    build_cc2652 &> build.log && echo PASS || cat build.log && die
+    build_kw41z &> build.log && echo PASS || cat build.log && die
+    build_nrf52811 &> build.log && echo PASS || cat build.log && die
+    build_nrf52840 &> build.log && echo PASS || cat build.log && die
+    build_qpg6095 &> build.log && echo PASS || cat build.log && die
+    build_samr21 &> build.log && echo PASS || cat build.log && die
 
     # DA15000 build failure:
     #
