@@ -198,7 +198,7 @@ void otSimProcess(otInstance *aInstance, const fd_set *aReadFdSet, const fd_set 
     otSimRadioSpinelProcess(aInstance, &event);
 }
 
-void otSimGetTime(struct timeval *aTime)
+void otSysGetTime(struct timeval *aTime)
 {
     aTime->tv_sec  = (time_t)sNow / kUsPerSecond;
     aTime->tv_usec = sNow % kUsPerSecond;

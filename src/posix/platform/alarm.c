@@ -33,6 +33,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include <openthread/platform/alarm-micro.h>
 #include <openthread/platform/alarm-milli.h>
@@ -53,12 +54,17 @@ static uint32_t sUsAlarm     = 0;
 #endif
 
 static uint32_t       sSpeedUpFactor = 1;
-static struct timeval sStart;
+
+#if !OPENTHREAD_POSIX_VIRTUAL_TIME
+void otSysGetTime(struct timeval *aTime)
+{
+    VerifyOrDie(clock_gettime(CLOCK_MONOTONIC, aTime) == 0, OT_EXIT_FAILURE);
+}
+#endif // !OPENTHREAD_POSIX_VIRTUAL_TIME
 
 void platformAlarmInit(uint32_t aSpeedUpFactor)
 {
     sSpeedUpFactor = aSpeedUpFactor;
-    otSysGetTime(&sStart);
 }
 
 static uint64_t platformGetNow(void)
@@ -66,7 +72,6 @@ static uint64_t platformGetNow(void)
     struct timeval now;
 
     otSysGetTime(&now);
-    timersub(&now, &sStart, &now);
 
     return (uint64_t)now.tv_sec * US_PER_S * sSpeedUpFactor + (uint64_t)now.tv_usec * sSpeedUpFactor;
 }

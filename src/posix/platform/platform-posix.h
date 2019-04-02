@@ -276,14 +276,6 @@ void otSimInit(void);
 void otSimDeinit(void);
 
 /**
- * This function gets simulation time.
- *
- * @param[in] aTime   A pointer to a timeval receiving the current time.
- *
- */
-void otSimGetTime(struct timeval *aTime);
-
-/**
  * This function performs simulation processing.
  *
  * @param[in]   aInstance       A pointer to the OpenThread instance.
@@ -354,11 +346,13 @@ void otSimRadioSpinelUpdate(struct timeval *atimeout);
  */
 void otSimRadioSpinelProcess(otInstance *aInstance, const struct Event *aEvent);
 
-#if OPENTHREAD_POSIX_VIRTUAL_TIME
-#define otSysGetTime(aTime) otSimGetTime(aTime)
-#else
-#define otSysGetTime(aTime) gettimeofday(aTime, NULL)
-#endif
+/**
+ * This function gets simulation time.
+ *
+ * @param[in] aTime   A pointer to a timeval receiving the current time.
+ *
+ */
+void otSysGetTime(struct timeval *aTime);
 
 /**
  * This function initializes platform UDP driver.
