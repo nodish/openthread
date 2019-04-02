@@ -4036,22 +4036,22 @@ exit:
     return;
 }
 
+} // namespace Cli
+} // namespace ot
+
 #if OPENTHREAD_ENABLE_LEGACY
-void otNcpRegisterLegacyHandlers(const otNcpLegacyHandlers *aHandlers)
+extern "C" void otNcpRegisterLegacyHandlers(const otNcpLegacyHandlers *aHandlers)
 {
     OT_UNUSED_VARIABLE(aHandlers);
 }
 
-void otNcpHandleDidReceiveNewLegacyUlaPrefix(const uint8_t *aUlaPrefix)
+extern "C" void otNcpHandleDidReceiveNewLegacyUlaPrefix(const uint8_t *aUlaPrefix)
 {
     OT_UNUSED_VARIABLE(aUlaPrefix);
 }
 
-void otNcpHandleLegacyNodeDidJoin(const otExtAddress *aExtAddr)
+extern "C" void otNcpHandleLegacyNodeDidJoin(const otExtAddress *aExtAddr)
 {
     OT_UNUSED_VARIABLE(aExtAddr);
 }
 #endif // OPENTHREAD_ENABLE_LEGACY
-
-} // namespace Cli
-} // namespace ot
