@@ -903,6 +903,22 @@ public:
     uint8_t GetPayloadLength(void) const;
 
     /**
+     * This method returns the current encrypted Payload length.
+     *
+     * @returns The current MAC Payload length.
+     *
+     */
+    uint8_t GetPrivatePayloadLength(void) const;
+
+    /**
+     * This method gets the offset to the private payload.
+     *
+     * @returns The offset to the private payload.
+     *
+     */
+    uint8_t FindPrivatePayloadIndex(void) const;
+
+    /**
      * This method returns the maximum MAC Payload length for the given MAC header and footer.
      *
      * @returns The maximum MAC Payload length for the given MAC header and footer.
@@ -1115,12 +1131,31 @@ public:
     uint8_t *GetPayload(void) { return const_cast<uint8_t *>(const_cast<const Frame *>(this)->GetPayload()); }
 
     /**
+     * This method returns a pointer to the MAC Private Payload.
+     *
+     * @returns A pointer to the MAC Private Payload.
+     *
+     */
+    uint8_t *GetPrivatePayload(void)
+    {
+        return const_cast<uint8_t *>(const_cast<const Frame *>(this)->GetPrivatePayload());
+    }
+
+    /**
      * This const method returns a pointer to the MAC Payload.
      *
      * @returns A pointer to the MAC Payload.
      *
      */
     const uint8_t *GetPayload(void) const;
+
+    /**
+     * This const method returns a pointer to the MAC Private Payload.
+     *
+     * @returns A pointer to the MAC Private Payload.
+     *
+     */
+    const uint8_t *GetPrivatePayload(void) const;
 
     /**
      * This method returns a pointer to the MAC Footer.

@@ -824,11 +824,13 @@ void Mac::ProcessTransmitAesCcm(Frame &aFrame, const ExtAddress *aExtAddress)
     aesCcm.SetKey(aFrame.GetAesKey(), 16);
     tagLength = aFrame.GetFooterLength() - Frame::kFcsSize;
 
-    error = aesCcm.Init(aFrame.GetHeaderLength(), aFrame.GetPayloadLength(), tagLength, nonce, sizeof(nonce));
+    // AuthData includes = MHR + Open Payload field
+    error = aesCcm.Init(aFrame.FindPrivatePayloadIndex(), aFrame.GetPrivatePayloadLength(), tagLength, nonce,
+                        sizeof(nonce));
     assert(error == OT_ERROR_NONE);
 
-    aesCcm.Header(aFrame.GetHeader(), aFrame.GetHeaderLength());
-    aesCcm.Payload(aFrame.GetPayload(), aFrame.GetPayload(), aFrame.GetPayloadLength(), true);
+    aesCcm.Header(aFrame.GetHeader(), aFrame.FindPrivatePayloadIndex());
+    aesCcm.Payload(aFrame.GetPrivatePayload(), aFrame.GetPrivatePayload(), aFrame.GetPrivatePayloadLength(), true);
     aesCcm.Finalize(aFrame.GetFooter(), &tagLength);
 }
 
@@ -1351,16 +1353,18 @@ otError Mac::ProcessReceiveSecurity(Frame &aFrame, const Address &aSrcAddr, Neig
 
     aesCcm.SetKey(macKey, 16);
 
-    error = aesCcm.Init(aFrame.GetHeaderLength(), aFrame.GetPayloadLength(), tagLength, nonce, sizeof(nonce));
+    // AuthData includes = MHR + Open Payload field
+    error = aesCcm.Init(aFrame.FindPrivatePayloadIndex(), aFrame.GetPrivatePayloadLength(), tagLength, nonce,
+                        sizeof(nonce));
     VerifyOrExit(error == OT_ERROR_NONE, error = OT_ERROR_SECURITY);
 
-    aesCcm.Header(aFrame.GetHeader(), aFrame.GetHeaderLength());
+    aesCcm.Header(aFrame.GetHeader(), aFrame.FindPrivatePayloadIndex());
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    aesCcm.Payload(aFrame.GetPayload(), aFrame.GetPayload(), aFrame.GetPayloadLength(), false);
+    aesCcm.Payload(aFrame.GetPrivatePayload(), aFrame.GetPrivatePayload(), aFrame.GetPrivatePayloadLength(), false);
 #else
     // for fuzz tests, execute AES but do not alter the payload
     uint8_t fuzz[OT_RADIO_FRAME_MAX_SIZE];
-    aesCcm.Payload(fuzz, aFrame.GetPayload(), aFrame.GetPayloadLength(), false);
+    aesCcm.Payload(fuzz, aFrame.GetPrivatePayload(), aFrame.GetPrivatePayloadLength(), false);
 #endif
     aesCcm.Finalize(tag, &tagLength);
 

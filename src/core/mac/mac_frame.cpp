@@ -694,7 +694,7 @@ otError Frame::GetCommandId(uint8_t &aCommandId) const
 
     VerifyOrExit(index != kInvalidIndex, error = OT_ERROR_PARSE);
 
-    aCommandId = (GetPsdu() + index)[-1];
+    aCommandId = (GetPsdu() + index)[0];
 
 exit:
     return error;
@@ -707,7 +707,7 @@ otError Frame::SetCommandId(uint8_t aCommandId)
 
     VerifyOrExit(index != kInvalidIndex, error = OT_ERROR_PARSE);
 
-    (GetPsdu() + index)[-1] = aCommandId;
+    (GetPsdu() + index)[0] = aCommandId;
 
 exit:
     return error;
@@ -776,6 +776,11 @@ uint8_t Frame::GetMaxPayloadLength(void) const
 uint8_t Frame::GetPayloadLength(void) const
 {
     return GetPsduLength() - (GetHeaderLength() + GetFooterLength());
+}
+
+uint8_t Frame::GetPrivatePayloadLength(void) const
+{
+    return GetPsduLength() - (FindPrivatePayloadIndex() + GetFooterLength());
 }
 
 void Frame::SetPayloadLength(uint8_t aLength)
@@ -910,8 +915,18 @@ uint8_t Frame::FindPayloadIndex(void) const
     }
 #endif
 
+exit:
+    return index;
+}
+
+uint8_t Frame::FindPrivatePayloadIndex(void) const
+{
+    uint8_t index = FindPayloadIndex();
+
+    VerifyOrExit(index != kInvalidIndex);
+
     // Command ID
-    if ((GetFrameControlField() & kFcfFrameTypeMask) == kFcfFrameMacCmd)
+    if ((GetFrameControlField() & kFcfFrameTypeMask) == kFcfFrameMacCmd && GetVersion() < kFcfFrameVersion2015)
     {
         index += kCommandIdSize;
     }
@@ -923,6 +938,17 @@ exit:
 const uint8_t *Frame::GetPayload(void) const
 {
     uint8_t        index   = FindPayloadIndex();
+    const uint8_t *payload = GetPsdu() + index;
+
+    VerifyOrExit(index != kInvalidIndex, payload = NULL);
+
+exit:
+    return payload;
+}
+
+const uint8_t *Frame::GetPrivatePayload(void) const
+{
+    uint8_t        index   = FindPrivatePayloadIndex();
     const uint8_t *payload = GetPsdu() + index;
 
     VerifyOrExit(index != kInvalidIndex, payload = NULL);
