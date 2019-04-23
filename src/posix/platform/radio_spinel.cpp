@@ -1224,8 +1224,8 @@ void RadioSpinel::HandleTransmitDone(uint32_t          aCommand,
     }
     else
     {
-        otLogWarnPlat("Spinel status: %d.", status);
         error = SpinelStatusToOtError(status);
+        otLogWarnPlat("Spinel status[%d]: %s", status, otThreadErrorToString(error));
     }
 
 exit:
