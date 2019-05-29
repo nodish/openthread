@@ -37,14 +37,12 @@
 #include <openthread/random_noncrypto.h>
 #include <openthread/platform/alarm-micro.h>
 #include <openthread/platform/alarm-milli.h>
+#include <openthread/platform/bblink.h>
 #include <openthread/platform/diag.h>
 #include <openthread/platform/radio.h>
 #include <openthread/platform/time.h>
 
 #include "utils/code_utils.h"
-
-#define BACKBONE_LINK_PORT 19787
-#define BACKBONE_LINK_GROUP "224.0.0.84"
 
 enum
 {
@@ -112,7 +110,7 @@ struct RadioMessage
 } OT_TOOL_PACKED_END;
 
 static void radioTransmit(struct RadioMessage *msg, struct otRadioFrame *pkt);
-static void backboneTransmit(struct RadioMessage *msg, struct otRadioFrame *pkt);
+static void backboneTransmit(struct RadioMessage *msg, struct otRadioFrame *pkt, bool multicast);
 static void radioSendMessage(otInstance *aInstance);
 static void radioSendAck(void);
 static void radioProcessFrame(otInstance *aInstance);
@@ -133,9 +131,9 @@ static otRadioIeInfo sReceivedIeInfo;
 static uint8_t  sExtendedAddress[OT_EXT_ADDRESS_SIZE];
 static uint16_t sShortAddress;
 static uint16_t sPanid;
-static uint16_t sPortOffset = 0;
-static int      sSockFd;
-static int      sBackboneFd;
+static uint16_t sPortOffset  = 0;
+static int      sSockFd      = -1;
+static int      sBackboneFd  = -1;
 static bool     sPromiscuous = false;
 static bool     sAckWait     = false;
 static int8_t   sTxPower     = 0;
@@ -398,11 +396,13 @@ void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
 
 void platformRadioInit(void)
 {
+    int                value;
     struct sockaddr_in sockaddr;
     char *             offset;
+    char *             backboneLink = getenv("BACKBONE_LINK");
+
     memset(&sockaddr, 0, sizeof(sockaddr));
     sockaddr.sin_family = AF_INET;
-    int value;
 
     offset = getenv("PORT_OFFSET");
 
@@ -432,7 +432,7 @@ void platformRadioInit(void)
 
     sockaddr.sin_addr.s_addr = INADDR_ANY;
 
-    sSockFd = (int)socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    sSockFd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
     if (sSockFd == -1)
     {
@@ -446,31 +446,14 @@ void platformRadioInit(void)
         exit(EXIT_FAILURE);
     }
 
-    sBackboneFd = (int)socket(AF_INET, SOCK_DGRAM, 0);
+    otEXPECT(backboneLink != NULL);
+
+    sBackboneFd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
     if (sBackboneFd == -1)
     {
         perror("socket");
         exit(EXIT_FAILURE);
-    }
-
-    {
-        struct ifreq ifr;
-        memset(&ifr, 0, sizeof(ifr));
-        if (gNodeId == 1)
-        {
-            strncpy(ifr.ifr_name, "veth0", IFNAMSIZ - 1);
-        }
-        else
-        {
-            strncpy(ifr.ifr_name, "veth1", IFNAMSIZ - 1);
-        }
-
-        if (setsockopt(sBackboneFd, SOL_SOCKET, SO_BINDTODEVICE, &ifr, sizeof(ifr)) < 0)
-        {
-            perror("setsockopt bind device");
-            exit(EXIT_FAILURE);
-        }
     }
 
     value = 1;
@@ -496,7 +479,7 @@ void platformRadioInit(void)
 
     memset(&sockaddr, 0, sizeof(sockaddr));
     sockaddr.sin_family = AF_INET;
-    sockaddr.sin_port   = htons(BACKBONE_LINK_PORT);
+    sockaddr.sin_port   = htons(OT_BACKBONE_LINK_PORT);
 
     if (bind(sBackboneFd, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) == -1)
     {
@@ -508,18 +491,12 @@ void platformRadioInit(void)
         struct ip_mreqn mreq;
 
         memset(&mreq, 0, sizeof(mreq));
-        inet_pton(AF_INET, BACKBONE_LINK_GROUP, &mreq.imr_multiaddr);
+        inet_pton(AF_INET, OT_BACKBONE_LINK_GROUP, &mreq.imr_multiaddr);
+        mreq.imr_address.s_addr = inet_addr(backboneLink);
 
-        if (gNodeId == 1)
-        {
-            mreq.imr_ifindex        = if_nametoindex("veth0");
-            mreq.imr_address.s_addr = inet_addr("192.168.66.1");
-        }
-        else
-        {
-            mreq.imr_ifindex        = if_nametoindex("veth1");
-            mreq.imr_address.s_addr = inet_addr("192.168.66.2");
-        }
+        otEXPECT_ACTION(
+            setsockopt(sBackboneFd, IPPROTO_IP, IP_MULTICAST_IF, &mreq.imr_address, sizeof(mreq.imr_address)) != -1,
+            perror("setsockopt backbone link interface"));
 
         if (setsockopt(sBackboneFd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
         {
@@ -528,6 +505,7 @@ void platformRadioInit(void)
         }
     }
 
+exit:
     sReceiveFrame.mPsdu  = sReceiveMessage.mPsdu;
     sTransmitFrame.mPsdu = sTransmitMessage.mPsdu;
     sAckFrame.mPsdu      = sAckMessage.mPsdu;
@@ -670,25 +648,29 @@ bool otPlatRadioGetPromiscuous(otInstance *aInstance)
     return sPromiscuous;
 }
 
-void radioReceive(otInstance *aInstance, bool aBackboneLink)
+void radioReceive(otInstance *aInstance, int aFd)
 {
     bool    isAck;
     ssize_t rval;
 
-    if (aBackboneLink)
+    memset(&sReceiveFrame.mRadioInfo, 0, sizeof(sReceiveFrame.mRadioInfo));
+    if (sBackboneFd == aFd)
     {
-        // Channel is the receive channel.
-        rval = recvfrom(sBackboneFd, (char *)&sReceiveMessage, sizeof(sReceiveMessage), 0, NULL, NULL);
+        struct sockaddr_in sockaddr;
+        socklen_t          socklen = sizeof(sockaddr);
 
-        sReceiveFrame.mBackboneLink = true;
-        sReceiveFrame.mRadioLink    = false;
+        // Channel is the receive channel.
+        rval = recvfrom(sBackboneFd, (char *)&sReceiveMessage, sizeof(sReceiveMessage), 0, (struct sockaddr *)&sockaddr,
+                        &socklen);
+
+        assert(htons(sockaddr.sin_port) == OT_BACKBONE_LINK_PORT);
+        sReceiveFrame.mRadioInfo.mFields.m8[10] = 0xff;
+        sReceiveFrame.mRadioInfo.mFields.m8[11] = 0xff;
+        memcpy(&sReceiveFrame.mRadioInfo.mFields.m8[12], &sockaddr.sin_addr, sizeof(sockaddr.sin_addr));
     }
     else
     {
         rval = recvfrom(sSockFd, (char *)&sReceiveMessage, sizeof(sReceiveMessage), 0, NULL, NULL);
-
-        sReceiveFrame.mBackboneLink = false;
-        sReceiveFrame.mRadioLink    = true;
     }
 
     if (rval < 0)
@@ -727,8 +709,47 @@ void radioReceive(otInstance *aInstance, bool aBackboneLink)
     }
 }
 
+static void txInfoFromRadioInfo(const otRadioInfo *aRadioInfo, bool *aLink802154, bool *aLinkBackbone, bool *aMulticast)
+{
+    bool multicast = (aRadioInfo->mFields.m64[0] == -1ULL && aRadioInfo->mFields.m64[1] == -1ULL);
+
+    if (aLink802154 != NULL)
+    {
+        *aLink802154 = multicast || (aRadioInfo->mFields.m64[0] == 0 && aRadioInfo->mFields.m64[1] == 0);
+    }
+
+    if (aLinkBackbone != NULL)
+    {
+        *aLinkBackbone = multicast || (aRadioInfo->mFields.m64[0] != 0 || aRadioInfo->mFields.m64[1] != 0);
+    }
+
+    if (aMulticast != NULL)
+    {
+        *aMulticast = multicast;
+    }
+}
+
+static void radioComputeCrc(struct otRadioFrame *aFrame)
+{
+    uint16_t i;
+    uint16_t crc        = 0;
+    uint16_t crc_offset = aFrame->mLength - sizeof(uint16_t);
+
+    for (i = 0; i < crc_offset; i++)
+    {
+        crc = crc16_citt(crc, aFrame->mPsdu[i]);
+    }
+
+    aFrame->mPsdu[crc_offset]     = crc & 0xff;
+    aFrame->mPsdu[crc_offset + 1] = crc >> 8;
+}
+
 void radioSendMessage(otInstance *aInstance)
 {
+    bool to802154;
+    bool toBackbone;
+    bool toAll;
+
 #if OPENTHREAD_CONFIG_HEADER_IE_SUPPORT
     bool notifyFrameUpdated = false;
 
@@ -757,24 +778,28 @@ void radioSendMessage(otInstance *aInstance)
     }
 #endif // OPENTHREAD_CONFIG_HEADER_IE_SUPPORT
 
-    if (sTransmitFrame.mRadioLink && sTransmitFrame.mBackboneLink)
-    {
-        assert((sTransmitFrame.mPsdu[1] & IEEE802154_DST_ADDR_MASK) &&
-               getShortAddress(sTransmitFrame.mPsdu) == IEEE802154_BROADCAST);
-    }
+    txInfoFromRadioInfo(&sTransmitFrame.mRadioInfo, &to802154, &toBackbone, &toAll);
 
     sTransmitMessage.mChannel = sTransmitFrame.mChannel;
 
-    if (sTransmitFrame.mRadioLink)
+    radioComputeCrc(&sTransmitFrame);
+
+    if (sBackboneFd == -1)
     {
-        // fprintf(stderr, "\r\n>>>>>>>>>>>>>>>>>>> radio len=%d\r\n", sTransmitFrame.mLength);
-        radioTransmit(&sTransmitMessage, &sTransmitFrame);
+        // skip backbone link
+    }
+    else if (toAll)
+    {
+        backboneTransmit(&sTransmitMessage, &sTransmitFrame, true);
+    }
+    else if (toBackbone)
+    {
+        backboneTransmit(&sTransmitMessage, &sTransmitFrame, false);
     }
 
-    if (sTransmitFrame.mBackboneLink)
+    if (to802154)
     {
-        // fprintf(stderr, "\r\n>>>>>>>>>>>>>>>>>>> backbone len=%d\r\n", sTransmitFrame.mLength);
-        backboneTransmit(&sTransmitMessage, &sTransmitFrame);
+        radioTransmit(&sTransmitMessage, &sTransmitFrame);
     }
 
     otPlatRadioTxStarted(aInstance, &sTransmitFrame);
@@ -804,115 +829,89 @@ void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMax
     if (aReadFdSet != NULL && (sState != OT_RADIO_STATE_TRANSMIT || sAckWait))
     {
         FD_SET(sSockFd, aReadFdSet);
-        FD_SET(sBackboneFd, aReadFdSet);
 
         if (aMaxFd != NULL && *aMaxFd < sSockFd)
         {
             *aMaxFd = sSockFd;
         }
 
-        if (aMaxFd != NULL && *aMaxFd < sBackboneFd)
+        if (sBackboneFd != -1)
         {
-            *aMaxFd = sBackboneFd;
+            FD_SET(sBackboneFd, aReadFdSet);
+
+            if (aMaxFd != NULL && *aMaxFd < sBackboneFd)
+            {
+                *aMaxFd = sBackboneFd;
+            }
         }
     }
 
     if (aWriteFdSet != NULL && sState == OT_RADIO_STATE_TRANSMIT && !sAckWait)
     {
         FD_SET(sSockFd, aWriteFdSet);
-        FD_SET(sBackboneFd, aWriteFdSet);
 
         if (aMaxFd != NULL && *aMaxFd < sSockFd)
         {
             *aMaxFd = sSockFd;
         }
 
-        if (aMaxFd != NULL && *aMaxFd < sBackboneFd)
+        if (sBackboneFd != -1)
         {
-            *aMaxFd = sBackboneFd;
+            FD_SET(sBackboneFd, aWriteFdSet);
+            if (aMaxFd != NULL && *aMaxFd < sBackboneFd)
+            {
+                *aMaxFd = sBackboneFd;
+            }
         }
     }
 }
 
-void platformRadioProcess(otInstance *aInstance)
+void platformRadioProcess(otInstance *aInstance, const fd_set *aReadFdSet, const fd_set *aWriteFdSet)
 {
-    const int     flags    = POLLIN | POLLRDNORM | POLLERR | POLLNVAL | POLLHUP;
-    struct pollfd pollfd[] = {{sSockFd, flags, 0}, {sBackboneFd, flags, 0}};
-
-    if (poll(&pollfd, 2, 0) > 0 && (pollfd.revents & flags) != 0)
+    if (FD_ISSET(sSockFd, aReadFdSet))
     {
-        if ((pollfd[0].revents & flags) != 0)
-        {
-            radioReceive(aInstance, false);
-        }
-
-        if ((pollfd[1].revents & flags) != 0)
-        {
-            radioReceive(aInstance, true);
-        }
+        radioReceive(aInstance, sSockFd);
     }
 
-    if (sState == OT_RADIO_STATE_TRANSMIT && !sAckWait)
+    if (sBackboneFd != -1 && FD_ISSET(sBackboneFd, aReadFdSet))
+    {
+        radioReceive(aInstance, sBackboneFd);
+    }
+
+    // For simplicity, send message after both link types are writable
+    if (FD_ISSET(sSockFd, aWriteFdSet) && (sBackboneFd == -1 || FD_ISSET(sBackboneFd, aWriteFdSet)) &&
+        sState == OT_RADIO_STATE_TRANSMIT && !sAckWait)
     {
         radioSendMessage(aInstance);
     }
 }
 
-static void radioComputeCrc(struct otRadioFrame *aFrame)
-{
-    uint16_t i;
-    uint16_t crc        = 0;
-    uint16_t crc_offset = aFrame->mLength - sizeof(uint16_t);
-
-    for (i = 0; i < crc_offset; i++)
-    {
-        crc = crc16_citt(crc, aFrame->mPsdu[i]);
-    }
-
-    aFrame->mPsdu[crc_offset]     = crc & 0xff;
-    aFrame->mPsdu[crc_offset + 1] = crc >> 8;
-}
-
-static void findAddr(const otRadioFrame *aFrame, struct sockaddr_in *sockaddr)
-{
-    if (!isFrameTypeAck(aFrame->mPsdu) && getShortAddress(aFrame->mPsdu) == IEEE802154_BROADCAST)
-    {
-        inet_pton(AF_INET, BACKBONE_LINK_GROUP, &sockaddr->sin_addr);
-    }
-    else
-    {
-        if (gNodeId == 1)
-        {
-            inet_pton(AF_INET, "192.168.66.2", &sockaddr->sin_addr);
-        }
-        else
-        {
-            inet_pton(AF_INET, "192.168.66.1", &sockaddr->sin_addr);
-        }
-    }
-}
-
-void backboneTransmit(struct RadioMessage *msg, struct otRadioFrame *pkt)
+void backboneTransmit(struct RadioMessage *msg, struct otRadioFrame *pkt, bool multicast)
 {
     struct sockaddr_in sockaddr;
     ssize_t            rval;
 
-    if (!sPromiscuous)
-    {
-        radioComputeCrc(pkt);
-    }
+    assert(sBackboneFd != -1);
 
     memset(&sockaddr, 0, sizeof(sockaddr));
     sockaddr.sin_family = AF_INET;
-    sockaddr.sin_port   = htons(BACKBONE_LINK_PORT);
+    sockaddr.sin_port   = htons(OT_BACKBONE_LINK_PORT);
 
-    findAddr(pkt, &sockaddr);
+    if (!multicast)
+    {
+        memcpy(&sockaddr.sin_addr, &pkt->mRadioInfo.mFields.m8[12], sizeof(sockaddr.sin_addr));
+    }
+    else
+    {
+        sockaddr.sin_addr.s_addr = inet_addr(OT_BACKBONE_LINK_GROUP);
+    }
 
     rval = sendto(sBackboneFd, (const char *)msg, 1 + pkt->mLength, 0, (struct sockaddr *)&sockaddr, sizeof(sockaddr));
 
     if (rval < 0)
     {
         perror("backbone link sendto");
+        fprintf(stderr, "dst addr is:%s\r\n", inet_ntoa(sockaddr.sin_addr));
         exit(EXIT_FAILURE);
     }
 }
@@ -921,11 +920,6 @@ void radioTransmit(struct RadioMessage *aMessage, struct otRadioFrame *aFrame)
 {
     uint32_t           i;
     struct sockaddr_in sockaddr;
-
-    if (!sPromiscuous)
-    {
-        radioComputeCrc(aFrame);
-    }
 
     memset(&sockaddr, 0, sizeof(sockaddr));
     sockaddr.sin_family = AF_INET;
@@ -954,6 +948,9 @@ void radioTransmit(struct RadioMessage *aMessage, struct otRadioFrame *aFrame)
 
 void radioSendAck(void)
 {
+    bool from802154;
+    bool fromBackbone;
+
     sAckFrame.mLength = IEEE802154_ACK_LENGTH;
 
     sAckMessage.mPsdu[0] = IEEE802154_FRAME_TYPE_ACK;
@@ -968,15 +965,19 @@ void radioSendAck(void)
     sAckMessage.mPsdu[2] = getDsn(sReceiveFrame.mPsdu);
     sAckMessage.mChannel = sReceiveFrame.mChannel;
 
-    if (sReceiveFrame.mBackboneLink)
+    txInfoFromRadioInfo(&sReceiveFrame.mRadioInfo, &from802154, &fromBackbone, NULL);
+
+    sAckFrame.mRadioInfo = sReceiveFrame.mRadioInfo;
+
+    radioComputeCrc(&sAckFrame);
+
+    if (fromBackbone)
     {
-        sAckFrame.mBackboneLink = sReceiveFrame.mBackboneLink;
-        backboneTransmit(&sAckMessage, &sAckFrame);
+        backboneTransmit(&sAckMessage, &sAckFrame, false);
     }
 
-    if (sReceiveFrame.mRadioLink)
+    if (from802154)
     {
-        sAckFrame.mRadioLink = sReceiveFrame.mRadioLink;
         radioTransmit(&sAckMessage, &sAckFrame);
     }
 }

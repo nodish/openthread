@@ -665,7 +665,7 @@ otError MleRouter::HandleLinkRequest(const Message &aMessage, const Ip6::Message
     }
 #endif
 
-    neighbor->SetBackboneLink(aMessage.IsBackboneLink());
+    neighbor->SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
 
     SuccessOrExit(error = SendLinkAccept(aMessageInfo, neighbor, tlvRequest, challenge));
 
@@ -1641,7 +1641,7 @@ otError MleRouter::HandleParentRequest(const Message &aMessage, const Ip6::Messa
         child->ResetLinkFailures();
         child->SetState(Neighbor::kStateParentRequest);
         child->SetDataRequestPending(false);
-        child->SetBackboneLink(aMessage.IsBackboneLink());
+        child->SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
         if (Tlv::GetTlv(aMessage, Tlv::kTimeRequest, sizeof(timeRequest), timeRequest) == OT_ERROR_NONE)
         {
@@ -2168,7 +2168,7 @@ otError MleRouter::HandleChildIdRequest(const Message &         aMessage,
     child->SetDeviceMode(mode.GetMode());
     child->GetLinkInfo().AddRss(Get<Mac::Mac>().GetNoiseFloor(), linkInfo->mRss);
     child->SetTimeout(timeout.GetTimeout());
-    child->SetBackboneLink(aMessage.IsBackboneLink());
+    child->SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
 
     if (mode.GetMode() & ModeTlv::kModeFullNetworkData)
     {
@@ -3178,7 +3178,7 @@ void MleRouter::RemoveNeighbor(Neighbor &aNeighbor)
     aNeighbor.SetState(Neighbor::kStateInvalid);
 }
 
-bool MleRouter::IsBackboneLink(const Mac::Address &aAddress)
+const otRadioInfo &MleRouter::GetRadioInfo(const Mac::Address &aAddress)
 {
     Neighbor *neighbor = NULL;
     assert(!aAddress.IsBroadcast());
@@ -3226,7 +3226,7 @@ bool MleRouter::IsBackboneLink(const Mac::Address &aAddress)
 
 exit:
     assert(neighbor != NULL);
-    return neighbor != NULL && neighbor->IsBackboneLink();
+    return neighbor->GetRadioInfo();
 }
 
 Neighbor *MleRouter::GetNeighbor(uint16_t aAddress)

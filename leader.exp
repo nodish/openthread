@@ -15,4 +15,4 @@ expect {
     timeout { exit 1 }
 }
 expect "Done"
-interact
+wait

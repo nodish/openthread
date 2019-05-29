@@ -590,12 +590,6 @@ public:
      */
     bool GetSecurityEnabled(void) const { return (GetPsdu()[0] & kFcfSecurityEnabled) != 0; }
 
-    bool IsRadioLink(void) const { return mRadioLink; }
-    bool IsBackboneLink(void) const { return mBackboneLink; }
-
-    void SetBackboneLink(bool aBackboneLink) { mBackboneLink = aBackboneLink; }
-    void SetRadioLink(bool aRadioLink) { mRadioLink = aRadioLink; }
-
     /**
      * This method indicates whether or not the Frame Pending bit is set.
      *

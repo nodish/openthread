@@ -502,15 +502,11 @@ otError MeshForwarder::HandleFrameRequest(Mac::Frame &aFrame)
 
     if (!mMacDest.IsBroadcast())
     {
-        bool isBackboneLink = Get<Mle::MleRouter>().IsBackboneLink(mMacDest);
-
-        aFrame.SetBackboneLink(isBackboneLink);
-        aFrame.SetRadioLink(!isBackboneLink);
+        aFrame.mRadioInfo = Get<Mle::MleRouter>().GetRadioInfo(mMacDest);
     }
     else
     {
-        aFrame.SetBackboneLink(true);
-        aFrame.SetRadioLink(true);
+        memset(&aFrame.mRadioInfo, 0xff, sizeof(aFrame.mRadioInfo));
     }
 
     if (mSendMessage == NULL)
@@ -1182,7 +1178,7 @@ void MeshForwarder::HandleReceivedFrame(Mac::Frame &aFrame)
     linkInfo.mRss          = aFrame.GetRssi();
     linkInfo.mLqi          = aFrame.GetLqi();
     linkInfo.mLinkSecurity = aFrame.GetSecurityEnabled();
-    linkInfo.mBackboneLink = aFrame.IsBackboneLink();
+    linkInfo.mRadioInfo    = aFrame.mRadioInfo;
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
     linkInfo.mNetworkTimeOffset = aFrame.GetNetworkTimeOffset();
     linkInfo.mTimeSyncSeq       = aFrame.GetTimeSyncSeq();
@@ -1472,7 +1468,6 @@ void MeshForwarder::HandleLowpanHC(uint8_t *               aFrame,
     SuccessOrExit(error = GetFramePriority(aFrame, aFrameLength, aMacSource, aMacDest, priority));
     VerifyOrExit((message = Get<MessagePool>().New(Message::kTypeIp6, 0, priority)) != NULL, error = OT_ERROR_NO_BUFS);
     message->SetLinkSecurityEnabled(aLinkInfo.mLinkSecurity);
-    message->SetBackboneLink(aLinkInfo.mBackboneLink);
     message->SetPanId(aLinkInfo.mPanId);
     message->AddRss(aLinkInfo.mRss);
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC

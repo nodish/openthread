@@ -355,22 +355,29 @@ public:
      */
     void SetTimeSyncEnabled(bool aEnabled) { mTimeSyncEnabled = aEnabled; }
 #endif
+
+#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
     /**
-     * This method retrieves if this neighbor is linked through backlink link.
+     * This method sets the radio information of this neighbor.
      *
-     * @returns Whether this neighbor is linked through backbone link.
+     * @param[in]   aRadioInfo  A reference to the radio information of this neighbor.
+     *
      */
-    bool IsBackboneLink(void) const { return mBackboneLink; }
+    void SetRadioInfo(const otRadioInfo &aRadioInfo) { mRadioInfo = aRadioInfo; }
 
     /**
-     * This method sets if this neighbor is linked through backbone link.
+     * This method gets the radio information of this neighbor.
      *
-     * @param[in]   aBackboneLink   Whether the neighbor is linked through backbone link.
+     * @returns the radio information of this neighbor.
      *
      */
-    void SetBackboneLink(bool aBackboneLink) { mBackboneLink = aBackboneLink; }
+    const otRadioInfo &GetRadioInfo(void) const { return mRadioInfo; }
+#endif // OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
 
 private:
+#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+    otRadioInfo mRadioInfo;
+#endif
     Mac::ExtAddress mMacAddr;   ///< The IEEE 802.15.4 Extended Address
     uint32_t        mLastHeard; ///< Time when last heard.
     union
@@ -386,12 +393,11 @@ private:
         } mPending;
     } mValidPending;
 
-    uint32_t mKeySequence;      ///< Current key sequence
-    uint16_t mRloc16;           ///< The RLOC16
-    uint8_t  mState : 3;        ///< The link state
-    uint8_t  mMode : 4;         ///< The MLE device mode
-    bool     mDataRequest : 1;  ///< Indicates whether or not a Data Poll was received
-    bool     mBackboneLink : 1; ///< Indicates whether or not the neighbor is linked through backbone link.
+    uint32_t mKeySequence;     ///< Current key sequence
+    uint16_t mRloc16;          ///< The RLOC16
+    uint8_t  mState : 3;       ///< The link state
+    uint8_t  mMode : 4;        ///< The MLE device mode
+    bool     mDataRequest : 1; ///< Indicates whether or not a Data Poll was received
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
     uint8_t mLinkFailures : 7;    ///< Consecutive link failure count
     bool    mTimeSyncEnabled : 1; ///< Indicates whether or not time sync feature is enabled.

@@ -43,12 +43,12 @@ create_netns()
 
 start_leader()
 {
-    sudo rm -rf tmp && sudo ./leader.exp | tee leader.log
+    sudo rm -rf tmp && BACKBONE_LINK=192.168.66.1 sudo -E ./leader.exp | tee leader.log
 }
 
 start_router()
 {
-    sudo ip netns exec "${CORNER_NETNS}" expect -f router.exp
+    BACKBONE_LINK=192.168.66.2 sudo -E ip netns exec "${CORNER_NETNS}" expect -f router.exp
 }
 
 file_expect()
@@ -74,7 +74,7 @@ main()
             delete_netns
             ;;
         divein-netns)
-            sudo ip netns exec corner su - me
+            sudo ip netns exec corner su - xyk
             ;;
         start-leader)
             start_leader
@@ -84,12 +84,12 @@ main()
             ;;
         *)
             create_netns
+            trap at_exit INT TERM EXIT
             echo waiting for network ready........................................
             sleep 5
             tshark -i veth0 -w current.pcap &
             echo waiting for tshark ready........................................
             sleep 5
-            trap at_exit INT TERM EXIT
             start_leader &
             file_expect '^leader' leader.log
             start_router
