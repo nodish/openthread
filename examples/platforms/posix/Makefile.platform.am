@@ -33,3 +33,7 @@
 LDADD_COMMON                                                          += \
     $(top_builddir)/examples/platforms/posix/libopenthread-posix.a       \
     $(NULL)
+
+LDFLAGS_COMMON                                                        += \
+    -lrt                                                                 \
+    $(NULL)
