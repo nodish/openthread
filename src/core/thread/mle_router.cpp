@@ -665,7 +665,9 @@ otError MleRouter::HandleLinkRequest(const Message &aMessage, const Ip6::Message
     }
 #endif
 
+#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
     neighbor->SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
+#endif
 
     SuccessOrExit(error = SendLinkAccept(aMessageInfo, neighbor, tlvRequest, challenge));
 
@@ -1641,7 +1643,9 @@ otError MleRouter::HandleParentRequest(const Message &aMessage, const Ip6::Messa
         child->ResetLinkFailures();
         child->SetState(Neighbor::kStateParentRequest);
         child->SetDataRequestPending(false);
+#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
         child->SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
+#endif
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
         if (Tlv::GetTlv(aMessage, Tlv::kTimeRequest, sizeof(timeRequest), timeRequest) == OT_ERROR_NONE)
         {
@@ -2168,7 +2172,9 @@ otError MleRouter::HandleChildIdRequest(const Message &         aMessage,
     child->SetDeviceMode(mode.GetMode());
     child->GetLinkInfo().AddRss(Get<Mac::Mac>().GetNoiseFloor(), linkInfo->mRss);
     child->SetTimeout(timeout.GetTimeout());
+#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
     child->SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
+#endif
 
     if (mode.GetMode() & ModeTlv::kModeFullNetworkData)
     {
@@ -3178,6 +3184,7 @@ void MleRouter::RemoveNeighbor(Neighbor &aNeighbor)
     aNeighbor.SetState(Neighbor::kStateInvalid);
 }
 
+#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
 const otRadioInfo &MleRouter::GetRadioInfo(const Mac::Address &aAddress)
 {
     Neighbor *neighbor = NULL;
@@ -3228,6 +3235,7 @@ exit:
     assert(neighbor != NULL);
     return neighbor->GetRadioInfo();
 }
+#endif // OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
 
 Neighbor *MleRouter::GetNeighbor(uint16_t aAddress)
 {

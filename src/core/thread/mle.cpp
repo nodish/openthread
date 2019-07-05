@@ -3351,7 +3351,9 @@ otError Mle::HandleParentResponse(const Message &aMessage, const Ip6::MessageInf
     mChildIdRequest.mChallengeLength = challenge.GetChallengeLength();
     memcpy(mChildIdRequest.mChallenge, challenge.GetChallenge(), mChildIdRequest.mChallengeLength);
 
+#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
     mParentCandidate.SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
+#endif
     mParentCandidate.SetExtAddress(extAddress);
     mParentCandidate.SetRloc16(sourceAddress.GetRloc16());
     mParentCandidate.SetLinkFrameCounter(linkFrameCounter.GetFrameCounter());
