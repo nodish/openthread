@@ -798,6 +798,7 @@ void Mac::PrepareBeaconRequest(Frame &aFrame)
     aFrame.SetDstPanId(kShortAddrBroadcast);
     aFrame.SetDstAddr(kShortAddrBroadcast);
     aFrame.SetCommandId(Frame::kMacCmdBeaconRequest);
+    memset(&aFrame.mRadioInfo, 0xff, sizeof(aFrame.mRadioInfo));
 
     otLogInfoMac("Sending Beacon Request");
 }
