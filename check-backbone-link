@@ -74,7 +74,7 @@ main()
             delete_netns
             ;;
         divein-netns)
-            sudo ip netns exec corner su - xyk
+            sudo ip netns exec corner su - $USER
             ;;
         start-leader)
             start_leader
