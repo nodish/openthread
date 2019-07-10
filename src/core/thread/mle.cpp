@@ -416,6 +416,8 @@ otError Mle::Restore(void)
         mParent.SetRloc16(GetRloc16(GetRouterId(networkInfo.mRloc16)));
         mParent.SetState(Neighbor::kStateRestored);
 
+        memset(&mParent.GetRadioInfo(), 0xff, sizeof(mParent.GetRadioInfo()));
+
 #if OPENTHREAD_CONFIG_INFORM_PREVIOUS_PARENT_ON_REATTACH
         mPreviousParentRloc = mParent.GetRloc16();
 #endif

@@ -3587,6 +3587,7 @@ void MleRouter::RestoreChildren(void)
         child->SetDeviceMode(childInfo.mMode);
         child->SetState(Neighbor::kStateRestored);
         child->SetLastHeard(TimerMilli::GetNow());
+        memset(&child->GetRadioInfo(), 0xff, sizeof(child->GetRadioInfo()));
         Get<SourceMatchController>().SetSrcMatchAsShort(*child, true);
         numChildren++;
     }

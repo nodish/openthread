@@ -371,7 +371,7 @@ public:
      * @returns the radio information of this neighbor.
      *
      */
-    const otRadioInfo &GetRadioInfo(void) const { return mRadioInfo; }
+    otRadioInfo &GetRadioInfo(void) { return mRadioInfo; }
 #endif // OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
 
 private:

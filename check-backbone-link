@@ -82,7 +82,7 @@ main()
         start-router)
             start_router
             ;;
-        *)
+        '')
             create_netns
             trap at_exit INT TERM EXIT
             echo waiting for network ready........................................
@@ -93,6 +93,9 @@ main()
             start_leader &
             file_expect '^leader' leader.log
             start_router
+            ;;
+        *)
+            >&2 echo wrong argument
             ;;
     esac
 }
