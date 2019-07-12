@@ -433,6 +433,11 @@ static void backboneLinkInit(void)
         exit(EXIT_FAILURE);
     }
 
+    value = 6;
+    {
+        setsockopt(sBackboneFd, SOL_SOCKET, SO_PRIORITY, &value, sizeof(value));
+    }
+
     memset(&sockaddr, 0, sizeof(sockaddr));
     sockaddr.sin_family = AF_INET;
     sockaddr.sin_port   = htons(OT_BACKBONE_LINK_PORT);
