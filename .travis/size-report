@@ -1,0 +1,150 @@
+#!/bin/bash
+#
+#  Copyright (c) 2019, The OpenThread Authors.
+#  All rights reserved.
+#
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions are met:
+#  1. Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#  2. Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#  3. Neither the name of the copyright holder nor the #     names of its contributors may be used to endorse or promote products
+#     derived from this software without specific prior written permission.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+#  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+#  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+#  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+#  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+#  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+#  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
+#
+
+set -e
+set -x
+
+readonly SIZE_REPORT_FILE=/tmp/size_report
+
+size_report_init()
+{
+    [[ "${TRAVIS_PULL_REQUEST}" != false ]]
+
+    TRAVIS_BRANCH_SHA=$(git -C ${TRAVIS_BUILD_DIR} rev-parse ${TRAVIS_BRANCH})
+
+    cat > "${SIZE_REPORT_FILE}" <<EOF
+# Size Report of **$1**
+> Merging [#${TRAVIS_PULL_REQUEST}](https://github.com/${TRAVIS_PULL_REQUEST_SLUG}/commit/${TRAVIS_PULL_REQUEST_SHA}) into [${TRAVIS_BRANCH}](https://github.com/${TRAVIS_REPO_SLUG}/commit/${TRAVIS_BRANCH_SHA}).
+
+|  name  |  branch  |  text  | data  | bss  | total |
+| :----: | :------: | -----: | ----: | ---: | ----: |
+EOF
+}
+
+size_report_append()
+{
+    [[ "${TRAVIS_PULL_REQUEST}" != false ]]
+
+    name="$(basename $1)"
+
+    [[ "${name}" = "$(basename $2)" ]] || return
+
+    old=($(size "$1" | tail -n1 | awk '{print $1,$2,$3,$4}'))
+    new=($(size "$2" | tail -n1 | awk '{print $1,$2,$3,$4}'))
+    cat >> "${SIZE_REPORT_FILE}" <<EOF
+| ${name} | ${TRAVIS_BRANCH} | ${old[0]} | ${old[1]} | ${old[2]} | ${old[3]} |
+|  | #${TRAVIS_PULL_REQUEST} | ${new[0]} | ${new[1]} | ${new[2]} | ${new[3]} |
+|  | +/- | $((${new[0]} - ${old[0]})) | $((${new[1]} - ${old[1]})) | $((${new[2]} - ${old[2]})) | $((${new[3]} - ${old[3]})) |
+EOF
+}
+
+size_report_post()
+{
+    [[ "${TRAVIS_PULL_REQUEST}" != false ]] || return 0
+
+    curl -H "Authorization: token ${GITHUB_TOKEN}" -X POST \
+        -d "{\"body\": \"$(sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g' ${SIZE_REPORT_FILE})\"}" \
+        "https://api.github.com/repos/${TRAVIS_REPO_SLUG}/issues/${TRAVIS_PULL_REQUEST}/comments"
+}
+
+
+size_report_posix()
+{
+    [ ${TRAVIS_PULL_REQUEST} != false ] || return 0
+
+    mkdir ../output
+
+    # POSIX simulation
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    make -f examples/Makefile-posix TargetTuple=posix-sim || die
+    mv output/posix-sim ../output/posix-sim-b
+
+    # POSIX app
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    make -f src/posix/Makefile-posix TargetTuple=posix-app PLATFORM_NETIF=1 PLATFORM_UDP=1 UDP_FORWARD=0 || die
+    mv output/posix/posix-app ../output/posix-app-b
+
+    git checkout ${TRAVIS_BRANCH}
+    git submodule update --init
+
+    # POSIX simulation
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    make -f examples/Makefile-posix TargetTuple=posix-sim || die
+    mv output/posix-sim ../output/posix-sim-a
+
+    # POSIX app
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    make -f src/posix/Makefile-posix TargetTuple=posix-app PLATFORM_NETIF=1 PLATFORM_UDP=1 UDP_FORWARD=0 || die
+    mv output/posix/posix-app ../output/posix-app-a
+
+    size_report_init POSIX
+
+    size_report_append ../output/posix-sim-a/bin/ot-cli-ftd ../output/posix-sim-b/bin/ot-cli-ftd
+    size_report_append ../output/posix-sim-a/bin/ot-cli-mtd ../output/posix-sim-b/bin/ot-cli-mtd
+    size_report_append ../output/posix-sim-a/bin/ot-ncp-ftd ../output/posix-sim-b/bin/ot-ncp-ftd
+    size_report_append ../output/posix-sim-a/bin/ot-ncp-mtd ../output/posix-sim-b/bin/ot-ncp-mtd
+    size_report_append ../output/posix-sim-a/bin/ot-rcp ../output/posix-sim-b/bin/ot-rcp
+
+    size_report_append ../output/posix-app-a/bin/ot-cli ../output/posix-app-b/bin/ot-cli
+    size_report_append ../output/posix-app-a/bin/ot-ncp ../output/posix-app-b/bin/ot-ncp
+
+    size_report_post
+}
+
+main()
+{
+    case $1 in
+        init)
+            shift
+            size_report_init "$@"
+            ;;
+
+        append)
+            shift
+            size_report_append "$@"
+            ;;
+
+        post)
+            size_report_post
+            ;;
+
+        posix)
+            size_report_posix
+            ;;
+    esac
+}
+
+main "$@"
