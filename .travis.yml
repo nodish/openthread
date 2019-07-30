@@ -187,7 +187,7 @@ jobs:
       env: BUILD_TARGET="size-report" VERBOSE=1
       os: linux
       compiler: gcc
-      script: .travis/size-report posix
+      script: .travis/script.sh VERBOSE=1
 stages:
   - test
   - name: report

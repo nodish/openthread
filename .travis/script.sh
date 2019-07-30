@@ -472,6 +472,59 @@ build_samr21() {
     ./tests/toranj/start.sh || die
 }
 
+[ $BUILD_TARGET != size-report ] || {
+    [ ${TRAVIS_PULL_REQUEST} != false ] || exit 1
+
+    mkdir ../output
+
+    # POSIX simulation
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    make -f examples/Makefile-posix TargetTuple=posix-sim || die
+    mv output/posix-sim ../output/posix-sim-b
+
+    # POSIX app
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    make -f src/posix/Makefile-posix TargetTuple=posix-app PLATFORM_NETIF=1 PLATFORM_UDP=1 UDP_FORWARD=0 || die
+    mv output/posix/posix-app ../output/posix-app-b
+
+    git checkout ${TRAVIS_BRANCH}
+    git submodule update --init
+
+    # POSIX simulation
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    make -f examples/Makefile-posix TargetTuple=posix-sim || die
+    mv output/posix-sim ../output/posix-sim-a
+
+    # POSIX app
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    make -f src/posix/Makefile-posix TargetTuple=posix-app PLATFORM_NETIF=1 PLATFORM_UDP=1 UDP_FORWARD=0 || die
+    mv output/posix/posix-app ../output/posix-app-a
+
+    curl -s "${SIZE_REPORT_URL}/bash" > size-report
+    chmod a+x size-report
+
+    ./size-report init POSIX
+
+    ./size-report append ../output/posix-sim-a/bin/ot-cli-ftd ../output/posix-sim-b/bin/ot-cli-ftd
+    ./size-report append ../output/posix-sim-a/bin/ot-cli-mtd ../output/posix-sim-b/bin/ot-cli-mtd
+    ./size-report append ../output/posix-sim-a/bin/ot-ncp-ftd ../output/posix-sim-b/bin/ot-ncp-ftd
+    ./size-report append ../output/posix-sim-a/bin/ot-ncp-mtd ../output/posix-sim-b/bin/ot-ncp-mtd
+    ./size-report append ../output/posix-sim-a/bin/ot-rcp ../output/posix-sim-b/bin/ot-rcp
+
+    ./size-report append ../output/posix-app-a/bin/ot-cli ../output/posix-app-b/bin/ot-cli
+    ./size-report append ../output/posix-app-a/bin/ot-ncp ../output/posix-app-b/bin/ot-ncp
+
+    ./size-report post
+}
+
 [ $BUILD_TARGET != osx ] || {
     git checkout -- . || die
     git clean -xfd || die
