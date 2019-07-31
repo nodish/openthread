@@ -189,6 +189,6 @@ jobs:
       compiler: gcc
       script: .travis/script.sh VERBOSE=1
 stages:
-  - test
   - name: report
     if: type = pull_request
+  - test
