@@ -115,7 +115,7 @@ cd /tmp || die
         arm-none-eabi-gcc --version || die
     }
 
-    [ $BUILD_TARGET != arm-gcc-8 ] || {
+    [ $BUILD_TARGET != arm-gcc-8 -a $BUILD_TARGET != size-report ] || {
         wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2 || die
         tar xjf gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2 || die
         export PATH=/tmp/gcc-arm-none-eabi-8-2018-q4-major/bin:$PATH || die

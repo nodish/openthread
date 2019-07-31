@@ -473,54 +473,41 @@ build_samr21() {
 }
 
 [ $BUILD_TARGET != size-report ] || {
-    [ ${TRAVIS_PULL_REQUEST} != false ] || exit 1
+    [ ${TRAVIS_PULL_REQUEST} != false ] || die
+
+    export PATH=/tmp/gcc-arm-none-eabi-8-2018-q4-major/bin:$PATH || die
 
     mkdir ../output
 
-    # POSIX simulation
-    git checkout -- . || die
-    git clean -xfd || die
-    ./bootstrap || die
-    make -f examples/Makefile-posix TargetTuple=posix-sim || die
-    mv output/posix-sim ../output/posix-sim-b
+    # pull request
+    OPENTHREAD_FLAGS="BORDER_AGENT=1 BORDER_ROUTER=1 CHANNEL_MANAGER=1 CHANNEL_MONITOR=1 CHILD_SUPERVISION=1 COAP=1 COAPS=1 COMMISSIONER=1 DHCP6_CLIENT=1 DHCP6_SERVER=1 DIAGNOSTIC=1 DISABLE_DOC=1 DNS_CLIENT=1 ECDSA=1 FULL_LOGS=1 JAM_DETECTION=1 JOINER=1 LINK_RAW=1 MAC_FILTER=1 MTD_NETDIAG=1 SERVICE=1 SLAAC=1 SNTP_CLIENT=1 TIME_SYNC=1 UDP_FORWARD=1"
 
-    # POSIX app
     git checkout -- . || die
     git clean -xfd || die
     ./bootstrap || die
-    make -f src/posix/Makefile-posix TargetTuple=posix-app PLATFORM_NETIF=1 PLATFORM_UDP=1 UDP_FORWARD=0 || die
-    mv output/posix/posix-app ../output/posix-app-b
+    make -f examples/Makefile-nrf52840 ${OPENTHREAD_FLAGS} || die
+    mv output/nrf52840 ../output/nrf52840-b
 
     git checkout ${TRAVIS_BRANCH}
     git submodule update --init
 
-    # POSIX simulation
+    # base branch
     git checkout -- . || die
     git clean -xfd || die
     ./bootstrap || die
-    make -f examples/Makefile-posix TargetTuple=posix-sim || die
-    mv output/posix-sim ../output/posix-sim-a
-
-    # POSIX app
-    git checkout -- . || die
-    git clean -xfd || die
-    ./bootstrap || die
-    make -f src/posix/Makefile-posix TargetTuple=posix-app PLATFORM_NETIF=1 PLATFORM_UDP=1 UDP_FORWARD=0 || die
-    mv output/posix/posix-app ../output/posix-app-a
+    make -f examples/Makefile-nrf52840 ${OPENTHREAD_FLAGS} || die
+    mv output/nrf52840 ../output/nrf52840-a
 
     curl -s "${SIZE_REPORT_URL}/bash" > size-report
     chmod a+x size-report
 
-    ./size-report init POSIX
+    ./size-report init OpenThread
 
-    ./size-report append ../output/posix-sim-a/bin/ot-cli-ftd ../output/posix-sim-b/bin/ot-cli-ftd
-    ./size-report append ../output/posix-sim-a/bin/ot-cli-mtd ../output/posix-sim-b/bin/ot-cli-mtd
-    ./size-report append ../output/posix-sim-a/bin/ot-ncp-ftd ../output/posix-sim-b/bin/ot-ncp-ftd
-    ./size-report append ../output/posix-sim-a/bin/ot-ncp-mtd ../output/posix-sim-b/bin/ot-ncp-mtd
-    ./size-report append ../output/posix-sim-a/bin/ot-rcp ../output/posix-sim-b/bin/ot-rcp
-
-    ./size-report append ../output/posix-app-a/bin/ot-cli ../output/posix-app-b/bin/ot-cli
-    ./size-report append ../output/posix-app-a/bin/ot-ncp ../output/posix-app-b/bin/ot-ncp
+    ./size-report size ../output/nrf52840-a/bin/ot-cli-ftd ../output/nrf52840-b/bin/ot-cli-ftd
+    ./size-report size ../output/nrf52840-a/bin/ot-cli-mtd ../output/nrf52840-b/bin/ot-cli-mtd
+    ./size-report size ../output/nrf52840-a/bin/ot-ncp-ftd ../output/nrf52840-b/bin/ot-ncp-ftd
+    ./size-report size ../output/nrf52840-a/bin/ot-ncp-mtd ../output/nrf52840-b/bin/ot-ncp-mtd
+    ./size-report size ../output/nrf52840-a/bin/ot-rcp     ../output/nrf52840-b/bin/ot-rcp
 
     ./size-report post
 }
