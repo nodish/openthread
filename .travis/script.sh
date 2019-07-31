@@ -475,7 +475,7 @@ build_samr21() {
 [ $BUILD_TARGET != size-report ] || {
     [ ${TRAVIS_PULL_REQUEST} != false ] || die
 
-    export PATH=/tmp/gcc-arm-none-eabi-8-2018-q4-major/bin:$PATH || die
+    export PATH=/tmp/gcc-arm-none-eabi-7-2018-q2-update/bin:$PATH || die
 
     mkdir ../output
 
