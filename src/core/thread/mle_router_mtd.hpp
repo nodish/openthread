@@ -94,7 +94,7 @@ public:
     Neighbor *GetNeighbor(const Mac::Address &aAddress) { return Mle::GetNeighbor(aAddress); }
     Neighbor *GetNeighbor(const Ip6::Address &aAddress) { return Mle::GetNeighbor(aAddress); }
 
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
     /**
      * This method gets the radio information of the neighbor of address @p aAddress.
      *

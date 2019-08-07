@@ -63,7 +63,7 @@ TIME_SYNC           ?= 0
 UDP_FORWARD         ?= 0
 
 ifeq ($(BBLINK),1)
-COMMONCFLAGS                   += -DOPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+COMMONCFLAGS                   += -DOPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
 endif
 
 ifeq ($(BIG_ENDIAN),1)
