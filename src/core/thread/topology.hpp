@@ -342,7 +342,7 @@ public:
     void SetTimeSyncEnabled(bool aEnabled) { mTimeSyncEnabled = aEnabled; }
 #endif
 
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
     /**
      * This method sets the radio information of this neighbor.
      *
@@ -358,10 +358,10 @@ public:
      *
      */
     otRadioInfo &GetRadioInfo(void) { return mRadioInfo; }
-#endif // OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#endif // OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
 
 private:
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
     otRadioInfo mRadioInfo;
 #endif
     Mac::ExtAddress mMacAddr;   ///< The IEEE 802.15.4 Extended Address

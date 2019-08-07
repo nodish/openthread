@@ -102,7 +102,7 @@ enum
 extern int      sSockFd;
 extern uint16_t sPortOffset;
 #else
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
 static int      sBackboneFd = -1;
 #endif
 static int      sTxFd       = -1;
@@ -466,7 +466,7 @@ static void initFds(void)
     // Rx fd is successfully initialized.
     sRxFd = fd;
 
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
     // Disable backbone link type if BACKBONE_LINK is not set.
     otEXPECT(getenv("BACKBONE_LINK") != NULL);
 
@@ -512,11 +512,11 @@ static void initFds(void)
 
     // Backbone fd is successfully initialized.
     sBackboneFd = fd;
-#endif // OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#endif // OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
 
 exit:
     if (
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
         (getenv("BACKBONE_LINK") != NULL && sBackboneFd == -1) ||
 #endif
         sRxFd == -1 || sTxFd == -1)
@@ -778,7 +778,7 @@ static void txInfoFromRadioInfo(const otRadioInfo *aRadioInfo, bool *aLink802154
     }
 }
 
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
 static void backboneTransmit(struct RadioMessage *msg, struct otRadioFrame *pkt, bool multicast)
 {
     struct sockaddr_in sockaddr;
@@ -808,7 +808,7 @@ static void backboneTransmit(struct RadioMessage *msg, struct otRadioFrame *pkt,
         exit(EXIT_FAILURE);
     }
 }
-#endif // OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#endif // OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
 
 void radioSendMessage(otInstance *aInstance)
 {
@@ -851,7 +851,7 @@ void radioSendMessage(otInstance *aInstance)
     otPlatRadioTxStarted(aInstance, &sTransmitFrame);
     radioComputeCrc(&sTransmitMessage, sTransmitFrame.mLength);
 
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
     if (sBackboneFd == -1)
     {
         // skip backbone link
@@ -924,7 +924,7 @@ void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMax
             *aMaxFd = sRxFd;
         }
 
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
         if (sBackboneFd != -1)
         {
             FD_SET(sBackboneFd, aReadFdSet);
@@ -946,7 +946,7 @@ void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMax
             *aMaxFd = sTxFd;
         }
 
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
         if (sBackboneFd != -1)
         {
             FD_SET(sBackboneFd, aWriteFdSet);
@@ -1004,7 +1004,7 @@ void platformRadioProcess(otInstance *aInstance, const fd_set *aReadFdSet, const
         }
     }
 
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
     if (sBackboneFd != -1 && FD_ISSET(sBackboneFd, aReadFdSet))
     {
         ssize_t            rval;
@@ -1031,14 +1031,14 @@ void platformRadioProcess(otInstance *aInstance, const fd_set *aReadFdSet, const
             radioReceive(aInstance);
         }
     }
-#endif // OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#endif // OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
 #endif // OPENTHREAD_POSIX_VIRTUAL_TIME == 0
 
     // For simplicity, send message after both link types are writable
     if (
 #if OPENTHREAD_POSIX_VIRTUAL_TIME == 0
         FD_ISSET(sTxFd, aWriteFdSet) &&
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
         (sBackboneFd == -1 || FD_ISSET(sBackboneFd, aWriteFdSet)) &&
 #endif
 #endif
@@ -1103,7 +1103,7 @@ void radioSendAck(void)
 
     txInfoFromRadioInfo(&sReceiveFrame.mRadioInfo, &from802154, &fromBackbone, NULL);
 
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
     if (fromBackbone)
     {
         backboneTransmit(&sAckMessage, &sAckFrame, false);
