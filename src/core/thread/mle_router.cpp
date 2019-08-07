@@ -670,7 +670,7 @@ otError MleRouter::HandleLinkRequest(const Message &aMessage, const Ip6::Message
     }
 #endif
 
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
     neighbor->SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
 #endif
 
@@ -1647,7 +1647,7 @@ otError MleRouter::HandleParentRequest(const Message &aMessage, const Ip6::Messa
         child->GetLinkInfo().AddRss(Get<Mac::Mac>().GetNoiseFloor(), linkInfo->mRss);
         child->ResetLinkFailures();
         child->SetState(Neighbor::kStateParentRequest);
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
         child->SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
 #endif
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
@@ -2176,7 +2176,7 @@ otError MleRouter::HandleChildIdRequest(const Message &         aMessage,
     child->SetDeviceMode(mode.GetMode());
     child->GetLinkInfo().AddRss(Get<Mac::Mac>().GetNoiseFloor(), linkInfo->mRss);
     child->SetTimeout(timeout.GetTimeout());
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
     child->SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
 #endif
 
@@ -3189,7 +3189,7 @@ void MleRouter::RemoveNeighbor(Neighbor &aNeighbor)
     aNeighbor.SetState(Neighbor::kStateInvalid);
 }
 
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
 const otRadioInfo &MleRouter::GetRadioInfo(const Mac::Address &aAddress)
 {
     Neighbor *neighbor = NULL;
@@ -3240,7 +3240,7 @@ exit:
     assert(neighbor != NULL);
     return neighbor->GetRadioInfo();
 }
-#endif // OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#endif // OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
 
 Neighbor *MleRouter::GetNeighbor(uint16_t aAddress)
 {
@@ -3592,7 +3592,7 @@ void MleRouter::RestoreChildren(void)
         child->SetDeviceMode(DeviceMode(childInfo.mMode));
         child->SetState(Neighbor::kStateRestored);
         child->SetLastHeard(TimerMilli::GetNow());
-#if OPENTHREAD_ENABLE_BACKBONE_LINK_TYPE
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
         memset(&child->GetRadioInfo(), 0xff, sizeof(child->GetRadioInfo()));
 #endif
         Get<IndirectSender>().SetChildUseShortAddress(*child, true);
