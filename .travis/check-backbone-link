@@ -27,18 +27,18 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-set -e
+set -e -x -o pipefail
 
 readonly LEADER_OUTPUT=/tmp/ot-leader.log
-readonly ROUTER_OUTPUT=/tmp/ot-router.log
 readonly CORNER_NETNS=corner
-readonly OT_CLI="output/${SYSTEM_TRIPLET}/bin/ot-cli-ftd"
 
-at_exit() {
+at_exit()
+{
     EXIT_CODE=$?
 
-    killall ot-cli-ftd || true
-    killall tshark || true
+    sudo killall ot-cli-ftd || true
+    sudo killall ot-cli || true
+    sudo kill ${TSHARK_PID} || true
     delete_netns || true
 
     return $EXIT_CODE
@@ -71,8 +71,8 @@ create_netns()
 start_leader()
 {
     sudo rm -rf tmp
-    BACKBONE_LINK=192.168.66.1 sudo -E expect <<EOF | tee leader.log
-spawn ./output/${SYSTEM_TRIPLET}/bin/ot-cli-ftd 1
+    expect <<EOF | tee "${LEADER_OUTPUT}"
+spawn ${OT_CLI} -B 192.168.66.1 ${OT_RCP} 1
 send "panid 0xface\r\n"
 expect "Done"
 send "ifconfig up\r\n"
@@ -94,8 +94,8 @@ EOF
 
 start_child()
 {
-    BACKBONE_LINK=192.168.66.2 sudo -E ip netns exec "${CORNER_NETNS}" expect <<EOF
-spawn ./output/${SYSTEM_TRIPLET}/bin/ot-cli-ftd 2
+    BACKBONE_LINK=192.168.66.2 sudo -E ip netns exec "${CORNER_NETNS}" sudo -E -u ${USER} expect <<EOF
+spawn ${OT_CLI_FTD} 2
 send "mode rsn\r\n"
 expect "Done"
 send "panid 0xface\r\n"
@@ -131,6 +131,35 @@ file_expect()
     return 1
 }
 
+setup()
+{
+    sudo apt-get install expect
+    ./bootstrap
+    NODE_MODE=transceiver BBLINK=1 VIRTUAL_TIME=0 ./script/test build
+}
+
+check()
+{
+    readonly OT_CLI_FTD="$(ls output/*/bin/ot-cli-ftd)"
+    readonly OT_RCP="$(ls output/*/bin/ot-rcp)"
+    readonly OT_CLI="$(ls output/posix/*/bin/ot-cli)"
+
+    create_netns
+    trap at_exit INT TERM EXIT
+    echo 'Waiting 5s for network ready'
+    sleep 5
+
+    if which tshark; then
+        tshark -i veth0 -w current.pcap & TSHARK_PID=$!
+        echo 'Waiting 5s for tshark ready'
+        sleep 5
+    fi
+
+    start_leader &
+    file_expect '^leader' "${LEADER_OUTPUT}"
+    start_child
+}
+
 main()
 {
     case "$1" in
@@ -143,21 +172,15 @@ main()
         divein-netns)
             sudo ip netns exec corner su - $USER
             ;;
+        setup)
+            setup
+            ;;
+        check)
+            check
+            ;;
         '')
-            create_netns
-            trap at_exit INT TERM EXIT
-            echo 'Waiting 5s for network ready'
-            sleep 5
-
-            if which tshark; then
-                tshark -i veth0 -w bblink.pcap &
-                echo 'Waiting 5s for tshark ready'
-                sleep 5
-            fi
-
-            start_leader &
-            file_expect '^leader' leader.log
-            start_child
+            setup
+            check
             ;;
     esac
 }

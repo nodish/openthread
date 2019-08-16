@@ -94,16 +94,15 @@ const char *otExitCodeToString(uint8_t aExitCode);
  * @param[in]   aExitCode   The exit code.
  *
  */
-#define VerifyOrDie(aCondition, aExitCode)                                                                           \
-    do                                                                                                               \
-    {                                                                                                                \
-        if (!(aCondition))                                                                                           \
-        {                                                                                                            \
-            fprintf(stderr, "exit(%d): %s line %d, %s\r\n", aExitCode, __func__, __LINE__,                           \
-                    otExitCodeToString(aExitCode));                                                                  \
-            otLogCritPlat("exit(%d): %s line %d, %s", aExitCode, __func__, __LINE__, otExitCodeToString(aExitCode)); \
-            exit(aExitCode);                                                                                         \
-        }                                                                                                            \
+#define VerifyOrDie(aCondition, aExitCode)                                                                            \
+    do                                                                                                                \
+    {                                                                                                                 \
+        if (!(aCondition))                                                                                            \
+        {                                                                                                             \
+            fprintf(stderr, "exit(%d): %s:%d, %s\r\n", aExitCode, __FILE__, __LINE__, otExitCodeToString(aExitCode)); \
+            otLogCritPlat("exit(%d): %s:%d, %s", aExitCode, __FILE__, __LINE__, otExitCodeToString(aExitCode));       \
+            exit(aExitCode);                                                                                          \
+        }                                                                                                             \
     } while (false)
 
 /**
@@ -210,9 +209,10 @@ void platformAlarmAdvanceNow(uint64_t aDelta);
  * @param[in]  aRadioFile       A pointer to the radio file.
  * @param[in]  aRadioConfig     A pointer to the radio config.
  * @param[in]  aReset           Whether to reset RCP when initializing.
+ * @param[in]  aBackboneLink    A pointer to the backbone link descriptor.
  *
  */
-void platformRadioInit(const char *aRadioFile, const char *aRadioConfig, bool aReset);
+void platformRadioInit(const char *aRadioFile, const char *aRadioConfig, bool aReset, const char *aBackboneLink);
 
 /**
  * This function shuts down the radio service used by OpenThread.
