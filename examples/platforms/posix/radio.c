@@ -965,12 +965,22 @@ void platformRadioDeinit(void)
     if (sRxFd != -1)
     {
         close(sRxFd);
+        sRxFd = -1;
     }
 
     if (sTxFd != -1)
     {
         close(sTxFd);
+        sTxFd = -1;
     }
+
+#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+    if (sBackboneFd != -1)
+    {
+        close(sBackboneFd);
+        sBackboneFd = -1;
+    }
+#endif
 }
 #endif // OPENTHREAD_POSIX_VIRTUAL_TIME
 

@@ -44,6 +44,7 @@ DHCP6_CLIENT        ?= 0
 DHCP6_SERVER        ?= 0
 DIAGNOSTIC          ?= 0
 DISABLE_DOC         ?= 0
+DYNAMIC_LOG_LEVEL   ?= 0
 DNS_CLIENT          ?= 0
 ECDSA               ?= 0
 EXTERNAL_HEAP       ?= 0
@@ -68,7 +69,7 @@ TIME_SYNC           ?= 0
 UDP_FORWARD         ?= 0
 
 ifeq ($(BBLINK),1)
-COMMONCFLAGS                   += -DOPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+COMMONCFLAGS                   += -DOPENTHREAD_BACKBONE_LINK_TYPE_ENABLE=1
 endif
 
 ifeq ($(BIG_ENDIAN),1)
@@ -133,6 +134,10 @@ endif
 
 ifeq ($(DNS_CLIENT),1)
 COMMONCFLAGS                   += -DOPENTHREAD_CONFIG_DNS_CLIENT_ENABLE=1
+endif
+
+ifeq ($(DYNAMIC_LOG_LEVEL),1)
+COMMONCFLAGS                   += -DOPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL=1
 endif
 
 ifeq ($(ECDSA),1)
