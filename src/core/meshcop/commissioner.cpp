@@ -34,7 +34,6 @@
 #include "commissioner.hpp"
 
 #include <stdio.h>
-#include "utils/wrap_string.h"
 
 #include "coap/coap_message.hpp"
 #include "common/encoding.hpp"
@@ -270,7 +269,7 @@ otError Commissioner::AddJoiner(const Mac::ExtAddress *aEui64, const char *aPSKd
             mJoiners[i].mAny = true;
         }
 
-        (void)strlcpy(mJoiners[i].mPsk, aPSKd, sizeof(mJoiners[i].mPsk));
+        strcpy(mJoiners[i].mPsk, aPSKd);
         mJoiners[i].mValid          = true;
         mJoiners[i].mExpirationTime = TimerMilli::GetNow() + TimerMilli::SecToMsec(aTimeout);
 
@@ -374,7 +373,7 @@ otError Commissioner::SetProvisioningUrl(const char *aProvisioningUrl)
 
     if (aProvisioningUrl != NULL)
     {
-        size_t len = strnlen(aProvisioningUrl, MeshCoP::ProvisioningUrlTlv::kMaxLength + 1);
+        size_t len = strlen(aProvisioningUrl);
         VerifyOrExit(len <= MeshCoP::ProvisioningUrlTlv::kMaxLength, error = OT_ERROR_INVALID_ARGS);
     }
 

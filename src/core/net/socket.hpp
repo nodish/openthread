@@ -36,6 +36,8 @@
 
 #include "openthread-core-config.h"
 
+#include <string.h>
+
 #include "net/ip6_address.hpp"
 
 namespace ot {

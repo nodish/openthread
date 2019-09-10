@@ -34,7 +34,6 @@
 #include "mac.hpp"
 
 #include <stdio.h>
-#include "utils/wrap_string.h"
 
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
@@ -449,7 +448,9 @@ exit:
 otError Mac::SetNetworkName(const char *aBuffer, uint8_t aLength)
 {
     otError error  = OT_ERROR_NONE;
-    uint8_t newLen = static_cast<uint8_t>(strnlen(aBuffer, aLength));
+    uint8_t newLen = static_cast<uint8_t>(strlen(aBuffer));
+
+    assert(newLen <= aLength);
 
     VerifyOrExit(newLen <= OT_NETWORK_NAME_MAX_SIZE, error = OT_ERROR_INVALID_ARGS);
     VerifyOrExit(newLen != strlen(mNetworkName.m8) || memcmp(mNetworkName.m8, aBuffer, newLen) != 0,

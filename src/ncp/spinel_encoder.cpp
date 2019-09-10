@@ -32,6 +32,8 @@
 
 #include "spinel_encoder.hpp"
 
+#include <string.h>
+
 #include "common/code_utils.hpp"
 
 namespace ot {

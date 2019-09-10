@@ -57,6 +57,5 @@
 #include <stdlib.h>
 
 #include "utils/wrap_stdbool.h"
-#include "utils/wrap_string.h"
 
 #endif // SPINEL_PLATFORM_OPENTHREAD_H_

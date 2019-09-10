@@ -34,7 +34,6 @@
 #include "mac_frame.hpp"
 
 #include <stdio.h>
-#include "utils/wrap_string.h"
 
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
@@ -1134,7 +1133,7 @@ BeaconPayload::InfoString BeaconPayload::ToInfoString(void) const
     const uint8_t *xpanid = GetExtendedPanId();
     otNetworkName  networkname;
 
-    strlcpy(networkname.m8, GetNetworkName(), sizeof(networkname.m8));
+    strcpy(networkname.m8, GetNetworkName());
 
     return InfoString("name:%s, xpanid:%02x%02x%02x%02x%02x%02x%02x%02x, id:%d ver:%d, joinable:%s, native:%s",
                       networkname.m8, xpanid[0], xpanid[1], xpanid[2], xpanid[3], xpanid[4], xpanid[5], xpanid[6],

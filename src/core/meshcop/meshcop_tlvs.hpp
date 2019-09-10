@@ -37,8 +37,6 @@
 
 #include "openthread-core-config.h"
 
-#include "utils/wrap_string.h"
-
 #include <openthread/commissioner.h>
 #include <openthread/dataset.h>
 #include <openthread/platform/radio.h>
@@ -429,7 +427,8 @@ public:
      */
     void SetNetworkName(const char *aNetworkName)
     {
-        size_t length = strnlen(aNetworkName, sizeof(mNetworkName));
+        size_t length = strlen(aNetworkName);
+        assert(length < sizeof(mNetworkName));
         memcpy(mNetworkName, aNetworkName, length);
         SetLength(static_cast<uint8_t>(length));
     }
@@ -859,7 +858,8 @@ public:
      */
     void SetCommissionerId(const char *aCommissionerId)
     {
-        size_t length = strnlen(aCommissionerId, sizeof(mCommissionerId));
+        size_t length = strlen(aCommissionerId);
+        assert(length < sizeof(mCommissionerId));
         memcpy(mCommissionerId, aCommissionerId, length);
         SetLength(static_cast<uint8_t>(length));
     }
@@ -1886,8 +1886,9 @@ public:
      */
     void SetProvisioningUrl(const char *aProvisioningUrl)
     {
-        size_t len = aProvisioningUrl ? strnlen(aProvisioningUrl, kMaxLength) : 0;
+        size_t len = aProvisioningUrl ? strlen(aProvisioningUrl) : 0;
 
+        assert(len < kMaxLength);
         SetLength(static_cast<uint8_t>(len));
 
         if (len > 0)
@@ -1945,7 +1946,9 @@ public:
      */
     void SetVendorName(const char *aVendorName)
     {
-        size_t len = (aVendorName == NULL) ? 0 : strnlen(aVendorName, sizeof(mVendorName));
+        size_t len = (aVendorName == NULL) ? 0 : strlen(aVendorName);
+
+        assert(len < sizeof(mVendorName));
 
         SetLength(static_cast<uint8_t>(len));
 
@@ -2009,7 +2012,9 @@ public:
      */
     void SetVendorModel(const char *aVendorModel)
     {
-        size_t len = (aVendorModel == NULL) ? 0 : strnlen(aVendorModel, sizeof(mVendorModel));
+        size_t len = (aVendorModel == NULL) ? 0 : strlen(aVendorModel);
+
+        assert(len < sizeof(mVendorModel));
 
         SetLength(static_cast<uint8_t>(len));
 
@@ -2073,7 +2078,9 @@ public:
      */
     void SetVendorSwVersion(const char *aVendorSwVersion)
     {
-        size_t len = (aVendorSwVersion == NULL) ? 0 : strnlen(aVendorSwVersion, sizeof(mVendorSwVersion));
+        size_t len = (aVendorSwVersion == NULL) ? 0 : strlen(aVendorSwVersion);
+
+        assert(len < sizeof(mVendorSwVersion));
 
         SetLength(static_cast<uint8_t>(len));
 
@@ -2137,8 +2144,9 @@ public:
      */
     void SetVendorData(const char *aVendorData)
     {
-        size_t len = (aVendorData == NULL) ? 0 : strnlen(aVendorData, sizeof(mVendorData));
+        size_t len = (aVendorData == NULL) ? 0 : strlen(aVendorData);
 
+        assert(len < sizeof(mVendorData));
         SetLength(static_cast<uint8_t>(len));
 
         if (len > 0)

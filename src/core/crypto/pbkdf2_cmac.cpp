@@ -33,10 +33,10 @@
 
 #include "pbkdf2_cmac.h"
 
-#include "common/debug.hpp"
-#include "utils/wrap_string.h"
-
 #include <mbedtls/cmac.h>
+#include <string.h>
+
+#include "common/debug.hpp"
 
 #if OPENTHREAD_CONFIG_COMMISSIONER_ENABLE && OPENTHREAD_FTD
 

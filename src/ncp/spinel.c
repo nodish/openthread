@@ -47,6 +47,7 @@
 
 #include <errno.h>
 #include <limits.h>
+#include <string.h>
 
 #ifndef SPINEL_PLATFORM_HEADER
 /* These are all already included in the spinel platform header
@@ -54,7 +55,6 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #endif // #ifndef SPINEL_PLATFORM_HEADER
 
 // ----------------------------------------------------------------------------
@@ -522,7 +522,7 @@ static spinel_ssize_t spinel_datatype_vunpack_(bool           in_place,
             // Add 1 for zero termination. If not zero terminated,
             // len will then be data_len+1, which we will detect
             // in the next check.
-            len = strnlen((const char *)data_in, data_len) + 1;
+            len = strlen((const char *)data_in) + 1;
 
             // Verify that the string is zero terminated.
             require_action(len <= data_len, bail, (ret = -1, errno = EOVERFLOW));

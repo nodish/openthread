@@ -32,6 +32,8 @@
 
 #include <openthread/config.h>
 
+#include <string.h>
+
 #include "spinel_decoder.hpp"
 
 #include "common/code_utils.hpp"
@@ -298,7 +300,7 @@ otError SpinelDecoder::ReadUtf8(const char *&aUtf8)
     // Ensure there is at least one byte (for null character).
     VerifyOrExit(mIndex + sizeof(uint8_t) <= mEnd, error = OT_ERROR_PARSE);
 
-    len = strnlen(reinterpret_cast<const char *>(&mFrame[mIndex]), mEnd - mIndex);
+    len = strlen(reinterpret_cast<const char *>(&mFrame[mIndex]));
     VerifyOrExit(len < static_cast<uint16_t>(mEnd - mIndex), error = OT_ERROR_PARSE);
 
     aUtf8 = reinterpret_cast<const char *>(&mFrame[mIndex]);

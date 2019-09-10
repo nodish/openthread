@@ -38,12 +38,12 @@
 
 #include <limits.h>
 #include <stdint.h>
-
-#include "utils/wrap_string.h"
+#include <string.h>
 
 #include <openthread/link.h>
 #include <openthread/platform/radio.h>
 
+#include "common/debug.hpp"
 #include "common/encoding.hpp"
 #include "common/string.hpp"
 
@@ -1622,7 +1622,8 @@ public:
      */
     void SetNetworkName(const char *aNetworkName)
     {
-        size_t length = strnlen(aNetworkName, sizeof(mNetworkName));
+        size_t length = strlen(aNetworkName);
+        assert(length <= sizeof(mNetworkName));
         memset(mNetworkName, 0, sizeof(mNetworkName));
         memcpy(mNetworkName, aNetworkName, length);
     }
