@@ -142,7 +142,7 @@ otError CoapBase::SendResponse(Message &aMessage, const Ip6::MessageInfo &aMessa
     // Empty messages are not response
     assert(aMessage.GetCode() != OT_COAP_CODE_EMPTY);
 
-    if (aMessage.GetType() != OT_COAP_TYPE_ACKNOWLEDGMENT && aMessage.GetMessageId() == 0)
+    if (!aMessage.IsMessageIdValid())
     {
         aMessage.SetMessageId(mMessageId++);
     }
@@ -197,7 +197,7 @@ otError CoapBase::SendRequest(Message &               aMessage,
     assert(aMessage.GetType() == OT_COAP_TYPE_CONFIRMABLE || aMessage.GetType() == OT_COAP_TYPE_NON_CONFIRMABLE);
 
     // Set Message Id if it was not already set.
-    if (aMessage.GetMessageId() == 0)
+    if (!aMessage.IsMessageIdValid())
     {
         aMessage.SetMessageId(mMessageId++);
     }
