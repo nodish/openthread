@@ -466,7 +466,8 @@ void Joiner::SendJoinerFinalize(void)
     LogCertMessage("[THCI] direction=send | type=JOIN_FIN.req |", *mFinalizeMessage);
 #endif
 
-    SuccessOrExit(Get<Coap::CoapSecure>().SendMessage(*mFinalizeMessage, Joiner::HandleJoinerFinalizeResponse, this));
+    SuccessOrExit(Get<Coap::CoapSecure>().SendRequest(*mFinalizeMessage, Get<Coap::CoapSecure>().GetPeerAddress(),
+                                                      Joiner::HandleJoinerFinalizeResponse, this));
     mFinalizeMessage = NULL;
 
     otLogInfoMeshCoP("Joiner sent finalize");
@@ -585,7 +586,7 @@ void Joiner::SendJoinerEntrustResponse(const Coap::Message &aRequest, const Ip6:
     message->SetSubType(Message::kSubTypeJoinerEntrust);
 
     memset(&responseInfo.mSockAddr, 0, sizeof(responseInfo.mSockAddr));
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, responseInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendResponse(*message, responseInfo));
 
     SetState(OT_JOINER_STATE_JOINED);
 

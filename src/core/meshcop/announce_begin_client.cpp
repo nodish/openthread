@@ -95,7 +95,7 @@ otError AnnounceBeginClient::SendRequest(uint32_t            aChannelMask,
     messageInfo.SetPeerAddr(aAddress);
     messageInfo.SetPeerPort(kCoapUdpPort);
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo));
 
     otLogInfoMeshCoP("sent announce begin query");
 

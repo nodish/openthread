@@ -175,7 +175,7 @@ void JoinerRouter::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &a
     messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(borderAgentRloc);
     messageInfo.SetPeerPort(kCoapUdpPort);
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendResponse(*message, messageInfo));
 
     otLogInfoMeshCoP("Sent relay rx");
 
@@ -434,7 +434,7 @@ otError JoinerRouter::SendJoinerEntrust(Coap::Message &aMessage, const Ip6::Mess
     Get<Coap::Coap>().AbortTransaction(&JoinerRouter::HandleJoinerEntrustResponse, this);
 
     otLogInfoMeshCoP("Sending JOIN_ENT.ntf");
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(aMessage, aMessageInfo,
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(aMessage, aMessageInfo,
                                                         &JoinerRouter::HandleJoinerEntrustResponse, this));
 
     otLogInfoMeshCoP("Sent joiner entrust length = %d", aMessage.GetLength());

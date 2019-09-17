@@ -134,7 +134,57 @@ exit:
     return message;
 }
 
-otError CoapBase::SendMessage(Message &               aMessage,
+otError CoapBase::SendResponse(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+{
+    otError  error;
+    Message *storedCopy = NULL;
+
+    // Empty messages are not response
+    assert(aMessage.GetCode() != OT_COAP_CODE_EMPTY);
+
+    if (aMessage.GetType() != OT_COAP_TYPE_ACKNOWLEDGMENT && aMessage.GetMessageId() == 0)
+    {
+        aMessage.SetMessageId(mMessageId++);
+    }
+
+    aMessage.Finish();
+
+    switch (aMessage.GetType())
+    {
+    // Piggy-backed response
+    case OT_COAP_TYPE_ACKNOWLEDGMENT:
+        mResponsesQueue.EnqueueResponse(aMessage, aMessageInfo);
+        break;
+
+    // Confirmable separate response
+    case OT_COAP_TYPE_CONFIRMABLE:
+        // Create a copy of entire message and enqueue it.
+        storedCopy = CopyAndEnqueueMessage(aMessage, aMessage.GetLength(),
+                                           CoapMetadata(aMessage.IsConfirmable(), aMessageInfo, NULL, NULL));
+        VerifyOrExit(storedCopy != NULL, error = OT_ERROR_NO_BUFS);
+        break;
+
+    // Non-confirmable separate response
+    case OT_COAP_TYPE_NON_CONFIRMABLE:
+        break;
+
+    case OT_COAP_TYPE_RESET:
+        assert(false);
+        break;
+    }
+
+    SuccessOrExit(error = Send(aMessage, aMessageInfo));
+
+exit:
+    if (error != OT_ERROR_NONE && storedCopy != NULL)
+    {
+        DequeueMessage(*storedCopy);
+    }
+
+    return error;
+}
+
+otError CoapBase::SendRequest(Message &               aMessage,
                               const Ip6::MessageInfo &aMessageInfo,
                               otCoapResponseHandler   aHandler,
                               void *                  aContext)
@@ -144,15 +194,10 @@ otError CoapBase::SendMessage(Message &               aMessage,
     Message *    storedCopy = NULL;
     uint16_t     copyLength = 0;
 
-    if ((aMessage.GetType() == OT_COAP_TYPE_ACKNOWLEDGMENT || aMessage.GetType() == OT_COAP_TYPE_RESET) &&
-        aMessage.GetCode() != OT_COAP_CODE_EMPTY)
-    {
-        mResponsesQueue.EnqueueResponse(aMessage, aMessageInfo);
-    }
+    assert(aMessage.GetType() == OT_COAP_TYPE_CONFIRMABLE || aMessage.GetType() == OT_COAP_TYPE_NON_CONFIRMABLE);
 
     // Set Message Id if it was not already set.
-    if (aMessage.GetMessageId() == 0 &&
-        (aMessage.GetType() == OT_COAP_TYPE_CONFIRMABLE || aMessage.GetType() == OT_COAP_TYPE_NON_CONFIRMABLE))
+    if (aMessage.GetMessageId() == 0)
     {
         aMessage.SetMessageId(mMessageId++);
     }
@@ -172,9 +217,9 @@ otError CoapBase::SendMessage(Message &               aMessage,
 
     if (copyLength > 0)
     {
-        coapMetadata = CoapMetadata(aMessage.IsConfirmable(), aMessageInfo, aHandler, aContext);
-        VerifyOrExit((storedCopy = CopyAndEnqueueMessage(aMessage, copyLength, coapMetadata)) != NULL,
-                     error = OT_ERROR_NO_BUFS);
+        storedCopy = CopyAndEnqueueMessage(aMessage, copyLength,
+                                           CoapMetadata(aMessage.IsConfirmable(), aMessageInfo, aHandler, aContext));
+        VerifyOrExit(storedCopy != NULL, error = OT_ERROR_NO_BUFS);
     }
 
     SuccessOrExit(error = Send(aMessage, aMessageInfo));
@@ -241,7 +286,7 @@ otError CoapBase::SendHeaderResponse(Message::Code aCode, const Message &aReques
 
     SuccessOrExit(error = message->SetToken(aRequest.GetToken(), aRequest.GetTokenLength()));
 
-    SuccessOrExit(error = SendMessage(*message, aMessageInfo));
+    SuccessOrExit(error = SendResponse(*message, aMessageInfo));
 
 exit:
 
@@ -602,7 +647,6 @@ void CoapBase::ProcessReceivedRequest(Message &aMessage, const Ip6::MessageInfo 
     switch (mResponsesQueue.GetMatchedResponseCopy(aMessage, aMessageInfo, &cachedResponse))
     {
     case OT_ERROR_NONE:
-        cachedResponse->Finish();
         error = Send(*cachedResponse, aMessageInfo);
         // fall through
         ;

@@ -149,7 +149,7 @@ otError Leader::SendPetitionResponse(const Coap::Message &   aRequest,
         SuccessOrExit(error = message->AppendTlv(sessionId));
     }
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, aMessageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendResponse(*message, aMessageInfo));
 
     otLogInfoMeshCoP("sent petition response");
 
@@ -233,7 +233,7 @@ otError Leader::SendKeepAliveResponse(const Coap::Message &   aRequest,
     state.SetState(aState);
     SuccessOrExit(error = message->AppendTlv(state));
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, aMessageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendResponse(*message, aMessageInfo));
 
     otLogInfoMeshCoP("sent keep alive response");
 
@@ -260,7 +260,7 @@ otError Leader::SendDatasetChanged(const Ip6::Address &aAddress)
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     messageInfo.SetPeerAddr(aAddress);
     messageInfo.SetPeerPort(kCoapUdpPort);
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo));
 
     otLogInfoMeshCoP("sent dataset changed");
 

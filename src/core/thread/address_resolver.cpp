@@ -373,7 +373,7 @@ otError AddressResolver::SendAddressQuery(const Ip6::Address &aEid)
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     messageInfo.SetPeerPort(kCoapUdpPort);
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo));
 
     otLogInfoArp("Sending address query for %s", aEid.ToString().AsCString());
 
@@ -518,7 +518,7 @@ otError AddressResolver::SendAddressError(const ThreadTargetTlv &      aTarget,
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     messageInfo.SetPeerPort(kCoapUdpPort);
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo));
 
     otLogInfoArp("Sending address error for target %s", aTarget.GetTarget().ToString().AsCString());
 
@@ -702,7 +702,7 @@ void AddressResolver::SendAddressQueryResponse(const ThreadTargetTlv &          
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     messageInfo.SetPeerPort(kCoapUdpPort);
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo));
 
     otLogInfoArp("Sending address notification for target %s", aTargetTlv.GetTarget().ToString().AsCString());
 

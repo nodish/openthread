@@ -238,6 +238,7 @@ bool otCoapSecureIsConnectionActive(otInstance *aInstance);
  *
  * @param[in]  aInstance     A pointer to an OpenThread instance.
  * @param[in]  aMessage      A reference to the message to send.
+ * @param[in]  aMessageInfo  A pointer to the message info associated with @p aMessage.
  * @param[in]  aHandler      A function pointer that shall be called on response reception or time-out.
  * @param[in]  aContext      A pointer to arbitrary context information.
  *
@@ -248,6 +249,7 @@ bool otCoapSecureIsConnectionActive(otInstance *aInstance);
  */
 otError otCoapSecureSendRequest(otInstance *          aInstance,
                                 otMessage *           aMessage,
+                                const otMessageInfo * aMessageInfo,
                                 otCoapResponseHandler aHandler,
                                 void *                aContext);
 

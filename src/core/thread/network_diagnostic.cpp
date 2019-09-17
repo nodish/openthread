@@ -127,7 +127,7 @@ otError NetworkDiagnostic::SendDiagnosticGet(const Ip6::Address &aDestination,
     messageInfo.SetPeerAddr(aDestination);
     messageInfo.SetPeerPort(kCoapUdpPort);
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo, handler, this));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo, handler, this));
 
     otLogInfoNetDiag("Sent diagnostic get");
 
@@ -539,7 +539,7 @@ void NetworkDiagnostic::HandleDiagnosticGetQuery(Coap::Message &aMessage, const 
         message->SetLength(message->GetLength() - 1);
     }
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo, NULL, this));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo, NULL, this));
 
     otLogInfoNetDiag("Sent diagnostic get answer");
 
@@ -590,7 +590,7 @@ void NetworkDiagnostic::HandleDiagnosticGetRequest(Coap::Message &aMessage, cons
         message->SetLength(message->GetOffset() - 1);
     }
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendResponse(*message, messageInfo));
 
     otLogInfoNetDiag("Sent diagnostic get response");
 
@@ -641,7 +641,7 @@ otError NetworkDiagnostic::SendDiagnosticReset(const Ip6::Address &aDestination,
     messageInfo.SetPeerAddr(aDestination);
     messageInfo.SetPeerPort(kCoapUdpPort);
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo));
 
     otLogInfoNetDiag("Sent network diagnostic reset");
 

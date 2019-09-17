@@ -281,7 +281,7 @@ otError DatasetManager::Register(void)
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     Get<Mle::MleRouter>().GetLeaderAloc(messageInfo.GetPeerAddr());
     messageInfo.SetPeerPort(kCoapUdpPort);
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo));
 
     otLogInfoMeshCoP("sent dataset to leader");
 
@@ -395,7 +395,7 @@ void DatasetManager::SendGetResponse(const Coap::Message &   aRequest,
         message->SetLength(message->GetLength() - 1);
     }
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, aMessageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendResponse(*message, aMessageInfo));
 
     otLogInfoMeshCoP("sent dataset get response");
 
@@ -552,7 +552,7 @@ otError DatasetManager::SendSetRequest(const otOperationalDataset &aDataset, con
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     Get<Mle::MleRouter>().GetLeaderAloc(messageInfo.GetPeerAddr());
     messageInfo.SetPeerPort(kCoapUdpPort);
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo));
 
     otLogInfoMeshCoP("sent dataset set request to leader");
 
@@ -677,7 +677,7 @@ otError DatasetManager::SendGetRequest(const otOperationalDatasetComponents &aDa
 
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     messageInfo.SetPeerPort(kCoapUdpPort);
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo));
 
     otLogInfoMeshCoP("sent dataset get request");
 

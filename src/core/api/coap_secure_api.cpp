@@ -153,12 +153,15 @@ void otCoapSecureStop(otInstance *aInstance)
 
 otError otCoapSecureSendRequest(otInstance *          aInstance,
                                 otMessage *           aMessage,
+                                const otMessageInfo * aMessageInfo,
                                 otCoapResponseHandler aHandler,
                                 void *                aContext)
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
 
-    return instance.GetApplicationCoapSecure().SendMessage(*static_cast<Coap::Message *>(aMessage), aHandler, aContext);
+    return instance.GetApplicationCoapSecure().SendRequest(*static_cast<Coap::Message *>(aMessage),
+                                                           *static_cast<const Ip6::MessageInfo *>(aMessageInfo),
+                                                           aHandler, aContext);
 }
 
 otError otCoapSecureAddResource(otInstance *aInstance, otCoapResource *aResource)
@@ -195,8 +198,8 @@ otError otCoapSecureSendResponse(otInstance *aInstance, otMessage *aMessage, con
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
 
-    return instance.GetApplicationCoapSecure().SendMessage(*static_cast<Coap::Message *>(aMessage),
-                                                           *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
+    return instance.GetApplicationCoapSecure().SendResponse(*static_cast<Coap::Message *>(aMessage),
+                                                            *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
 #endif // OPENTHREAD_CONFIG_COAP_SECURE_API_ENABLE
