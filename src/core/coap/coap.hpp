@@ -492,7 +492,7 @@ public:
     Message *NewMessage(const otMessageSettings *aSettings = NULL);
 
     /**
-     * This method sends a CoAP message.
+     * This method sends a CoAP request.
      *
      * If a response for a request is expected, respective function and context information should be provided.
      * If no response is expected, these arguments should be NULL pointers.
@@ -503,14 +503,30 @@ public:
      * @param[in]  aHandler      A function pointer that shall be called on response reception or time-out.
      * @param[in]  aContext      A pointer to arbitrary context information.
      *
-     * @retval OT_ERROR_NONE     Successfully sent CoAP message.
-     * @retval OT_ERROR_NO_BUFS  Failed to allocate retransmission data.
+     * @retval OT_ERROR_NONE            Successfully sent CoAP message.
+     * @retval OT_ERROR_NO_BUFS         Failed to allocate retransmission data.
+     * @retval OT_ERROR_INVALID_STATE   The agent is not connected to @p aMessageInfo.
      *
      */
-    otError SendMessage(Message &               aMessage,
+    otError SendRequest(Message &               aMessage,
                         const Ip6::MessageInfo &aMessageInfo,
                         otCoapResponseHandler   aHandler = NULL,
                         void *                  aContext = NULL);
+
+    /**
+     * This method sends a CoAP response.
+     *
+     * If Message Id was not set in the header (equal to 0), this function will assign unique Message Id to the message.
+     *
+     * @param[in]  aMessage      A reference to the message to send.
+     * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
+     *
+     * @retval OT_ERROR_NONE            Successfully sent CoAP message.
+     * @retval OT_ERROR_NO_BUFS         Failed to allocate retransmission data.
+     * @retval OT_ERROR_INVALID_STATE   The agent is not connected to @p aMessageInfo.
+     *
+     */
+    otError SendResponse(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
     /**
      * This method sends a CoAP reset message.
@@ -521,6 +537,7 @@ public:
      * @retval OT_ERROR_NONE          Successfully enqueued the CoAP response message.
      * @retval OT_ERROR_NO_BUFS       Insufficient buffers available to send the CoAP response.
      * @retval OT_ERROR_INVALID_ARGS  The @p aRequest is not of confirmable type.
+     * @retval OT_ERROR_INVALID_STATE The agent is not connected to @p aMessageInfo.
      *
      */
     otError SendReset(Message &aRequest, const Ip6::MessageInfo &aMessageInfo)
@@ -538,6 +555,7 @@ public:
      * @retval OT_ERROR_NONE          Successfully enqueued the CoAP response message.
      * @retval OT_ERROR_NO_BUFS       Insufficient buffers available to send the CoAP response.
      * @retval OT_ERROR_INVALID_ARGS  The @p aRequest header is not of confirmable type.
+     * @retval OT_ERROR_INVALID_STATE The agent is not connected to @p aMessageInfo.
      *
      */
     otError SendHeaderResponse(Message::Code aCode, const Message &aRequest, const Ip6::MessageInfo &aMessageInfo);
@@ -551,6 +569,7 @@ public:
      * @retval OT_ERROR_NONE          Successfully enqueued the CoAP response message.
      * @retval OT_ERROR_NO_BUFS       Insufficient buffers available to send the CoAP response.
      * @retval OT_ERROR_INVALID_ARGS  The @p aRequest header is not of confirmable type.
+     * @retval OT_ERROR_INVALID_STATE The agent is not connected to @p aMessageInfo.
      *
      */
     otError SendAck(const Message &aRequest, const Ip6::MessageInfo &aMessageInfo)
@@ -567,6 +586,7 @@ public:
      * @retval OT_ERROR_NONE          Successfully enqueued the CoAP response message.
      * @retval OT_ERROR_NO_BUFS       Insufficient buffers available to send the CoAP response.
      * @retval OT_ERROR_INVALID_ARGS  The @p aRequest header is not of confirmable type.
+     * @retval OT_ERROR_INVALID_STATE The agent is not connected to @p aMessageInfo.
      *
      */
     otError SendEmptyAck(const Message &aRequest, const Ip6::MessageInfo &aMessageInfo)
@@ -582,8 +602,9 @@ public:
      * @param[in]  aRequest        A reference to the CoAP Message that was used in CoAP request.
      * @param[in]  aMessageInfo          The message info corresponding to the CoAP request.
      *
-     * @retval OT_ERROR_NONE         Successfully enqueued the CoAP response message.
-     * @retval OT_ERROR_NO_BUFS      Insufficient buffers available to send the CoAP response.
+     * @retval OT_ERROR_NONE            Successfully enqueued the CoAP response message.
+     * @retval OT_ERROR_NO_BUFS         Insufficient buffers available to send the CoAP response.
+     * @retval OT_ERROR_INVALID_STATE   The agent is not connected to @p aMessageInfo.
      *
      */
     otError SendNotFound(const Message &aRequest, const Ip6::MessageInfo &aMessageInfo)
@@ -681,8 +702,9 @@ private:
      * @param[in]  aMessage      A reference to the message to send.
      * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
      *
-     * @retval OT_ERROR_NONE     Successfully sent CoAP message.
-     * @retval OT_ERROR_NO_BUFS  Failed to allocate retransmission data.
+     * @retval OT_ERROR_NONE            Successfully sent CoAP message.
+     * @retval OT_ERROR_NO_BUFS         Failed to allocate retransmission data.
+     * @retval OT_ERROR_INVALID_STATE   The agent is not connected to @p aMessageInfo.
      *
      */
     otError Send(ot::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)

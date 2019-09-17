@@ -152,31 +152,13 @@ void CoapSecure::SetSslAuthMode(bool aVerifyPeerCertificate)
 
 #endif // OPENTHREAD_CONFIG_COAP_SECURE_API_ENABLE
 
-otError CoapSecure::SendMessage(Message &aMessage, otCoapResponseHandler aHandler, void *aContext)
-{
-    otError error = OT_ERROR_NONE;
-
-    VerifyOrExit(IsConnected(), error = OT_ERROR_INVALID_STATE);
-
-    error = CoapBase::SendMessage(aMessage, mDtls.GetPeerAddress(), aHandler, aContext);
-
-exit:
-    return error;
-}
-
-otError CoapSecure::SendMessage(Message &               aMessage,
-                                const Ip6::MessageInfo &aMessageInfo,
-                                otCoapResponseHandler   aHandler,
-                                void *                  aContext)
-{
-    return CoapBase::SendMessage(aMessage, aMessageInfo, aHandler, aContext);
-}
-
 otError CoapSecure::Send(ot::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     OT_UNUSED_VARIABLE(aMessageInfo);
 
     otError error;
+
+    VerifyOrExit(IsConnected(), error = OT_ERROR_INVALID_STATE);
 
     SuccessOrExit(error = mTransmitQueue.Enqueue(aMessage));
     mTransmitTask.Post();

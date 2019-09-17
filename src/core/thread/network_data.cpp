@@ -1023,7 +1023,7 @@ otError NetworkData::SendServerDataNotification(uint16_t aRloc16)
     Get<Mle::MleRouter>().GetLeaderAloc(messageInfo.GetPeerAddr());
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     messageInfo.SetPeerPort(kCoapUdpPort);
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo));
 
     if (mType == kTypeLocal)
     {

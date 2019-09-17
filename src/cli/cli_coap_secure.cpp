@@ -286,11 +286,12 @@ otError CoapSecure::ProcessRequest(int argc, char *argv[])
 
     if ((coapType == OT_COAP_TYPE_CONFIRMABLE) || (coapCode == OT_COAP_CODE_GET))
     {
-        error = otCoapSecureSendRequest(mInterpreter.mInstance, message, &CoapSecure::HandleResponse, this);
+        error =
+            otCoapSecureSendRequest(mInterpreter.mInstance, message, &messageInfo, &CoapSecure::HandleResponse, this);
     }
     else
     {
-        error = otCoapSecureSendRequest(mInterpreter.mInstance, message, NULL, NULL);
+        error = otCoapSecureSendRequest(mInterpreter.mInstance, message, &messageInfo, NULL, NULL);
     }
 
 exit:

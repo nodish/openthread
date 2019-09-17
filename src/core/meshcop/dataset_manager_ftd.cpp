@@ -300,7 +300,7 @@ void DatasetManager::SendSetResponse(const Coap::Message &   aRequest,
     state.SetState(aState);
     SuccessOrExit(error = message->AppendTlv(state));
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, aMessageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendResponse(*message, aMessageInfo));
 
     otLogInfoMeshCoP("sent dataset set response");
 

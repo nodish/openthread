@@ -363,7 +363,7 @@ void Leader::SendCommissioningGetResponse(const Coap::Message &   aRequest,
         message->SetLength(message->GetLength() - 1);
     }
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, aMessageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendResponse(*message, aMessageInfo));
 
     otLogInfoMeshCoP("sent commissioning dataset get response");
 
@@ -392,7 +392,7 @@ void Leader::SendCommissioningSetResponse(const Coap::Message &    aRequest,
     state.SetState(aState);
     SuccessOrExit(error = message->AppendTlv(state));
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, aMessageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendResponse(*message, aMessageInfo));
 
     otLogInfoMeshCoP("sent commissioning dataset set response");
 

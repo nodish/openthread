@@ -177,7 +177,7 @@ otError otCoapSendRequest(otInstance *          aInstance,
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
 
-    return instance.GetApplicationCoap().SendMessage(*static_cast<Coap::Message *>(aMessage),
+    return instance.GetApplicationCoap().SendRequest(*static_cast<Coap::Message *>(aMessage),
                                                      *static_cast<const Ip6::MessageInfo *>(aMessageInfo), aHandler,
                                                      aContext);
 }
@@ -221,8 +221,8 @@ otError otCoapSendResponse(otInstance *aInstance, otMessage *aMessage, const otM
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
 
-    return instance.GetApplicationCoap().SendMessage(*static_cast<Coap::Message *>(aMessage),
-                                                     *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
+    return instance.GetApplicationCoap().SendResponse(*static_cast<Coap::Message *>(aMessage),
+                                                      *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
 #endif // OPENTHREAD_CONFIG_COAP_API_ENABLE

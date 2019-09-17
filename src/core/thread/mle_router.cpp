@@ -3833,7 +3833,7 @@ otError MleRouter::SendAddressSolicit(ThreadStatusTlv::Status aStatus)
     messageInfo.SetPeerPort(kCoapUdpPort);
 
     SuccessOrExit(
-        error = Get<Coap::Coap>().SendMessage(*message, messageInfo, &MleRouter::HandleAddressSolicitResponse, this));
+        error = Get<Coap::Coap>().SendRequest(*message, messageInfo, &MleRouter::HandleAddressSolicitResponse, this));
     mAddressSolicitPending = true;
 
     LogMleMessage("Send Address Solicit", messageInfo.GetPeerAddr());
@@ -3872,7 +3872,7 @@ otError MleRouter::SendAddressRelease(void)
     messageInfo.SetSockAddr(GetMeshLocal16());
     SuccessOrExit(error = GetLeaderAddress(messageInfo.GetPeerAddr()));
     messageInfo.SetPeerPort(kCoapUdpPort);
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo));
 
     LogMleMessage("Send Address Release", messageInfo.GetPeerAddr());
 
@@ -4131,7 +4131,7 @@ void MleRouter::SendAddressSolicitResponse(const Coap::Message &   aRequest,
         SuccessOrExit(error = message->AppendTlv(routerMaskTlv));
     }
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, aMessageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendResponse(*message, aMessageInfo));
 
     LogMleMessage("Send Address Reply", aMessageInfo.GetPeerAddr());
 

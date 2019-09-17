@@ -509,7 +509,7 @@ otError Commissioner::SendMgmtCommissionerGetRequest(const uint8_t *aTlvs, uint8
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     SuccessOrExit(error = Get<Mle::MleRouter>().GetLeaderAloc(messageInfo.GetPeerAddr()));
     messageInfo.SetPeerPort(kCoapUdpPort);
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo,
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo,
                                                         Commissioner::HandleMgmtCommissionerGetResponse, this));
 
     otLogInfoMeshCoP("sent MGMT_COMMISSIONER_GET.req to leader");
@@ -606,7 +606,7 @@ otError Commissioner::SendMgmtCommissionerSetRequest(const otCommissioningDatase
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     SuccessOrExit(error = Get<Mle::MleRouter>().GetLeaderAloc(messageInfo.GetPeerAddr()));
     messageInfo.SetPeerPort(kCoapUdpPort);
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo,
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo,
                                                         Commissioner::HandleMgmtCommissionerSetResponse, this));
 
     otLogInfoMeshCoP("sent MGMT_COMMISSIONER_SET.req to leader");
@@ -666,7 +666,7 @@ otError Commissioner::SendPetition(void)
     messageInfo.SetPeerPort(kCoapUdpPort);
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     SuccessOrExit(
-        error = Get<Coap::Coap>().SendMessage(*message, messageInfo, Commissioner::HandleLeaderPetitionResponse, this));
+        error = Get<Coap::Coap>().SendRequest(*message, messageInfo, Commissioner::HandleLeaderPetitionResponse, this));
 
     otLogInfoMeshCoP("sent petition");
 
@@ -761,7 +761,7 @@ otError Commissioner::SendKeepAlive(void)
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     SuccessOrExit(error = Get<Mle::MleRouter>().GetLeaderAloc(messageInfo.GetPeerAddr()));
     messageInfo.SetPeerPort(kCoapUdpPort);
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo,
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo,
                                                         Commissioner::HandleLeaderKeepAliveResponse, this));
 
     otLogInfoMeshCoP("sent keep alive");
@@ -999,7 +999,7 @@ void Commissioner::SendJoinFinalizeResponse(const Coap::Message &aRequest, State
     otDumpCertMeshCoP("[THCI] direction=send | type=JOIN_FIN.rsp |", buf, message->GetLength() - message->GetOffset());
 #endif
 
-    SuccessOrExit(error = Get<Coap::CoapSecure>().SendMessage(*message, joinerMessageInfo));
+    SuccessOrExit(error = Get<Coap::CoapSecure>().SendResponse(*message, joinerMessageInfo));
 
     memcpy(&joinerId, mJoinerIid, sizeof(joinerId));
     joinerId.m8[0] ^= 0x2;
@@ -1076,7 +1076,7 @@ otError Commissioner::SendRelayTransmit(Message &aMessage, const Ip6::MessageInf
     messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(mJoinerRloc);
     messageInfo.SetPeerPort(kCoapUdpPort);
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendRequest(*message, messageInfo));
 
     aMessage.Free();
 
