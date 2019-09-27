@@ -512,6 +512,34 @@ uint32_t otPlatRadioGetPreferredChannelMask(otInstance *aInstance)
     return sRadioSpinel.GetRadioChannelMask(true);
 }
 
+#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
+otError otPlatRadioSetCoexEnabled(otInstance *aInstance, bool aEnabled)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    return sRadioSpinel.SetCoexEnabled(aEnabled);
+}
+
+bool otPlatRadioIsCoexEnabled(otInstance *aInstance)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    return sRadioSpinel.IsCoexEnabled();
+}
+
+otError otPlatRadioGetCoexMetrics(otInstance *aInstance, otRadioCoexMetrics *aCoexMetrics)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(aCoexMetrics != NULL, error = OT_ERROR_INVALID_ARGS);
+
+    error = sRadioSpinel.GetCoexMetrics(*aCoexMetrics);
+
+exit:
+    return error;
+}
+#endif
+
 #if OPENTHREAD_POSIX_VIRTUAL_TIME
 void platformSimRadioSpinelUpdate(struct timeval *aTimeout)
 {
