@@ -429,7 +429,7 @@ otError Mle::Restore(void)
         mParent.SetState(Neighbor::kStateRestored);
 
 #if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
-        memset(&mParent.GetRadioInfo(), 0xff, sizeof(mParent.GetRadioInfo()));
+        memcpy(&mParent.GetRadioInfo(), &parentInfo.mRadioInfo, sizeof(mParent.GetRadioInfo()));
 #endif
 
 #if OPENTHREAD_CONFIG_MLE_INFORM_PREVIOUS_PARENT_ON_REATTACH
@@ -472,6 +472,7 @@ otError Mle::Store(void)
 
             memset(&parentInfo, 0, sizeof(parentInfo));
             parentInfo.mExtAddress = mParent.GetExtAddress();
+            parentInfo.mRadioInfo  = mParent.GetRadioInfo();
 
             SuccessOrExit(error = Get<Settings>().SaveParentInfo(parentInfo));
         }
