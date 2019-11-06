@@ -39,6 +39,7 @@ at_exit()
     sudo killall ot-cli-ftd || true
     sudo killall ot-cli || true
     sudo kill ${TSHARK_PID} || true
+    sudo kill ${TSHARK_PID1} || true
     delete_netns || true
 
     return $EXIT_CODE
@@ -94,6 +95,12 @@ EOF
 
 start_child()
 {
+    if which tshark; then
+        sudo -E ip netns exec "${CORNER_NETNS}" tshark -i lo -w /tmp/corner.pcap & TSHARK_PID1=$!
+        echo 'Waiting 5s for tshark ready'
+        sleep 5
+    fi
+
     BACKBONE_LINK=192.168.66.2 sudo -E ip netns exec "${CORNER_NETNS}" sudo -E -u ${USER} expect <<EOF
 spawn ${OT_CLI_FTD} 2
 send "mode rsn\r\n"
@@ -111,6 +118,20 @@ expect {
     timeout { exit 1 }
 }
 expect "Done"
+send "reset\r\n"
+sleep 20
+send "\r\n"
+expect "> "
+send "ifconfig up\r\n"
+expect "Done"
+send "thread start\r\n"
+expect "Done"
+sleep 5
+send "state\r\n"
+expect {
+    "child" { send_user "Successfully attached as Child after reset\n" }
+    timeout { exit 1 }
+}
 EOF
 }
 
@@ -135,7 +156,7 @@ setup()
 {
     sudo apt-get install expect
     ./bootstrap
-    NODE_MODE=transceiver BBLINK=1 VIRTUAL_TIME=0 ./script/test build
+    BBLINK=1 NODE_MODE=transceiver VIRTUAL_TIME=0 READLINE=no ./script/test build
 }
 
 check()
