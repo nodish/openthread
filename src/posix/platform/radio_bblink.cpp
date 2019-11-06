@@ -51,7 +51,7 @@
 #include "common/logging.hpp"
 #include "thread/child_table.hpp"
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
 
 enum
 {
@@ -473,4 +473,4 @@ exit:
 } // namespace PosixApp
 } // namespace ot
 
-#endif // OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#endif // OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE

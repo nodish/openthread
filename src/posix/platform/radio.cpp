@@ -42,7 +42,7 @@
 #include "radio_spinel.hpp"
 
 static ot::PosixApp::RadioSpinel sRadioSpinel;
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
 static ot::PosixApp::RadioBackboneLink sRadioBackboneLink;
 #endif
 
@@ -111,7 +111,7 @@ void otPlatRadioSetPanId(otInstance *aInstance, uint16_t panid)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     sRadioBackboneLink.SetPanId(panid);
 #endif
     SuccessOrDie(sRadioSpinel.SetPanId(panid));
@@ -128,7 +128,7 @@ void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *aA
         addr.m8[i] = aAddress->m8[sizeof(addr) - 1 - i];
     }
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     sRadioBackboneLink.SetExtendedAddress(addr);
 #endif
     SuccessOrDie(sRadioSpinel.SetExtendedAddress(addr));
@@ -138,7 +138,7 @@ void otPlatRadioSetShortAddress(otInstance *aInstance, uint16_t aAddress)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     sRadioBackboneLink.SetShortAddress(aAddress);
 #endif
     SuccessOrDie(sRadioSpinel.SetShortAddress(aAddress));
@@ -153,7 +153,7 @@ void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
 void platformRadioInit(const char *aRadioFile, const char *aRadioConfig, bool aReset, const char *aBackboneLink)
 {
     OT_UNUSED_VARIABLE(aBackboneLink);
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     sRadioBackboneLink.Init(aBackboneLink);
 #endif
     sRadioSpinel.Init(aRadioFile, aRadioConfig, aReset);
@@ -161,7 +161,7 @@ void platformRadioInit(const char *aRadioFile, const char *aRadioConfig, bool aR
 
 void platformRadioDeinit(void)
 {
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     sRadioBackboneLink.Deinit();
 #endif
     sRadioSpinel.Deinit();
@@ -171,7 +171,7 @@ bool otPlatRadioIsEnabled(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
     return
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
         sRadioBackboneLink.IsEnabled() ||
 #endif
         sRadioSpinel.IsEnabled();
@@ -181,7 +181,7 @@ otError otPlatRadioEnable(otInstance *aInstance)
 {
     otError error;
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     sRadioBackboneLink.Enable(aInstance);
 #endif
     SuccessOrExit(error = sRadioSpinel.Enable(aInstance));
@@ -200,7 +200,7 @@ otError otPlatRadioDisable(otInstance *aInstance)
     OT_UNUSED_VARIABLE(aInstance);
     otError error;
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     sRadioBackboneLink.Disable();
 #endif
     SuccessOrExit(error = sRadioSpinel.Disable());
@@ -220,7 +220,7 @@ otError otPlatRadioSleep(otInstance *aInstance)
 
     otError error;
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     SuccessOrExit(error = sRadioBackboneLink.Sleep());
 #endif
     SuccessOrExit(error = sRadioSpinel.Sleep());
@@ -240,7 +240,7 @@ otError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel)
 
     otError error;
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     SuccessOrExit(error = sRadioBackboneLink.Receive(aChannel));
 #endif
 
@@ -275,7 +275,7 @@ otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame)
         }
     }
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     if (toBackbone)
     {
         otError err = error;
@@ -333,7 +333,7 @@ bool otPlatRadioGetPromiscuous(otInstance *aInstance)
 
 void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd, struct timeval *aTimeout)
 {
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     sRadioBackboneLink.UpdateFdSet(*aReadFdSet, *aWriteFdSet, *aMaxFd, *aTimeout);
 #endif
     sRadioSpinel.UpdateFdSet(*aReadFdSet, *aWriteFdSet, *aMaxFd, *aTimeout);
@@ -343,7 +343,7 @@ void platformRadioProcess(otInstance *aInstance, const fd_set *aReadFdSet, const
 {
     OT_UNUSED_VARIABLE(aInstance);
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     sRadioBackboneLink.Process(*aReadFdSet, *aWriteFdSet);
 #endif
     sRadioSpinel.Process(*aReadFdSet, *aWriteFdSet);

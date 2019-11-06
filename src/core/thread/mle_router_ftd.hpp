@@ -392,7 +392,7 @@ public:
      */
     Neighbor *GetNeighbor(const Ip6::Address &aAddress);
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     /**
      * This method gets the radio information of the neighbor of address @p aAddress.
      *

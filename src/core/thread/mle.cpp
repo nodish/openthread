@@ -428,7 +428,7 @@ otError Mle::Restore(void)
         mParent.SetRloc16(GetRloc16(GetRouterId(networkInfo.mRloc16)));
         mParent.SetState(Neighbor::kStateRestored);
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
         memcpy(&mParent.GetRadioInfo(), &parentInfo.mRadioInfo, sizeof(mParent.GetRadioInfo()));
 #endif
 
@@ -472,7 +472,9 @@ otError Mle::Store(void)
 
             memset(&parentInfo, 0, sizeof(parentInfo));
             parentInfo.mExtAddress = mParent.GetExtAddress();
-            parentInfo.mRadioInfo  = mParent.GetRadioInfo();
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
+            parentInfo.mRadioInfo = mParent.GetRadioInfo();
+#endif
 
             SuccessOrExit(error = Get<Settings>().SaveParentInfo(parentInfo));
         }
@@ -3352,7 +3354,7 @@ otError Mle::HandleParentResponse(const Message &aMessage, const Ip6::MessageInf
     mChildIdRequest.mChallengeLength = challenge.GetChallengeLength();
     memcpy(mChildIdRequest.mChallenge, challenge.GetChallenge(), mChildIdRequest.mChallengeLength);
 
-#if OPENTHREAD_BACKBONE_LINK_TYPE_ENABLE
+#if OPENTHREAD_CONFIG_BACKBONE_LINK_TYPE_ENABLE
     mParentCandidate.SetRadioInfo(static_cast<const otThreadLinkInfo *>(aMessageInfo.GetLinkInfo())->mRadioInfo);
 #endif
     mParentCandidate.SetExtAddress(extAddress);
