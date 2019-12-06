@@ -473,6 +473,11 @@ otError MeshForwarder::HandleFrameRequest(Mac::TxFrame &aFrame)
     VerifyOrExit(mEnabled, error = OT_ERROR_ABORT);
     VerifyOrExit(mSendMessage != NULL, error = OT_ERROR_ABORT);
 
+    if (mSendMessage->GetChannel() != 0)
+    {
+        aFrame.SetChannel(mSendMessage->GetChannel());
+    }
+
     mSendBusy = true;
 
     switch (mSendMessage->GetType())

@@ -1168,6 +1168,18 @@ protected:
      * This method appends a Timeout TLV to a message.
      *
      * @param[in]  aMessage  A reference to the message.
+     * @param[in]  aChannel  The channel to use when receiving.
+     *
+     * @retval OT_ERROR_NONE     Successfully appended the Timeout TLV.
+     * @retval OT_ERROR_NO_BUFS  Insufficient buffers available to append the Timeout TLV.
+     *
+     */
+    otError AppendChannel(Message &aMessage, uint8_t aChannel);
+
+    /**
+     * This method appends a Timeout TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
      * @param[in]  aTimeout  The Timeout value.
      *
      * @retval OT_ERROR_NONE     Successfully appended the Timeout TLV.

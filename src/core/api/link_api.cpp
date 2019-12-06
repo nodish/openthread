@@ -77,7 +77,9 @@ otError otLinkSetChannel(otInstance *aInstance, uint8_t aChannel)
     }
 #endif
 
-    VerifyOrExit(instance.Get<Mle::MleRouter>().GetRole() == OT_DEVICE_ROLE_DISABLED, error = OT_ERROR_INVALID_STATE);
+    SuccessOrExit(error = instance.Get<Mac::Mac>().SetRxChannel(aChannel));
+
+    VerifyOrExit(instance.Get<Mle::MleRouter>().GetRole() == OT_DEVICE_ROLE_DISABLED);
 
     SuccessOrExit(error = instance.Get<Mac::Mac>().SetPanChannel(aChannel));
     instance.Get<MeshCoP::ActiveDataset>().Clear();

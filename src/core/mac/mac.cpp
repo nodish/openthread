@@ -96,6 +96,7 @@ Mac::Mac(Instance &aInstance)
     , mPanId(kPanIdBroadcast)
     , mPanChannel(OPENTHREAD_CONFIG_DEFAULT_CHANNEL)
     , mRadioChannel(OPENTHREAD_CONFIG_DEFAULT_CHANNEL)
+    , mRxChannel(OPENTHREAD_CONFIG_DEFAULT_CHANNEL)
     , mSupportedChannelMask(Get<Radio>().GetSupportedChannelMask())
     , mNetworkName()
     , mScanChannel(Radio::kChannelMin)
@@ -387,6 +388,20 @@ exit:
     return error;
 }
 
+otError Mac::SetRxChannel(uint8_t aChannel)
+{
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(mSupportedChannelMask.ContainsChannel(aChannel), error = OT_ERROR_INVALID_ARGS);
+
+    SuccessOrExit(Get<Notifier>().Update(mRxChannel, aChannel, OT_CHANGED_THREAD_CHANNEL));
+
+    UpdateIdleMode();
+
+exit:
+    return error;
+}
+
 otError Mac::SetTemporaryChannel(uint8_t aChannel)
 {
     otError error = OT_ERROR_NONE;
@@ -560,8 +575,10 @@ void Mac::UpdateIdleMode(void)
     }
     else
     {
-        mSubMac.Receive(mRadioChannel);
-        otLogDebgMac("Idle mode: Radio receiving on channel %d", mRadioChannel);
+        uint8_t channel = Get<Mle::MleRouter>().IsRouterEligible() ? mRadioChannel : mRxChannel;
+
+        mSubMac.Receive(channel);
+        otLogDebgMac("Idle mode: Radio receiving on channel %d", channel);
     }
 
 exit:

@@ -1149,6 +1149,16 @@ otError Mle::AppendMode(Message &aMessage, DeviceMode aMode)
     return aMessage.AppendTlv(tlv);
 }
 
+otError Mle::AppendChannel(Message &aMessage, uint8_t aChannel)
+{
+    ChannelTlv tlv;
+
+    tlv.Init();
+    tlv.SetChannel(aChannel);
+
+    return aMessage.AppendTlv(tlv);
+}
+
 otError Mle::AppendTimeout(Message &aMessage, uint32_t aTimeout)
 {
     TimeoutTlv tlv;
@@ -1484,6 +1494,15 @@ void Mle::HandleStateChanged(Notifier::Callback &aCallback, otChangedFlags aFlag
 void Mle::HandleStateChanged(otChangedFlags aFlags)
 {
     VerifyOrExit(mRole != OT_DEVICE_ROLE_DISABLED);
+
+    if (aFlags & OT_CHANGED_THREAD_CHANNEL)
+    {
+        if (IsAttached() && mRole == OT_DEVICE_ROLE_CHILD)
+        {
+            mChildUpdateRequestState = kChildUpdateRequestPending;
+            ScheduleMessageTransmissionTimer();
+        }
+    }
 
     if (aFlags & OT_CHANGED_THREAD_ROLE)
     {
@@ -2297,6 +2316,10 @@ otError Mle::SendChildUpdateRequest(void)
         SuccessOrExit(error = AppendSourceAddress(*message));
         SuccessOrExit(error = AppendLeaderData(*message));
         SuccessOrExit(error = AppendTimeout(*message, mTimeout));
+        if (Get<Mac::Mac>().GetPanChannel() != Get<Mac::Mac>().GetRxChannel())
+        {
+            SuccessOrExit(error = AppendChannel(*message, Get<Mac::Mac>().GetRxChannel()));
+        }
         break;
 
     case OT_DEVICE_ROLE_DISABLED:

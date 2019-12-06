@@ -562,6 +562,22 @@ public:
     bool HasIp6Address(Instance &aInstance, const Ip6::Address &aAddress) const;
 
     /**
+     * This method gets the child channel.
+     *
+     * @returns The child channel.
+     *
+     */
+    uint8_t GetChannel(void) const { return mChannel; }
+
+    /**
+     * This method sets the child channel.
+     *
+     * @param[in]  aChannel  The child channel.
+     *
+     */
+    void SetChannel(uint8_t aChannel) { mChannel = aChannel; }
+
+    /**
      * This method gets the child timeout.
      *
      * @returns The child timeout.
@@ -674,6 +690,7 @@ private:
         kNumIp6Addresses = OPENTHREAD_CONFIG_MLE_IP_ADDRS_PER_CHILD - 1,
     };
 
+    uint8_t      mChannel;                                              ///< Rx Channel
     uint8_t      mNetworkDataVersion;                                   ///< Current Network Data version
     uint8_t      mMeshLocalIid[Ip6::Address::kInterfaceIdentifierSize]; ///< IPv6 address IID for mesh-local address
     Ip6::Address mIp6Address[kNumIp6Addresses];                         ///< Registered IPv6 addresses

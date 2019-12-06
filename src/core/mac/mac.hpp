@@ -308,6 +308,25 @@ public:
     otError SetPanChannel(uint8_t aChannel);
 
     /**
+     * This method returns the IEEE 802.15.4 PAN Channel.
+     *
+     * @returns The IEEE 802.15.4 PAN Channel.
+     *
+     */
+    uint8_t GetRxChannel(void) const { return mRxChannel; }
+
+    /**
+     * This method sets the IEEE 802.15.4 PAN Channel.
+     *
+     * @param[in]  aChannel  The IEEE 802.15.4 PAN Channel.
+     *
+     * @retval OT_ERROR_NONE           Successfully set the IEEE 802.15.4 PAN Channel.
+     * @retval OT_ERROR_INVALID_ARGS   The @p aChannel is not in the supported channel mask.
+     *
+     */
+    otError SetRxChannel(uint8_t aChannel);
+
+    /**
      * This method sets the temporary IEEE 802.15.4 radio channel.
      *
      * This method allows user to temporarily change the radio channel and use a different channel (during receive)
@@ -715,6 +734,7 @@ private:
     PanId         mPanId;
     uint8_t       mPanChannel;
     uint8_t       mRadioChannel;
+    uint8_t       mRxChannel;
     ChannelMask   mSupportedChannelMask;
     ExtendedPanId mExtendedPanId;
     NetworkName   mNetworkName;

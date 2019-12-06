@@ -1645,6 +1645,7 @@ otError MleRouter::HandleParentRequest(const Message &aMessage, const Ip6::Messa
     {
         VerifyOrExit((child = mChildTable.GetNewChild()) != NULL);
 
+        child->SetChannel(Get<Mac::Mac>().GetPanChannel());
         // MAC Address
         child->SetExtAddress(macAddr);
         child->GetLinkInfo().Clear();
@@ -2171,6 +2172,7 @@ otError MleRouter::HandleChildIdRequest(const Message &         aMessage,
         RemoveNeighbor(*child);
     }
 
+    child->SetChannel(Get<Mac::Mac>().GetPanChannel());
     child->SetLastHeard(TimerMilli::GetNow());
     child->SetLinkFrameCounter(linkFrameCounter.GetFrameCounter());
     child->SetMleFrameCounter(mleFrameCounter.GetFrameCounter());
@@ -2235,6 +2237,7 @@ otError MleRouter::HandleChildUpdateRequest(const Message &         aMessage,
 
     otError         error = OT_ERROR_NONE;
     Mac::ExtAddress macAddr;
+    ChannelTlv      channel;
     ModeTlv         mode;
     ChallengeTlv    challenge;
     LeaderDataTlv   leaderData;
@@ -2283,6 +2286,17 @@ otError MleRouter::HandleChildUpdateRequest(const Message &         aMessage,
 
     oldMode = child->GetDeviceMode();
     child->SetDeviceMode(mode.GetMode());
+
+    // Channel
+    if (OT_ERROR_NONE == Tlv::GetTlv(aMessage, Tlv::kChannel, sizeof(channel), channel))
+    {
+        VerifyOrExit(channel.IsValid(), error = OT_ERROR_PARSE);
+        child->SetChannel(channel.GetChannel());
+    }
+    else
+    {
+        child->SetChannel(Get<Mac::Mac>().GetPanChannel());
+    }
 
     tlvs[tlvslength++] = Tlv::kMode;
 

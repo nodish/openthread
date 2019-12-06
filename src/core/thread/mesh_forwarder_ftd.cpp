@@ -112,12 +112,23 @@ otError MeshForwarder::SendMessage(Message &aMessage)
         {
             // destined for a sleepy child
             Child &child = *static_cast<Child *>(neighbor);
+            aMessage.SetChannel(child.GetChannel());
             mIndirectSender.AddMessageForSleepyChild(aMessage, child);
         }
         else
         {
             // schedule direct transmission
             aMessage.SetDirectTransmission();
+
+            // My child
+            if (neighbor != NULL && (Mle::Mle::GetRloc16(neighbor->GetRouterId()) == Get<Mle::MleRouter>().GetRloc16()))
+            {
+                aMessage.SetChannel(static_cast<Child *>(neighbor)->GetChannel());
+            }
+            else
+            {
+                aMessage.SetChannel(Get<Mac::Mac>().GetPanChannel());
+            }
         }
 
         break;
@@ -127,11 +138,13 @@ otError MeshForwarder::SendMessage(Message &aMessage)
     {
         Child *child = Get<Utils::ChildSupervisor>().GetDestination(aMessage);
         assert((child != NULL) && !child->IsRxOnWhenIdle());
+        aMessage.SetChannel(child->GetChannel());
         mIndirectSender.AddMessageForSleepyChild(aMessage, *child);
         break;
     }
 
     default:
+        aMessage.SetChannel(Get<Mac::Mac>().GetPanChannel());
         aMessage.SetDirectTransmission();
         break;
     }

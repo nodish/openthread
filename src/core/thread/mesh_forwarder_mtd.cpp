@@ -34,6 +34,7 @@
 #if OPENTHREAD_MTD
 
 #include "mesh_forwarder.hpp"
+#include "common/locator-getters.hpp"
 
 namespace ot {
 
@@ -44,6 +45,7 @@ otError MeshForwarder::SendMessage(Message &aMessage)
     aMessage.SetDirectTransmission();
     aMessage.SetOffset(0);
     aMessage.SetDatagramTag(0);
+    aMessage.SetChannel(Get<Mac::Mac>().GetPanChannel());
 
     SuccessOrExit(error = mSendQueue.Enqueue(aMessage));
     mScheduleTransmissionTask.Post();
