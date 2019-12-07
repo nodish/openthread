@@ -506,6 +506,18 @@ bool otLinkIsInTransmitState(otInstance *aInstance);
 otError otLinkOutOfBandTransmitRequest(otInstance *aInstance, otRadioFrame *aOobFrame);
 
 /**
+ * Get the IEEE 802.15.4 receiving channel.
+ *
+ * @param[in] aInstance A pointer to an OpenThread instance.
+ *
+ * @returns The IEEE 802.15.4 channel.
+ *
+ * @sa otLinkSetChannel
+ *
+ */
+uint8_t otLinkGetRxChannel(otInstance *aInstance);
+
+/**
  * Get the IEEE 802.15.4 channel.
  *
  * @param[in] aInstance A pointer to an OpenThread instance.

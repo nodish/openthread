@@ -64,6 +64,13 @@ uint8_t otLinkGetChannel(otInstance *aInstance)
     return channel;
 }
 
+uint8_t otLinkGetRxChannel(otInstance *aInstance)
+{
+    Instance &instance = *static_cast<Instance *>(aInstance);
+
+    return instance.Get<Mac::Mac>().GetRxChannel();
+}
+
 otError otLinkSetChannel(otInstance *aInstance, uint8_t aChannel)
 {
     otError   error;

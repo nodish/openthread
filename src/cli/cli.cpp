@@ -460,6 +460,10 @@ void Interpreter::ProcessChannel(int argc, char *argv[])
     {
         mServer->OutputFormat("%d\r\n", otLinkGetChannel(mInstance));
     }
+    else if (strcmp(argv[0], "rx") == 0)
+    {
+        mServer->OutputFormat("%u\r\n", otLinkGetRxChannel(mInstance));
+    }
     else if (strcmp(argv[0], "supported") == 0)
     {
         mServer->OutputFormat("0x%x\r\n", otPlatRadioGetSupportedChannelMask(mInstance));
