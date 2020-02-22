@@ -96,14 +96,20 @@ target_sources(openthread-rcp PRIVATE ${COMMON_SOURCES})
 target_link_libraries(openthread-ncp-ftd PRIVATE
     openthread-hdlc
     openthread-spinel-ncp
+    PUBLIC
+        openthread-ftd
 )
 
 target_link_libraries(openthread-ncp-mtd PRIVATE
     openthread-hdlc
     openthread-spinel-ncp
+    PUBLIC
+        openthread-mtd
 )
 
 target_link_libraries(openthread-rcp PRIVATE
     openthread-hdlc
     openthread-spinel-rcp
+    PUBLIC
+        openthread-radio
 )

@@ -39,7 +39,7 @@
 #include "spinel_interface.hpp"
 #include "lib/hdlc/hdlc.hpp"
 
-#include <openthread-system.h>
+#include <openthread/openthread-system.h>
 
 #if OPENTHREAD_POSIX_RCP_SPI_ENABLE
 

@@ -232,3 +232,11 @@ target_sources(openthread-radio PRIVATE
     thread/link_quality.cpp
     utils/parse_cmdline.cpp
 )
+
+target_link_libraries(openthread-ftd PUBLIC
+    mbedcrypto
+)
+
+target_link_libraries(openthread-mtd PUBLIC
+    mbedcrypto
+)
