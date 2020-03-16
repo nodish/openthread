@@ -38,6 +38,7 @@
 
 #include "spinel_interface.hpp"
 #include "lib/hdlc/hdlc.hpp"
+#include "posix/platform/radio.hpp"
 
 #include <openthread/openthread-system.h>
 
@@ -52,7 +53,7 @@ namespace Posix {
  * This class defines an SPI interface to the Radio Co-processor (RCP).
  *
  */
-class SpiInterface
+class SpiInterface : public BottomDriver, public LowerDriver
 {
 public:
     /**
@@ -62,7 +63,7 @@ public:
      * @param[in] aFrameBuffer  A reference to a `RxFrameBuffer` object.
      *
      */
-    SpiInterface(SpinelInterface::Callbacks &aCallback, SpinelInterface::RxFrameBuffer &aFrameBuffer);
+    SpiInterface(void);
 
     /**
      * This destructor deinitializes the object.
@@ -82,7 +83,7 @@ public:
      * @retval OT_ERROR_INVALID_ARGS  The UART device or executable cannot be found or failed to open/run.
      *
      */
-    otError Init(const otPlatformConfig &aPlatformConfig);
+    otError Init(const char *aDevice, Arguments &aArguments);
 
     /**
      * This method deinitializes the interface to the RCP.
@@ -102,7 +103,7 @@ public:
      * @retval OT_ERROR_FAILED   Failed to call the SPI driver to send the frame.
      *
      */
-    otError SendFrame(const uint8_t *aFrame, uint16_t aLength);
+    otError Output(const uint8_t *aFrame, uint16_t aLength);
 
     /**
      * This method waits for receiving part or all of spinel frame within specified interval.
@@ -113,7 +114,7 @@ public:
      * @retval OT_ERROR_RESPONSE_TIMEOUT No spinel frame is received within @p aTimeout.
      *
      */
-    otError WaitForFrame(const struct timeval &aTimeout);
+    otError Wait(uint32_t aTimeout);
 
     /**
      * This method updates the file descriptor sets with file descriptors used by the radio driver.
@@ -124,7 +125,7 @@ public:
      * @param[inout]  aTimeout     A reference to the timeout.
      *
      */
-    void UpdateFdSet(fd_set &aReadFdSet, fd_set &aWriteFdSet, int &aMaxFd, struct timeval &aTimeout);
+    void Poll(otSysMainloopContext &aMainloop);
 
     /**
      * This method performs radio driver processing.
@@ -133,7 +134,7 @@ public:
      * @param[in]   aWriteFdSet     A reference to the write file descriptors.
      *
      */
-    void Process(const fd_set &aReadFdSet, const fd_set &aWriteFdSet);
+    void Process(const otSysMainloopContext &aMainloop);
 
 private:
     int     SetupGpioHandle(int aFd, uint8_t aLine, uint32_t aHandleFlags, const char *aLabel);
@@ -184,11 +185,10 @@ private:
 
     enum
     {
-        kMaxFrameSize = SpinelInterface::kMaxFrameSize,
+        kMaxFrameSize = 2000,
     };
 
-    SpinelInterface::Callbacks &    mCallbacks;
-    SpinelInterface::RxFrameBuffer &mRxFrameBuffer;
+    Hdlc::MultiFrameBuffer<kMaxFrameSize> mRxFrameBuffer;
 
     int mSpiDevFd;
     int mResetGpioValueFd;

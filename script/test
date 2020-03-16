@@ -86,7 +86,7 @@ build_simulation()
 
     fi
 
-    local builddir="${OT_BUILDDIR}/cmake/openthread-simulation-${version}"
+    local builddir="${OT_BUILDDIR}/openthread-simulation-${version}"
     (mkdir -p "${builddir}" \
         && cd "${builddir}" \
         && cmake -GNinja "${OT_SRCDIR}" "${options[@]}" \
@@ -124,7 +124,7 @@ build_posix()
         options+=("-DOT_POSIX_VIRTUAL_TIME=ON")
     fi
 
-    local builddir="${OT_BUILDDIR}/cmake/openthread-posix-${version}"
+    local builddir="${OT_BUILDDIR}/openthread-posix-${version}"
     (mkdir -p "${builddir}" \
         && cd "${builddir}" \
         && cmake -GNinja "${OT_SRCDIR}" "${options[@]}" \
@@ -168,7 +168,7 @@ do_clean() {
 }
 
 do_cert() {
-    export top_builddir="${OT_BUILDDIR}/cmake/openthread-simulation-${THREAD_VERSION}"
+    export top_builddir="${OT_BUILDDIR}/openthread-simulation-${THREAD_VERSION}"
 
     if [[ "${THREAD_VERSION}" == "1.2" ]]; then
         export top_builddir_1_1="${OT_BUILDDIR}/cmake/openthread-simulation-1.1"
@@ -180,7 +180,7 @@ do_cert() {
 }
 
 do_cert_suite() {
-    export top_builddir="${OT_BUILDDIR}/cmake/openthread-simulation-${THREAD_VERSION}"
+    export top_builddir="${OT_BUILDDIR}/openthread-simulation-${THREAD_VERSION}"
 
     if [[ "${THREAD_VERSION}" == "1.2" ]]; then
         export top_builddir_1_1="${OT_BUILDDIR}/cmake/openthread-simulation-1.1"
@@ -267,21 +267,21 @@ EXAMPLES:
 }
 
 do_package() {
-    local builddir="${OT_BUILDDIR}/cmake/openthread-sim"
+    local builddir="${OT_BUILDDIR}/openthread-sim"
     (mkdir -p "${builddir}" \
         && cd "${builddir}" \
         && cmake "${OT_SRCDIR}" -DOT_PLATFORM="simulation" \
         && make -j"${OT_BUILD_JOBS}" package \
         && ls "${builddir}"/openthread-simulation-*.deb)
 
-    builddir="${OT_BUILDDIR}/cmake/openthread-host"
+    builddir="${OT_BUILDDIR}/openthread-host"
     (mkdir -p "${builddir}" \
         && cd "${builddir}" \
         && cmake "${OT_SRCDIR}" -DOT_PLATFORM="posix" \
         && make -j"${OT_BUILD_JOBS}" package \
         && ls "${builddir}"/openthread-standalone-*.deb)
 
-    builddir="${OT_BUILDDIR}/cmake/openthread-daemon"
+    builddir="${OT_BUILDDIR}/openthread-daemon"
     (mkdir -p "${builddir}" \
         && cd "${builddir}" \
         && cmake "${OT_SRCDIR}" -DOT_PLATFORM="posix" -DOT_DAEMON=1 -DOT_PLATFORM_NETIF=1 -DOT_PLATFORM_UDP=1 \
@@ -292,9 +292,9 @@ do_package() {
 envsetup()
 {
     if [[ "${NODE_MODE}" == 'rcp' ]] ; then
-        export RADIO_DEVICE="${OT_BUILDDIR}/cmake/openthread-simulation-${THREAD_VERSION}/examples/apps/ncp/ot-rcp"
-        export OT_CLI_PATH="${OT_BUILDDIR}/cmake/openthread-posix-${THREAD_VERSION}/src/posix/ot-cli"
-        export OT_NCP_PATH="${OT_BUILDDIR}/cmake/openthread-posix-${THREAD_VERSION}/src/posix/ot-ncp"
+        export RADIO_DEVICE="${OT_BUILDDIR}/openthread-simulation-${THREAD_VERSION}/examples/apps/ncp/ot-rcp"
+        export OT_CLI_PATH="${OT_BUILDDIR}/openthread-posix-${THREAD_VERSION}/src/posix/ot-cli"
+        export OT_NCP_PATH="${OT_BUILDDIR}/openthread-posix-${THREAD_VERSION}/src/posix/ot-ncp"
 
         if [[ "${THREAD_VERSION}" == "1.2" ]]; then
             export RADIO_DEVICE_1_1="${OT_BUILDDIR}/cmake/openthread-simulation-1.1/examples/apps/ncp/ot-rcp"

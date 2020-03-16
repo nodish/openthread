@@ -46,6 +46,7 @@ endif()
 list(APPEND OT_PLATFORM_DEFINES
     "OPENTHREAD_POSIX=1"
     "OPENTHREAD_POSIX_CONFIG_RCP_UART_ENABLE=1"
+    "OPENTHREAD_POSIX_CONFIG_RCP_SPI_ENABLE=1"
 )
 
 set(OT_PLATFORM_DEFINES ${OT_PLATFORM_DEFINES} PARENT_SCOPE)
@@ -59,6 +60,7 @@ add_library(openthread-posix
     logging.cpp
     misc.cpp
     netif.cpp
+    radio.cpp
     radio_spinel.cpp
     settings.cpp
     spi_interface.cpp

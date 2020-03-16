@@ -209,7 +209,7 @@ void platformAlarmAdvanceNow(uint64_t aDelta);
  * @param[in]  aPlatformConfig  Platform configuration structure.
  *
  */
-void platformRadioInit(const otPlatformConfig *aPlatformConfig);
+void platformRadioInit(otPlatformConfig *aPlatformConfig);
 
 /**
  * This function shuts down the radio service used by OpenThread.
@@ -236,23 +236,18 @@ void platformRadioReceive(otInstance *aInstance, uint8_t *aBuf, uint16_t aBufLen
 /**
  * This function updates the file descriptor sets with file descriptors used by the radio driver.
  *
- * @param[inout]  aReadFdSet   A pointer to the read file descriptors.
- * @param[inout]  aWriteFdSet  A pointer to the write file descriptors.
- * @param[inout]  aMaxFd       A pointer to the max file descriptor.
- * @param[inout]  aTimeout     A pointer to the timeout.
+ * @param[inout]    aMainloop   A pointer to the mainloop context.
  *
  */
-void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd, struct timeval *aTimeout);
+void platformRadioPoll(otSysMainloopContext *aMainloop);
 
 /**
  * This function performs radio driver processing.
  *
- * @param[in]   aInstance       A pointer to the OpenThread instance.
- * @param[in]   aReadFdSet      A pointer to the read file descriptors.
- * @param[in]   aWriteFdSet     A pointer to the write file descriptors.
+ * @param[in]       aMainloop   A pointer to the mainloop context.
  *
  */
-void platformRadioProcess(otInstance *aInstance, const fd_set *aReadFdSet, const fd_set *aWriteFdSet);
+void platformRadioProcess(const otSysMainloopContext *aMainloop);
 
 /**
  * This function initializes the random number service used by OpenThread.
@@ -380,10 +375,10 @@ void virtualTimeReceiveEvent(struct Event *aEvent);
 /**
  * This function sends sleep event through virtual time simulation.
  *
- * @param[in]   aTimeout    A pointer to the time sleeping.
+ * @param[in]   aTimeout    The time to sleep in microseconds.
  *
  */
-void virtualTimeSendSleepEvent(const struct timeval *aTimeout);
+void virtualTimeSendSleepEvent(uint32_t aTimeout);
 
 /**
  * This function performs radio spinel processing of virtual time simulation.

@@ -139,11 +139,11 @@ void virtualTimeReceiveEvent(struct Event *aEvent)
     sNow += aEvent->mDelay;
 }
 
-void virtualTimeSendSleepEvent(const struct timeval *aTimeout)
+void virtualTimeSendSleepEvent(uint32_t aTimeout)
 {
     struct Event event;
 
-    event.mDelay      = (uint64_t)aTimeout->tv_sec * kUsPerSecond + (uint64_t)aTimeout->tv_usec;
+    event.mDelay      = aTimeout;
     event.mEvent      = OT_SIM_EVENT_ALARM_FIRED;
     event.mDataLength = 0;
 
