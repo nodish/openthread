@@ -102,6 +102,8 @@ void TestSimple()
 
     assert(!strcmp(args.GetPath(), "/dev/ttyUSB0"));
     assert(!strcmp(args.GetValue("baudrate"), "115200"));
+
+    printf("PASS %s\r\n", __func__);
 }
 
 void TestSimpleNoArguments()
@@ -110,6 +112,8 @@ void TestSimpleNoArguments()
     ot::Posix::Arguments args(url);
 
     assert(!strcmp(args.GetPath(), "/dev/ttyUSB0"));
+
+    printf("PASS %s\r\n", __func__);
 }
 
 void TestMultipleProtocols()
@@ -119,6 +123,8 @@ void TestMultipleProtocols()
 
     assert(!strcmp(args.GetPath(), "/dev/ttyUSB0"));
     assert(!strcmp(args.GetValue("baudrate"), "115200"));
+
+    printf("PASS %s\r\n", __func__);
 }
 
 void TestMultipleProtocolsAndDuplicateParameters()
@@ -137,6 +143,28 @@ void TestMultipleProtocolsAndDuplicateParameters()
 
     arg = args.GetValue("arg", arg);
     assert(!strcmp(arg, "3"));
+
+    printf("PASS %s\r\n", __func__);
+}
+
+void TestPublicAPI()
+{
+    char                 url[] = "spinel+exec:///path/to/ot-rcp?arg=1&arg=arg2&arg=3";
+    ot::Posix::Arguments args(url);
+    const char *         arg = NULL;
+
+    assert(!strcmp(otPosixRadioArgumentsGetPath(&args), "/path/to/ot-rcp"));
+
+    arg = otPosixRadioArgumentsGetValue(&args, "arg", NULL);
+    assert(!strcmp(arg, "1"));
+
+    arg = otPosixRadioArgumentsGetValue(&args, "arg", arg);
+    assert(!strcmp(arg, "arg2"));
+
+    arg = otPosixRadioArgumentsGetValue(&args, "arg", arg);
+    assert(!strcmp(arg, "3"));
+
+    printf("PASS %s\r\n", __func__);
 }
 
 int main()
@@ -145,6 +173,6 @@ int main()
     TestSimpleNoArguments();
     TestMultipleProtocols();
     TestMultipleProtocolsAndDuplicateParameters();
-    printf("All tests passed!\r\n");
+    TestPublicAPI();
 }
 #endif
