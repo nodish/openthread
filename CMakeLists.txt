@@ -32,6 +32,12 @@ project(openthread)
 option(OT_BUILD_EXECUTABLES "Build executables" ON)
 option(OT_BUILTIN_MBEDTLS "Enable builtin mbedTLS" ON)
 option(OT_COVERAGE "enable coverage" OFF)
+option(OT_UNIT_TEST "enable unit tests" OFF)
+
+if(OT_UDP_FORWARD)
+    list(APPEND OT_PRIVATE_DEFINES "OPENTHREAD_CONFIG_UDP_FORWARD_ENABLE=1")
+endif()
+
 
 include("${PROJECT_SOURCE_DIR}/etc/cmake/checks.cmake")
 include("${PROJECT_SOURCE_DIR}/etc/cmake/options.cmake")

@@ -55,6 +55,7 @@ readonly OT_TEST_COMMON_OPTIONS=(
     "-DOT_REFERENCE_DEVICE=ON"
     "-DOT_SERVICE=ON"
     "-DOT_SLAAC=ON"
+    "-DOT_UNIT_TEST=ON"
 )
 
 readonly COLOR_PASS='\033[0;32m'
@@ -128,7 +129,7 @@ build_posix()
     (mkdir -p "${builddir}" \
         && cd "${builddir}" \
         && cmake -GNinja "${OT_SRCDIR}" "${options[@]}" \
-        && ninja)
+        && ninja -k0)
 
     if [[ "${version}" == "1.2" ]]; then
 

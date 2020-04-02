@@ -1598,8 +1598,10 @@ static otError Delete(otPosixRadioInstance *aInstance)
     delete static_cast<ot::Posix::RadioSpinel *>(aInstance);
 }
 
-static otPosixRadioOperations sRadioOperations = {};
-static otPosixRadioPollFuncs  sPollFuncs       = {};
+static otPosixRadioOperations sRadioOperations = {
+    .GetIeeeEui64 = &RadioSpinel::GetIeeeEui64,
+};
+static otPosixRadioPollFuncs sPollFuncs = {};
 
 static otPosixRadioDriver sSpinelDriver = {
     .mNext       = NULL,

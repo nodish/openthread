@@ -56,14 +56,12 @@ list(APPEND OT_PLATFORM_DEFINES "OPENTHREAD_PROJECT_CORE_CONFIG_FILE=\"${OT_CONF
 add_library(openthread-posix
     alarm.cpp
     entropy.cpp
-    hdlc_interface.cpp
     logging.cpp
     misc.cpp
     netif.cpp
     radio.cpp
     radio_spinel.cpp
     settings.cpp
-    spi_interface.cpp
     system.cpp
     uart.cpp
     udp.cpp
@@ -95,3 +93,14 @@ target_include_directories(openthread-posix PRIVATE
     PUBLIC
         ${PROJECT_SOURCE_DIR}/src/posix/platform/include
 )
+
+if (OT_UNIT_TEST)
+    add_executable(test-radio-url radio_url.cpp)
+    target_include_directories(test-radio-url
+        PRIVATE
+            $<TARGET_PROPERTY:openthread-posix,INCLUDE_DIRECTORIES>)
+    target_compile_definitions(test-radio-url
+        PRIVATE
+            "OT_UNIT_TEST=1"
+    )
+endif()
