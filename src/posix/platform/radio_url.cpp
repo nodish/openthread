@@ -1,7 +1,7 @@
+#include "posix/platform/radio_url.hpp"
+
 #include <stdio.h>
 #include <string.h>
-
-#include <openthread/radio_driver.h>
 
 #include "core/common/code_utils.hpp"
 #include "posix/platform/platform-posix.h"
@@ -9,75 +9,65 @@
 namespace ot {
 namespace Posix {
 
-struct otPosixRadioArguments
+Arguments::Arguments(char *aUrl)
 {
-    const char *mDevice;
-    char *      mStart;
-    char *      mEnd;
-};
+    aUrl = strstr(aUrl, "://");
+    VerifyOrDie(aUrl != NULL, OT_EXIT_INVALID_ARGUMENTS);
+    aUrl[0] = '\0';
+    aUrl += sizeof("://") - 1;
+    mDevice = aUrl;
 
-class Arguments : public otPosixRadioArguments
-{
-public:
-    Arguments(char *aUrl)
+    mStart = strstr(aUrl, "?");
+
+    if (mStart != NULL)
     {
-        aUrl = strstr(aUrl, "://");
-        VerifyOrDie(aUrl != NULL, OT_EXIT_INVALID_ARGUMENTS);
-        aUrl[0] = '\0';
-        aUrl += sizeof("://") - 1;
-        mDevice = aUrl;
+        mStart[0] = '\0';
 
-        mStart = strstr(aUrl, "?");
+        mStart += sizeof("?") - 1;
 
-        if (mStart != NULL)
-        {
-            mStart[0] = '\0';
-
-            mStart += sizeof("?") - 1;
-
-            mEnd = mStart + strlen(mStart);
-        }
-        else
-        {
-            mEnd = aUrl + strlen(aUrl);
-        }
+        mEnd = mStart + strlen(mStart);
     }
-
-    const char *GetPath(void) const { return mDevice; }
-
-    const char *GetValue(const char *aName, const char *aLastValue = NULL)
+    else
     {
-        const char * rval  = NULL;
-        const size_t len   = strlen(aName);
-        char *       start = (aLastValue == NULL ? mStart : (const_cast<char *>(aLastValue) + strlen(aLastValue) + 1));
+        mEnd = aUrl + strlen(aUrl);
+    }
+}
 
-        while (start < mEnd)
+const char *Arguments::GetValue(const char *aName, const char *aLastValue)
+{
+    const char * rval  = NULL;
+    const size_t len   = strlen(aName);
+    char *       start = (aLastValue == NULL ? mStart : (const_cast<char *>(aLastValue) + strlen(aLastValue) + 1));
+
+    while (start < mEnd)
+    {
+        char *last = NULL;
+
+        for (char *cur = strtok(start, "&"); cur != NULL; cur = strtok(NULL, "&"))
         {
-            char *last = NULL;
-
-            for (char *cur = strtok(start, "&"); cur != NULL; cur = strtok(NULL, "&"))
+            if (!strncmp(aName, cur, len))
             {
-                if (!strncmp(aName, cur, len))
+                if (cur[len] == '=')
                 {
-                    if (cur[len] == '=')
-                    {
-                        ExitNow(rval = &cur[len + 1]);
-                    }
-                    else if (cur[len] == '&' || cur[len] == '\0')
-                    {
-                        ExitNow(rval = "");
-                    }
+                    ExitNow(rval = &cur[len + 1]);
                 }
-                last = cur;
+                else if (cur[len] == '&' || cur[len] == '\0')
+                {
+                    ExitNow(rval = "");
+                }
             }
-
-            start = last + strlen(last) + 1;
+            last = cur;
         }
 
-    exit:
-        return rval;
+        start = last + strlen(last) + 1;
     }
-};
+
+exit:
+    return rval;
+}
+
+} // namespace Posix
+} // namespace ot
 
 const char *otPosixRadioArgumentsGetPath(otPosixRadioArguments *aArguments)
 {
@@ -88,9 +78,6 @@ const char *otPosixRadioArgumentsGetValue(otPosixRadioArguments *aArguments, con
 {
     return static_cast<ot::Posix::Arguments *>(aArguments)->GetValue(aName, aLast);
 }
-
-} // namespace Posix
-} // namespace ot
 
 #if OT_UNIT_TEST
 #include <assert.h>
@@ -174,5 +161,7 @@ int main()
     TestMultipleProtocols();
     TestMultipleProtocolsAndDuplicateParameters();
     TestPublicAPI();
+
+    return 0;
 }
-#endif
+#endif // OT_UNIT_TEST

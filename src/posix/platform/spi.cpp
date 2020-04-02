@@ -62,6 +62,104 @@
 namespace ot {
 namespace Posix {
 
+#if 0
+
+char *   mSpiGpioIntDevice;   ///< Path to the Linux GPIO character device for the `I̅N̅T̅` pin.
+char *   mSpiGpioResetDevice; ///< Path to the Linux GPIO character device for the `R̅E̅S̅E̅T̅` pin.
+uint8_t  mSpiGpioIntLine;     ///< Line index of the `I̅N̅T̅` pin for the associated GPIO character device.
+uint8_t  mSpiGpioResetLine;   ///< Line index of the `R̅E̅S̅E̅T̅` pin for the associated GPIO character device.
+uint8_t  mSpiMode;            ///< SPI mode to use (0-3).
+uint32_t mSpiSpeed;           ///< SPI speed in hertz.
+uint32_t mSpiResetDelay;      ///< The delay after R̅E̅S̅E̅T̅ OT_ASSERTion, in miliseconds.
+uint16_t mSpiCsDelay;         ///< The delay after SPI C̅S̅ OT_ASSERTion, in µsec.
+uint8_t  mSpiAlignAllowance;  ///< Maximum number of 0xFF bytes to clip from start of MISO frame.
+uint8_t  mSpiSmallPacketSize; ///< Smallest SPI packet size we can receive in a single transaction.
+#if OPENTHREAD_POSIX_CONFIG_RCP_SPI_ENABLE
+{"gpio-int-dev", required_argument, NULL, ARG_SPI_GPIO_INT_DEV},
+    {"gpio-int-line", required_argument, NULL, ARG_SPI_GPIO_INT_LINE},
+    {"gpio-reset-dev", required_argument, NULL, ARG_SPI_GPIO_RESET_DEV},
+    {"gpio-reset-line", required_argument, NULL, ARG_SPI_GPIO_RESET_LINE},
+    {"spi-mode", required_argument, NULL, ARG_SPI_MODE}, {"spi-speed", required_argument, NULL, ARG_SPI_SPEED},
+    {"spi-cs-delay", required_argument, NULL, ARG_SPI_CS_DELAY},
+    {"spi-reset-delay", required_argument, NULL, ARG_SPI_RESET_DELAY},
+    {"spi-align-allowance", required_argument, NULL, ARG_SPI_ALIGN_ALLOWANCE},
+    {"spi-small-packet", required_argument, NULL, ARG_SPI_SMALL_PACKET},
+#endif
+#if OPENTHREAD_POSIX_CONFIG_RCP_SPI_ENABLE
+    fprintf(aStream,
+            "        --gpio-int-dev[=gpio-device-path]\n"
+            "                                  Specify a path to the Linux sysfs-exported GPIO device for the\n"
+            "                                  `I̅N̅T̅` pin. If not specified, `SPI` interface will fall back to\n"
+            "                                  polling, which is inefficient.\n"
+            "        --gpio-int-line[=line-offset]\n"
+            "                                  The offset index of `I̅N̅T̅` pin for the associated GPIO device.\n"
+            "                                  If not specified, `SPI` interface will fall back to polling,\n"
+            "                                  which is inefficient.\n"
+            "        --gpio-reset-dev[=gpio-device-path]\n"
+            "                                  Specify a path to the Linux sysfs-exported GPIO device for the\n"
+            "                                  `R̅E̅S̅` pin.\n"
+            "        --gpio-reset-line[=line-offset]"
+            "                                  The offset index of `R̅E̅S̅` pin for the associated GPIO device.\n"
+            "        --spi-mode[=mode]         Specify the SPI mode to use (0-3).\n"
+            "        --spi-speed[=hertz]       Specify the SPI speed in hertz.\n"
+            "        --spi-cs-delay[=usec]     Specify the delay after C̅S̅ OT_ASSERTion, in µsec.\n"
+            "        --spi-reset-delay[=ms]    Specify the delay after R̅E̅S̅E̅T̅ OT_ASSERTion, in milliseconds.\n"
+            "        --spi-align-allowance[=n] Specify the maximum number of 0xFF bytes to clip from start of\n"
+            "                                  MISO frame. Max value is 16.\n"
+            "        --spi-small-packet=[n]    Specify the smallest packet we can receive in a single transaction.\n"
+            "                                  (larger packets will require two transactions). Default value is 32.\n");
+#endif
+#endif
+
+#if 0
+
+    aConfig->mPlatformConfig.mSpiSpeed           = OT_PLATFORM_CONFIG_SPI_DEFAULT_SPEED_HZ;
+    aConfig->mPlatformConfig.mSpiCsDelay         = OT_PLATFORM_CONFIG_SPI_DEFAULT_CS_DELAY_US;
+    aConfig->mPlatformConfig.mSpiResetDelay      = OT_PLATFORM_CONFIG_SPI_DEFAULT_RESET_DELAY_MS;
+    aConfig->mPlatformConfig.mSpiAlignAllowance  = OT_PLATFORM_CONFIG_SPI_DEFAULT_ALIGN_ALLOWANCE;
+    aConfig->mPlatformConfig.mSpiSmallPacketSize = OT_PLATFORM_CONFIG_SPI_DEFAULT_SMALL_PACKET_SIZE;
+    aConfig->mPlatformConfig.mSpiMode            = OT_PLATFORM_CONFIG_SPI_DEFAULT_MODE;
+    aConfig->mLogLevel                           = OT_LOG_LEVEL_CRIT;
+
+case ARG_NO_RADIO_RESET:
+    aConfig->mPlatformConfig.mResetRadio = false;
+    break;
+case ARG_RESTORE_NCP_DATASET:
+    aConfig->mPlatformConfig.mRestoreDatasetFromNcp = true;
+    break;
+case ARG_SPI_GPIO_INT_DEV:
+    aConfig->mPlatformConfig.mSpiGpioIntDevice = optarg;
+    break;
+case ARG_SPI_GPIO_INT_LINE:
+    aConfig->mPlatformConfig.mSpiGpioIntLine = (uint8_t)atoi(optarg);
+    break;
+case ARG_SPI_GPIO_RESET_DEV:
+    aConfig->mPlatformConfig.mSpiGpioResetDevice = optarg;
+    break;
+case ARG_SPI_GPIO_RESET_LINE:
+    aConfig->mPlatformConfig.mSpiGpioResetLine = (uint8_t)atoi(optarg);
+    break;
+case ARG_SPI_MODE:
+    aConfig->mPlatformConfig.mSpiMode = (uint8_t)atoi(optarg);
+    break;
+case ARG_SPI_SPEED:
+    aConfig->mPlatformConfig.mSpiSpeed = (uint32_t)atoi(optarg);
+    break;
+case ARG_SPI_CS_DELAY:
+    aConfig->mPlatformConfig.mSpiCsDelay = (uint16_t)atoi(optarg);
+    break;
+case ARG_SPI_RESET_DELAY:
+    aConfig->mPlatformConfig.mSpiResetDelay = (uint32_t)atoi(optarg);
+    break;
+case ARG_SPI_ALIGN_ALLOWANCE:
+    aConfig->mPlatformConfig.mSpiAlignAllowance = (uint8_t)atoi(optarg);
+    break;
+case ARG_SPI_SMALL_PACKET:
+    aConfig->mPlatformConfig.mSpiSmallPacketSize = (uint8_t)atoi(optarg);
+    break;
+}
+#endif
+
 SpiInterface::SpiInterface(void)
     : mSpiDevFd(-1)
     , mResetGpioValueFd(-1)

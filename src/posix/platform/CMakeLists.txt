@@ -103,4 +103,13 @@ if (OT_UNIT_TEST)
         PRIVATE
             "OT_UNIT_TEST=1"
     )
+
+    add_executable(test-module-manager radio_module.cpp)
+    target_include_directories(test-module-manager
+        PRIVATE
+            $<TARGET_PROPERTY:openthread-posix,INCLUDE_DIRECTORIES>)
+    target_compile_definitions(test-module-manager
+        PRIVATE
+            "OT_UNIT_TEST=1"
+    )
 endif()
