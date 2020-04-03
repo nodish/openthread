@@ -163,7 +163,7 @@ int otSysMainloopPoll(otSysMainloopContext *aMainloop)
 
             if (noWrite)
             {
-                virtualTimeSendSleepEvent(&aMainloop->mTimeout);
+                virtualTimeSendSleepEvent(aMainloop->mTimeout.tv_sec * 1000000 + aMainloop->mTimeout.tv_usec);
             }
 
             rval = select(aMainloop->mMaxFd + 1, &aMainloop->mReadFdSet, &aMainloop->mWriteFdSet,

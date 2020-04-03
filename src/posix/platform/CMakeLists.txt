@@ -61,6 +61,8 @@ add_library(openthread-posix
     netif.cpp
     radio.cpp
     radio_spinel.cpp
+    hdlc.cpp
+    module_forkpty.cpp
     settings.cpp
     system.cpp
     uart.cpp
@@ -106,7 +108,7 @@ if (OT_UNIT_TEST)
 
     add_executable(test-module-manager
         radio_url.cpp
-        radio_module.cpp
+        module_manager.cpp
     )
     target_include_directories(test-module-manager
         PRIVATE

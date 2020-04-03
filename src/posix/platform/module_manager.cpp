@@ -1,19 +1,26 @@
+#include "posix/platform/module_manager.hpp"
+
 #include <string.h>
 
 #include "core/common/code_utils.hpp"
 #include "posix/platform/platform-posix.h"
-#include "posix/platform/radio_url.hpp"
 
 namespace ot {
 namespace Posix {
 
-class ModuleManager
+ModuleManager::ModuleManager()
+    : mDriverList(NULL)
+    , mDriverUnused(NULL)
 {
-public:
-    ModuleManager()
-        : mDriverList(NULL)
-        , mDriverUnused(NULL)
-    {
+#if OPENTHREAD_POSIX_MODULE_SPINEL == OT_POSIX_MODULE_BUILTIN
+    RadioSpinelInit(this);
+#endif
+#if OPENTHREAD_POSIX_MODULE_HDLC == OT_POSIX_MODULE_BUILTIN
+    HdlcInit(this);
+#endif
+#if OPENTHREAD_POSIX_MODULE_FORKPTY == OT_POSIX_MODULE_BUILTIN
+    ForkptyInit(this);
+#endif
 #if 0
         // Try built-in drivers first
         if (!strcmp(aProto, kDriverSpinel))
@@ -48,96 +55,91 @@ public:
 
         return driver;
 #endif
+}
+
+otError ModuleManager::Register(otPosixRadioDriver *aDriver)
+{
+    otError rval = OT_ERROR_NONE;
+
+    for (otPosixRadioDriver *driver = mDriverList; driver != NULL; driver = driver->mNext)
+    {
+        if (driver == aDriver)
+        {
+            ExitNow(rval = OT_ERROR_ALREADY);
+        }
     }
 
-    otError Register(otPosixRadioDriver *aDriver)
-    {
-        otError rval = OT_ERROR_NONE;
+    aDriver->mNext = mDriverList;
+    mDriverList    = aDriver;
+    mDriverUnused  = aDriver;
 
-        for (otPosixRadioDriver *driver = mDriverList; driver != NULL; driver = driver->mNext)
+exit:
+    return rval;
+}
+
+otPosixRadioInstance *ModuleManager::CreateInstance(char *aUrl)
+{
+    ot::Posix::Arguments args(aUrl);
+
+    return CreateInstance(aUrl, args);
+}
+
+otPosixRadioInstance *ModuleManager::CreateInstance(char *aProto, Arguments &aArguments)
+{
+    char *                nextProto = strstr(aProto, "+");
+    otPosixRadioInstance *instance  = NULL;
+    otPosixRadioInstance *next      = NULL;
+    otPosixRadioDriver *  driver    = NULL;
+
+    if (nextProto != NULL)
+    {
+        nextProto[0] = '\0';
+        nextProto += sizeof("+") - 1;
+        next = CreateInstance(nextProto, aArguments);
+    }
+
+    driver = Find(aProto);
+    VerifyOrDie(driver != NULL, OT_EXIT_INVALID_ARGUMENTS);
+
+    instance = driver->Create(&aArguments, next);
+    VerifyOrDie(instance != NULL && instance->mDriver == driver, OT_EXIT_INVALID_ARGUMENTS);
+
+    if (mDriverUnused == driver)
+    {
+        mDriverUnused = mDriverUnused->mNext;
+    }
+    else
+    {
+        for (otPosixRadioDriver *prev = mDriverUnused; prev->mNext != NULL; prev = prev->mNext)
         {
-            if (driver == aDriver)
+            if (prev->mNext == driver)
             {
-                ExitNow(rval = OT_ERROR_ALREADY);
-            }
-        }
-
-        aDriver->mNext = mDriverList;
-        mDriverList    = aDriver;
-        mDriverUnused  = aDriver;
-
-    exit:
-        return rval;
-    }
-
-    otPosixRadioInstance *CreateInstance(char *aUrl)
-    {
-        ot::Posix::Arguments args(aUrl);
-
-        return CreateInstance(aUrl, args);
-    }
-
-    otPosixRadioInstance *CreateInstance(char *aProto, Arguments &aArguments)
-    {
-        char *                nextProto = strstr(aProto, "+");
-        otPosixRadioInstance *instance  = NULL;
-        otPosixRadioInstance *next      = NULL;
-        otPosixRadioDriver *  driver    = NULL;
-
-        if (nextProto != NULL)
-        {
-            nextProto[0] = '\0';
-            nextProto += sizeof("+") - 1;
-            next = CreateInstance(nextProto, aArguments);
-        }
-
-        driver = Find(aProto);
-        VerifyOrDie(driver != NULL, OT_EXIT_INVALID_ARGUMENTS);
-
-        instance = driver->Create(&aArguments, next);
-        VerifyOrDie(instance != NULL && instance->mDriver == driver, OT_EXIT_INVALID_ARGUMENTS);
-
-        if (mDriverUnused == driver)
-        {
-            mDriverUnused = mDriverUnused->mNext;
-        }
-        else
-        {
-            for (otPosixRadioDriver *prev = mDriverUnused; prev->mNext != NULL; prev = prev->mNext)
-            {
-                if (prev->mNext == driver)
-                {
-                    prev->mNext   = driver->mNext;
-                    driver->mNext = mDriverList;
-                    mDriverList   = driver;
-                    break;
-                }
-            }
-        }
-
-        return instance;
-    }
-
-private:
-    otPosixRadioDriver *Find(const char *aName)
-    {
-        otPosixRadioDriver *rval = NULL;
-
-        for (otPosixRadioDriver *driver = mDriverList; driver != NULL; driver = driver->mNext)
-        {
-            if (!strcmp(aName, driver->mName))
-            {
-                rval = driver;
+                prev->mNext   = driver->mNext;
+                driver->mNext = mDriverList;
+                mDriverList   = driver;
                 break;
             }
         }
-
-        return rval;
     }
 
-    otPosixRadioDriver *mDriverList;
-    otPosixRadioDriver *mDriverUnused;
-};
+    return instance;
+}
+
+otPosixRadioDriver *ModuleManager::Find(const char *aName)
+{
+    otPosixRadioDriver *rval = NULL;
+
+    for (otPosixRadioDriver *driver = mDriverList; driver != NULL; driver = driver->mNext)
+    {
+        if (!strcmp(aName, driver->mName))
+        {
+            rval = driver;
+            break;
+        }
+    }
+
+    return rval;
+}
 
 otError otPosixRadioDriverRegister(void *aContext, otPosixRadioDriver *aDriver)
 {
@@ -176,6 +178,24 @@ otPosixRadioInstance *CreateDummy2(otPosixRadioArguments *aArguments, otPosixRad
     return instance;
 }
 
+void TestBuiltin()
+{
+    ot::Posix::ModuleManager manager;
+
+#if OPENTHREAD_POSIX_MODULE_SPINEL == OT_POSIX_MODULE_BUILTIN && \
+    OPENTHREAD_POSIX_MODULE_HDLC == OT_POSIX_MODULE_BUILTIN && OPENTHREAD_POSIX_MODULE_SPI == OT_POSIX_MODULE_BUILTIN
+    {
+        char url[] = "spinel+hdlc+forkpty:///dev/ttyUSB0";
+
+        otPosixRadioInstance *instance = manager.CreateInstance(url);
+        assert(instance != NULL);
+        assert(!strcmp(instance->mDriver->mName, "spinel"));
+    }
+#endif
+
+    printf("PASS %s\r\n", __func__);
+}
+
 void TestSingle()
 {
     ot::Posix::ModuleManager manager;
@@ -207,6 +227,7 @@ void TestDual()
 
 int main()
 {
+    TestBuiltin();
     TestSingle();
     TestDual();
     return 0;

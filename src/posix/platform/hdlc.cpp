@@ -127,11 +127,11 @@ static otPosixRadioDriver sHdlcDriver = {
     .mPoll       = NULL,
 };
 
-#if OPENTHREAD_POSIX_SPINEL_MODULE_ENABLE
-extern "C" otError otPosixModuleInit(void)
+#if OPENTHREAD_POSIX_MODULE_HDLC == OT_POSIX_MODULE_DYNAMIC
+otError otPosixModuleInit(void *aContext)
 #else
-otError platformModuleInitHdlc(void)
+otError HdlcInit(void *aContext)
 #endif
 {
-    return otPosixRadioDriverRegister(&sHdlcDriver);
+    return otPosixRadioDriverRegister(&sHdlcDriver, aContext);
 }

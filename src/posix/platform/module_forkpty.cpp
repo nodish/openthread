@@ -42,7 +42,7 @@ static otPosixRadioInstance *Create(otPosixRadioArguments *aArguments, otPosixRa
         char      cmd[kMaxCommand];
 
         rval = snprintf(cmd, sizeof(cmd), "exec %s %s", otPosixRadioArgumentsGetPath(aArguments),
-                        otPosixRadioArgumentsGetValue(aArguments, "args"));
+                        otPosixRadioArgumentsGetValue(aArguments, "arg", NULL));
         VerifyOrExit(rval > 0 && static_cast<size_t>(rval) < sizeof(cmd),
                      fprintf(stderr, "NCP file and configuration is too long!");
                      rval = -1);
@@ -64,6 +64,8 @@ exit:
 static otError Delete(otPosixRadioInstance *aInstance)
 {
     delete static_cast<FileDescriptor *>(aInstance);
+
+    return OT_ERROR_NONE;
 }
 
 static otPosixRadioDriver sForkptyDriver = {
@@ -79,11 +81,11 @@ static otPosixRadioDriver sForkptyDriver = {
 } // namespace Posix
 } // namespace ot
 
-#if OPENTHREAD_POSIX_SPINEL_MODULE_ENABLE
-extern "C" otError otPosixModuleInit(void)
+#if OPENTHREAD_POSIX_MODULE_FORKPTY == OT_POSIX_MODULE_DYNAMIC
+otError otPosixModuleInit(void *aContext)
 #else
-otError platformModuleInitForkpty(void)
+otError ForkptyInit(void *aContext)
 #endif
 {
-    return otPosixRadioDriverRegister(&ot::Posix::sForkptyDriver);
+    return otPosixRadioDriverRegister(&ot::Posix::sForkptyDriver, aContext);
 }

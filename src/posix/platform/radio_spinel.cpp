@@ -186,17 +186,17 @@ RadioSpinel::RadioSpinel(void)
     mVersion[0] = '\0';
 }
 
-void RadioSpinel::Init(Arguments &aArguments, LowerDriver *aLower)
+void RadioSpinel::Init(otPosixRadioArguments *aArguments, otPosixRadioInstance *aNext)
 {
     otError error = OT_ERROR_NONE;
     bool    isRcp;
 
-    VerifyOrDie(aLower != NULL, OT_EXIT_INVALID_ARGUMENTS);
+    VerifyOrDie(aNext != NULL, OT_EXIT_INVALID_ARGUMENTS);
 
-    aLower->SetUpper(this);
-    mLower = aLower;
+    aNext->mDriver->mData->SetCallback(aNext, &RadioSpinel::Input, this);
+    mNext = aNext;
 
-    if (aArguments.GetValue("spinel-reset"))
+    if (otPosixRadioArgumentsGetValue(aArguments, "spinel-reset", NULL))
     {
         SuccessOrExit(error = SendReset());
     }
@@ -211,7 +211,7 @@ void RadioSpinel::Init(Arguments &aArguments, LowerDriver *aLower)
 
     gNodeId = ot::Encoding::BigEndian::HostSwap64(gNodeId);
 
-    if (aArguments.GetValue("spinel-restore-rcp-dataset") && !isRcp)
+    if (otPosixRadioArgumentsGetValue(aArguments, "spinel-restore-rcp-dataset", NULL) && !isRcp)
     {
         DieNow((RestoreDatasetFromNcp() == OT_ERROR_NONE) ? OT_EXIT_SUCCESS : OT_EXIT_FAILURE);
     }
@@ -902,65 +902,6 @@ void RadioSpinel::TransmitDone(otRadioFrame *aFrame, otRadioFrame *aAckFrame, ot
     }
 }
 
-void RadioSpinel::Poll(otSysMainloopContext &aMainloop)
-{
-    if (mState == kStateTransmitting)
-    {
-        uint64_t now = platformGetTime();
-
-        if (now < mTxRadioEndUs)
-        {
-            uint64_t remain = mTxRadioEndUs - now;
-
-            if (remain < static_cast<uint64_t>(aMainloop.mTimeout.tv_sec * US_PER_S + aMainloop.mTimeout.tv_usec))
-            {
-                aMainloop.mTimeout.tv_sec  = static_cast<time_t>(remain / US_PER_S);
-                aMainloop.mTimeout.tv_usec = static_cast<suseconds_t>(remain % US_PER_S);
-            }
-        }
-        else
-        {
-            aMainloop.mTimeout.tv_sec  = 0;
-            aMainloop.mTimeout.tv_usec = 0;
-        }
-    }
-
-    if (mRxFrameBuffer.HasSavedFrame() || (mState == kStateTransmitDone))
-    {
-        aMainloop.mTimeout.tv_sec  = 0;
-        aMainloop.mTimeout.tv_usec = 0;
-    }
-}
-
-void RadioSpinel::Process(const otSysMainloopContext &aMainloop)
-{
-    if (mRxFrameBuffer.HasSavedFrame())
-    {
-        // Handle frames received and saved during `WaitResponse()`
-        ProcessFrameQueue();
-    }
-
-    mLower.Process(aMainloop);
-
-    if (mRxFrameBuffer.HasSavedFrame())
-    {
-        ProcessFrameQueue();
-    }
-
-    if (mState == kStateTransmitDone)
-    {
-        mState        = kStateReceive;
-        mTxRadioEndUs = UINT64_MAX;
-
-        TransmitDone(mTransmitFrame, (mAckRadioFrame.mLength != 0) ? &mAckRadioFrame : NULL, mTxError);
-    }
-    else if (mState == kStateTransmitting && platformGetTime() >= mTxRadioEndUs)
-    {
-        // Frame has been successfully passed to radio, but no `TransmitDone` event received within TX_WAIT_US.
-        DieNowWithMessage("radio tx timeout", OT_EXIT_FAILURE);
-    }
-}
-
 otError RadioSpinel::SetPromiscuous(bool aEnable)
 {
     otError error;
@@ -1581,6 +1522,53 @@ otRadioState RadioSpinel::GetState(void) const
     return sOtRadioStateMap[mState];
 }
 
+otPosixRadioOperations RadioSpinel::sRadioOperations = {
+    .CcaEnergyDetectThresholdGet = &RadioSpinel::GetCcaEnergyDetectThreshold,
+    .CcaEnergyDetectThresholdSet = &RadioSpinel::SetCcaEnergyDetectThreshold,
+    .ChannelMaskGet              = &RadioSpinel::GetChannelMask,
+    .CoexEnable                  = &RadioSpinel::CoexEnable,
+    .CoexEnabled                 = &RadioSpinel::CoexEnabled,
+    .CoexMetricsGet              = &RadioSpinel::GetCoexMetrics,
+    .DiagProcess                 = &RadioSpinel::PlatDiagProcess,
+    .EnergyScan                  = &RadioSpinel::EnergyScan,
+    .ExtendedAddressSet          = &RadioSpinel::SetExtendedAddress,
+    .IeeeEui64Get                = &RadioSpinel::GetIeeeEui64,
+    .PanIdSet                    = &RadioSpinel::SetPanId,
+    .PromiscuousGet              = &RadioSpinel::IsPromiscuous,
+    .PromiscuousSet              = &RadioSpinel::SetPromiscuous,
+    .RadioCapsGet                = &RadioSpinel::GetRadioCaps,
+    .RadioDisable                = &RadioSpinel::Disable,
+    .RadioEnable                 = &RadioSpinel::Enable,
+    .RadioReceive                = &RadioSpinel::Receive,
+    .RadioSleep                  = &RadioSpinel::Sleep,
+    .RadioStateGet               = &RadioSpinel::GetState,
+    .RadioTransmit               = &RadioSpinel::Transmit,
+    .ReceiveSensitivityGet       = &RadioSpinel::GetReceiveSensitivity,
+    .RssiGet                     = &RadioSpinel::GetRssi,
+    .ShortAddressSet             = &RadioSpinel::SetShortAddress,
+    .SrcMatchEnable              = &RadioSpinel::EnableSrcMatch,
+    .SrcMatchExtEntriesClear     = &RadioSpinel::ClearSrcMatchExtEntries,
+    .SrcMatchExtEntryAdd         = &RadioSpinel::AddSrcMatchExtEntry,
+    .SrcMatchExtEntryClear       = &RadioSpinel::ClearSrcMatchExtEntry,
+    .SrcMatchShortEntriesClear   = &RadioSpinel::ClearSrcMatchShortEntries,
+    .SrcMatchShortEntryAdd       = &RadioSpinel::AddSrcMatchShortEntry,
+    .SrcMatchShortEntryClear     = &RadioSpinel::ClearSrcMatchShortEntry,
+    .TransmitBufferGet           = &RadioSpinel::GetTransmitBuffer,
+    .TransmitPowerGet            = &RadioSpinel::GetTransmitPower,
+    .TransmitPowerSet            = &RadioSpinel::SetTransmitPower,
+    .VersionGet                  = &RadioSpinel::GetVersion,
+};
+
+static otPosixRadioDriver sSpinelDriver = {
+    .mNext       = NULL,
+    .mName       = "spinel",
+    .Create      = Create,
+    .Delete      = Delete,
+    .mOperations = &sRadioOperations,
+    .mData       = NULL,
+    .mPoll       = NULL,
+};
+
 } // namespace Posix
 } // namespace ot
 
@@ -1598,28 +1586,11 @@ static otError Delete(otPosixRadioInstance *aInstance)
     delete static_cast<ot::Posix::RadioSpinel *>(aInstance);
 }
 
-static otPosixRadioOperations sRadioOperations = {
-    .GetIeeeEui64 = &RadioSpinel::GetIeeeEui64,
-};
-static otPosixRadioPollFuncs sPollFuncs = {};
-
-static otPosixRadioDriver sSpinelDriver = {
-    .mNext       = NULL,
-    .mName       = "spinel",
-    .Create      = Create,
-    .Delete      = Delete,
-    .mOperations = &sRadioOperations,
-    .mData       = NULL,
-    .mPoll       = &sPollFuncs,
-};
-
-extern "C" {
-#if OPENTHREAD_POSIX_MODULE_SPINEL == OT_POSIX_MODULE_BUILTIN
-otError otPosixModuleInit(void)
+#if OPENTHREAD_POSIX_MODULE_SPINEL == OT_POSIX_MODULE_DYNAMIC
+otError otPosixModuleInit(void *aContext)
 #else
-otError SpinelInit(void)
+otError RadioSpinelInit(void *aContext)
 #endif
 {
-    otPosixRadioDriverRegister(&sSpinelDriver);
-}
+    return otPosixRadioDriverRegister(&sSpinelDriver, aContext);
 }

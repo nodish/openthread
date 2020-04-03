@@ -9,8 +9,8 @@
 
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
+#include "posix/platform/module_manager.hpp"
 #include "posix/platform/platform-posix.h"
-#include "posix/platform/radio_module.h"
 
 otPosixRadioInstance *  sRadioInstance   = NULL;
 otPosixRadioOperations *sRadioOperations = NULL;
@@ -375,13 +375,66 @@ otRadioState otPlatRadioGetState(otInstance *aInstance)
     OT_UNUSED_VARIABLE(aInstance);
     return sRadioOperations->GetState();
 }
+
 void platformRadioPoll(otSysMainloopContext *aMainloop)
 {
+    if (mState == kStateTransmitting)
+    {
+        uint64_t now = platformGetTime();
+
+        if (now < mTxRadioEndUs)
+        {
+            uint64_t remain = mTxRadioEndUs - now;
+
+            if (remain < static_cast<uint64_t>(aMainloop.mTimeout.tv_sec * US_PER_S + aMainloop.mTimeout.tv_usec))
+            {
+                aMainloop.mTimeout.tv_sec  = static_cast<time_t>(remain / US_PER_S);
+                aMainloop.mTimeout.tv_usec = static_cast<suseconds_t>(remain % US_PER_S);
+            }
+        }
+        else
+        {
+            aMainloop.mTimeout.tv_sec  = 0;
+            aMainloop.mTimeout.tv_usec = 0;
+        }
+    }
+
+    if (mRxFrameBuffer.HasSavedFrame() || (mState == kStateTransmitDone))
+    {
+        aMainloop.mTimeout.tv_sec  = 0;
+        aMainloop.mTimeout.tv_usec = 0;
+    }
     sRadioPoll->Poll(*aMainloop);
 }
 
 void platformRadioProcess(const otSysMainloopContext *aMainloop)
 {
+    if (mRxFrameBuffer.HasSavedFrame())
+    {
+        // Handle frames received and saved during `WaitResponse()`
+        ProcessFrameQueue();
+    }
+
+    mLower.Process(aMainloop);
+
+    if (mRxFrameBuffer.HasSavedFrame())
+    {
+        ProcessFrameQueue();
+    }
+
+    if (mState == kStateTransmitDone)
+    {
+        mState        = kStateReceive;
+        mTxRadioEndUs = UINT64_MAX;
+
+        TransmitDone(mTransmitFrame, (mAckRadioFrame.mLength != 0) ? &mAckRadioFrame : NULL, mTxError);
+    }
+    else if (mState == kStateTransmitting && platformGetTime() >= mTxRadioEndUs)
+    {
+        // Frame has been successfully passed to radio, but no `TransmitDone` event received within TX_WAIT_US.
+        DieNowWithMessage("radio tx timeout", OT_EXIT_FAILURE);
+    }
+
     sRadioPoll->Process(*aMainloop);
 }
 

@@ -39,12 +39,15 @@
 #include <openthread/radio_driver.h>
 #include <openthread/platform/radio.h>
 
+#include "lib/hdlc/hdlc.hpp"
 #include "lib/spinel/spinel.h"
 #include "ncp/ncp_config.h"
 #include "posix/platform/radio.hpp"
 
 namespace ot {
 namespace Posix {
+
+otError RadioSpinelInit(void *aContext);
 
 class RadioSpinel : public otPosixRadioInstance
 {
@@ -61,7 +64,7 @@ public:
      * @param[in]  aPlatformConfig  Platform configuration structure.
      *
      */
-    void Init(Arguments &aArguments, LowerDriver *aLower);
+    void Init(otPosixRadioArguments *aArguments, otPosixRadioInstance *aInstance);
 
     /**
      * Deinitialize this radio transceiver.
@@ -419,7 +422,7 @@ public:
      * @retval OT_ERROR_FAILED   The radio could not be enabled.
      *
      */
-    otError Enable(otInstance *aInstance);
+    otError Enable(void);
 
     /**
      * Disable the radio.
@@ -500,14 +503,6 @@ public:
      *
      */
     uint32_t GetRadioChannelMask(bool aPreferred);
-
-    /**
-     * This method processes a received Spinel frame.
-     *
-     * The newly received frame is available in `RxFrameBuffer` from `SpinelInterface::GetRxFrameBuffer()`.
-     *
-     */
-    otError Input(const uint8_t *aBuffer, uint16_t aLength);
 
 private:
     enum
@@ -685,8 +680,182 @@ private:
     size_t mDiagOutputMaxLen;
 #endif
 
-    LowerDriver *mLower;
-    uint64_t     mTxRadioEndUs;
+    uint64_t mTxRadioEndUs;
+
+    enum
+    {
+        kMaxFrameSize = 2048, ///< Maximum frame size (number of bytes).
+    };
+    ot::Hdlc::MultiFrameBuffer<kMaxFrameSize> mRxFrameBuffer;
+
+    static otRadioState GetState(otPosixRadioInstance *aInstance)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->GetState();
+    }
+
+    static otError Disable(otPosixRadioInstance *aInstance) { return static_cast<RadioSpinel *>(aInstance)->Disable(); }
+    static otError Enable(otPosixRadioInstance *aInstance) { return static_cast<RadioSpinel *>(aInstance)->Enable(); }
+    static otError Sleep(otPosixRadioInstance *aInstance) { return static_cast<RadioSpinel *>(aInstance)->Sleep(); }
+    static otError Receive(otPosixRadioInstance *aInstance, uint8_t aChannel)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->Receive(aChannel);
+    }
+    static otError Transmit(otPosixRadioInstance *aInstance, otRadioFrame *aFrame)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->Transmit(*aFrame);
+    }
+
+    otRadioCaps GetRadioCaps(otPosixRadioInstance *aInstance)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->GetRadioCaps();
+    }
+
+    const char *GetVersion(otPosixRadioInstance *aInstance)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->GetVersion();
+    }
+
+    bool IsPromiscuous(otPosixRadioInstance *aInstance)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->IsPromiscuous();
+    }
+
+    void SetPromiscuous(otPosixRadioInstance *aInstance, bool aEnable)
+    {
+        static_cast<RadioSpinel *>(aInstance)->SetPromiscuous(aEnable);
+    }
+
+    void GetIeeeEui64(otPosixRadioInstance *aInstance, uint8_t *aIeeeEui64)
+    {
+        static_cast<RadioSpinel *>(aInstance)->GetIeeeEui64(aIeeeEui64);
+    }
+
+    otRadioFrame *GetTransmitBuffer(otPosixRadioInstance *aInstance)
+    {
+        return &static_cast<RadioSpinel *>(aInstance)->GetTransmitFrame();
+    }
+
+    otError GetTransmitPower(otPosixRadioInstance *aInstance, int8_t *aPower)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->GetTransmitPower(*aPower);
+    }
+
+    otError SetTransmitPower(otPosixRadioInstance *aInstance, int8_t aPower)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->SetTransmitPower(aPower);
+    }
+
+    int8_t GetRssi(otPosixRadioInstance *aInstance) { return static_cast<RadioSpinel *>(aInstance)->GetRssi(); }
+
+    otError SetPanId(otPosixRadioInstance *aInstance, uint16_t aPanId)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->SetPanId(aPanId);
+    }
+
+    otError SetExtendedAddress(otPosixRadioInstance *aInstance, const otExtAddress *aAddress)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->SetExtendedAddress(*aAddress);
+    }
+
+    otError SetShortAddress(otPosixRadioInstance *aInstance, uint16_t aShortAddress)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->SetShortAddress(aShortAddress);
+    }
+
+    otError EnableSrcMatch(otPosixRadioInstance *aInstance, bool aEnable)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->EnableSrcMatch(aEnable);
+    }
+
+    otError AddSrcMatchExtEntry(otPosixRadioInstance *aInstance, const otExtAddress *aExtAddress)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->AddSrcMatchExtEntry(*aExtAddress);
+    }
+
+    otError ClearSrcMatchExtEntry(otPosixRadioInstance *aInstance, const otExtAddress *aExtAddress)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->ClearSrcMatchExtEntry(*aExtAddress);
+    }
+
+    otError ClearSrcMatchExtEntries(otPosixRadioInstance *aInstance)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->ClearSrcMatchExtEntries();
+    }
+
+    otError AddSrcMatchShortEntry(otPosixRadioInstance *aInstance, uint16_t aShortAddress)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->AddSrcMatchShortEntry(aShortAddress);
+    }
+
+    otError ClearSrcMatchShortEntry(otPosixRadioInstance *aInstance, uint16_t aShortAddress)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->ClearSrcMatchShortEntry(aShortAddress);
+    }
+
+    otError ClearSrcMatchShortEntries(otPosixRadioInstance *aInstance)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->ClearSrcMatchShortEntries();
+    }
+
+    otError EnergyScan(otPosixRadioInstance *aInstance, uint8_t aScanChannel, uint16_t aScanDuration)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->EnergyScan(aScanChannel, aScanDuration);
+    }
+
+    otError GetCcaEnergyDetectThreshold(otPosixRadioInstance *aInstance, int8_t *aThreshold)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->GetCcaEnergyDetectThreshold(*aThreshold);
+    }
+
+    otError SetCcaEnergyDetectThreshold(otPosixRadioInstance *aInstance, int8_t aThreshold)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->SetCcaEnergyDetectThreshold(aThreshold);
+    }
+
+    int8_t GetReceiveSensitivity(otPosixRadioInstance *aInstance)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->GetReceiveSensitivity();
+    }
+
+    otError CoexEnable(otPosixRadioInstance *aInstance, bool aEnable)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->SetCoexEnabled(aEnable);
+    }
+
+    bool CoexEnabled(otPosixRadioInstance *aInstance) { return static_cast<RadioSpinel *>(aInstance)->IsCoexEnabled(); }
+
+    otError GetCoexMetrics(otPosixRadioInstance *aInstance, otRadioCoexMetrics *aCoexMetrics)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->GetCoexMetrics(*aCoexMetrics);
+    }
+
+    otError DiagProcess(otPosixRadioInstance *aInstance, const char *aCommand, char *aOutput, size_t aOutputMaxLen)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->PlatDiagProcess(aCommand, aOutput, aOutputMaxLen);
+    }
+
+    uint32_t GetChannelMask(otPosixRadioInstance *aInstance, bool aPreferred)
+    {
+        return static_cast<RadioSpinel *>(aInstance)->GetRadioChannelMask(aPreferred);
+    }
+
+    otPosixRadioInstance *mNext;
+
+    static otError Input(void *aContext, const uint8_t *aBuffer, uint16_t aLength)
+    {
+        return static_cast<RadioSpinel *>(aContext)->Input(aBuffer, aLength);
+    }
+
+    /**
+     * This method processes a received Spinel frame.
+     *
+     * The newly received frame is available in `RxFrameBuffer` from `SpinelInterface::GetRxFrameBuffer()`.
+     *
+     */
+    otError Input(const uint8_t *aBuffer, uint16_t aLength);
+
+    static otPosixRadioOperations sRadioOperations;
+    static otPosixRadioPollFuncs  sPollFuncs;
 };
 
 } // namespace Posix
