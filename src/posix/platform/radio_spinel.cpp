@@ -1614,7 +1614,7 @@ static otPosixRadioDriver sSpinelDriver = {
 };
 
 extern "C" {
-#if OPENTHREAD_POSIX_SPINEL_MODULE_ENABLE
+#if OPENTHREAD_POSIX_MODULE_SPINEL == OT_POSIX_MODULE_BUILTIN
 otError otPosixModuleInit(void)
 #else
 otError SpinelInit(void)

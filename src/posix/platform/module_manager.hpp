@@ -1,0 +1,12 @@
+#ifndef OT_POSIX_PLATFORM_MODULE_MANAGER_HPP_
+#define OT_POSIX_PLATFORM_MODULE_MANAGER_HPP_
+
+#define OT_POSIX_MODULE_DISABLE 0
+#define OT_POSIX_MODULE_BUILTIN 1
+#define OT_POSIX_MODULE_DYNAMIC 2
+
+#define OT_POSIX_MODULE_INIT(aName, aInitFunc) \
+    extern "C" otError otPosixModuleInit(void) \
+    {
+#endif // OT_POSIX_PLATFORM_MODULE_MANAGER_HPP_
+

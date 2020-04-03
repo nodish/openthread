@@ -79,7 +79,7 @@ const char *otPosixRadioArgumentsGetValue(otPosixRadioArguments *aArguments, con
     return static_cast<ot::Posix::Arguments *>(aArguments)->GetValue(aName, aLast);
 }
 
-#if OT_UNIT_TEST
+#if OT_UNIT_TEST_RADIO_URL
 #include <assert.h>
 
 void TestSimple()
@@ -164,4 +164,4 @@ int main()
 
     return 0;
 }
-#endif // OT_UNIT_TEST
+#endif // OT_UNIT_TEST_RADIO_URL

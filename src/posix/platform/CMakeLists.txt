@@ -101,15 +101,18 @@ if (OT_UNIT_TEST)
             $<TARGET_PROPERTY:openthread-posix,INCLUDE_DIRECTORIES>)
     target_compile_definitions(test-radio-url
         PRIVATE
-            "OT_UNIT_TEST=1"
+            "OT_UNIT_TEST_RADIO_URL=1"
     )
 
-    add_executable(test-module-manager radio_module.cpp)
+    add_executable(test-module-manager
+        radio_url.cpp
+        radio_module.cpp
+    )
     target_include_directories(test-module-manager
         PRIVATE
             $<TARGET_PROPERTY:openthread-posix,INCLUDE_DIRECTORIES>)
     target_compile_definitions(test-module-manager
         PRIVATE
-            "OT_UNIT_TEST=1"
+            "OT_UNIT_TEST_MODULE_MANAGER=1"
     )
 endif()
