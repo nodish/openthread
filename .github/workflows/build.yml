@@ -50,8 +50,8 @@ jobs:
         sudo apt remove -y clang-6.0 libclang-common-6.0-dev libclang1-6.0 libllvm6.0
         sudo apt autoremove
         sudo apt --no-install-recommends install -y clang-tools clang-format-6.0 shellcheck
-        python3 -m pip install yapf==0.29.0
-        python3 -m pip install cmake-format==0.6.10
+        python3 -m pip install --system yapf==0.29.0
+        python3 -m pip install --system cmake-format==0.6.10
         sudo snap install shfmt
         python3 -m pip show cmake-format
         python3 -m pip show yapf
