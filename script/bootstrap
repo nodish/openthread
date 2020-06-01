@@ -61,6 +61,9 @@ install_packages_apt()
 
     # add shfmt for shell pretty, try brew only because snap does not support home directory not being /home and doesn't work in docker.
     command -v shfmt || brew install shfmt || echo 'Failed to install shfmt. Install it manually if you need.'
+
+    # add cmake-format
+    command -v cmake-format || python3 -m pip install cmake-format==0.6.10
 }
 
 install_packages_opkg()
@@ -97,6 +100,9 @@ install_packages_brew()
 
     # add yapf for pretty
     python3 -m pip install yapf || echo 'Failed to install python code formatter yapf. Install it manually if you need.'
+
+    # add cmake-format
+    command -v cmake-format || python3 -m pip install cmake-format==0.6.10
 }
 
 install_packages_source()

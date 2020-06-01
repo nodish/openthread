@@ -51,6 +51,7 @@ jobs:
         sudo apt autoremove
         sudo apt --no-install-recommends install -y clang-tools clang-format-6.0 shellcheck
         python3 -m pip install yapf==0.29.0
+        python3 -m pip install cmake-format==0.6.10
         sudo snap install shfmt
     - name: Check
       run: |
