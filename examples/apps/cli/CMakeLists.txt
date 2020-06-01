@@ -38,11 +38,23 @@ target_include_directories(ot-cli-ftd PRIVATE ${COMMON_INCLUDES})
 target_include_directories(ot-cli-mtd PRIVATE ${COMMON_INCLUDES})
 
 target_link_libraries(
-    ot-cli-ftd PRIVATE openthread-cli-ftd ${OT_PLATFORM_LIB} openthread-ftd ${OT_PLATFORM_LIB} mbedcrypto ot-config
+    ot-cli-ftd
+    PRIVATE openthread-cli-ftd
+            ${OT_PLATFORM_LIB}
+            openthread-ftd
+            ${OT_PLATFORM_LIB}
+            mbedcrypto
+            ot-config
 )
 
 target_link_libraries(
-    ot-cli-mtd PRIVATE openthread-cli-mtd ${OT_PLATFORM_LIB} openthread-mtd ${OT_PLATFORM_LIB} mbedcrypto ot-config
+    ot-cli-mtd
+    PRIVATE openthread-cli-mtd
+            ${OT_PLATFORM_LIB}
+            openthread-mtd
+            ${OT_PLATFORM_LIB}
+            mbedcrypto
+            ot-config
 )
 
 install(TARGETS ot-cli-ftd ot-cli-mtd DESTINATION bin)

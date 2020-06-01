@@ -97,8 +97,12 @@ target_compile_definitions(openthread-simulation PUBLIC ${OT_PLATFORM_DEFINES})
 target_compile_options(openthread-simulation PRIVATE ${OT_CFLAGS})
 
 target_include_directories(
-    openthread-simulation PRIVATE ${OT_PUBLIC_INCLUDES} ${OT_PRIVATE_INCLUDES} ${PROJECT_SOURCE_DIR}/examples/platforms
-                                  ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/src/core
+    openthread-simulation
+    PRIVATE ${OT_PUBLIC_INCLUDES}
+            ${OT_PRIVATE_INCLUDES}
+            ${PROJECT_SOURCE_DIR}/examples/platforms
+            ${PROJECT_SOURCE_DIR}/src
+            ${PROJECT_SOURCE_DIR}/src/core
 )
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)

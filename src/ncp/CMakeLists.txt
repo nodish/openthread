@@ -87,14 +87,23 @@ target_sources(openthread-ncp-ftd PRIVATE ${COMMON_SOURCES})
 target_sources(openthread-ncp-mtd PRIVATE ${COMMON_SOURCES})
 
 target_sources(
-    openthread-rcp PRIVATE changed_props_set.cpp ncp_base.cpp ncp_base_dispatcher.cpp ncp_base_radio.cpp ncp_spi.cpp
-                           ncp_uart.cpp
+    openthread-rcp
+    PRIVATE changed_props_set.cpp
+            ncp_base.cpp
+            ncp_base_dispatcher.cpp
+            ncp_base_radio.cpp
+            ncp_spi.cpp
+            ncp_uart.cpp
 )
 
 target_link_libraries(
     openthread-ncp-ftd
     PUBLIC openthread-ftd
-    PRIVATE ${OT_PLATFORM_LIB} ${OT_MBEDTLS} openthread-hdlc openthread-spinel-ncp ot-config
+    PRIVATE ${OT_PLATFORM_LIB}
+            ${OT_MBEDTLS}
+            openthread-hdlc
+            openthread-spinel-ncp
+            ot-config
 )
 
 target_link_libraries(

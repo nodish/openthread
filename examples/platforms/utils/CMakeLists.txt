@@ -27,13 +27,21 @@
 #
 
 add_library(
-    openthread-platform-utils OBJECT debug_uart.c logging_rtt.c mac_frame.cpp settings_ram.c soft_source_match_table.c
+    openthread-platform-utils OBJECT
+    debug_uart.c
+    logging_rtt.c
+    mac_frame.cpp
+    settings_ram.c
+    soft_source_match_table.c
 )
 
 target_include_directories(
     openthread-platform-utils
-    PRIVATE ${OT_PUBLIC_INCLUDES} ${OT_PRIVATE_INCLUDES} ${PROJECT_SOURCE_DIR}/examples/platforms
-            ${PROJECT_SOURCE_DIR}/examples/platforms/utils ${PROJECT_SOURCE_DIR}/src/core
+    PRIVATE ${OT_PUBLIC_INCLUDES}
+            ${OT_PRIVATE_INCLUDES}
+            ${PROJECT_SOURCE_DIR}/examples/platforms
+            ${PROJECT_SOURCE_DIR}/examples/platforms/utils
+            ${PROJECT_SOURCE_DIR}/src/core
             ${PROJECT_SOURCE_DIR}/third_party/jlink/SEGGER_RTT_V640/RTT
 )
 

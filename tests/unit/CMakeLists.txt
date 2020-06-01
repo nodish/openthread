@@ -28,7 +28,13 @@
 
 set(COMMON_SOURCES test_platform.cpp test_util.cpp)
 
-set(COMMON_LIBS openthread-ftd openthread-ncp-ftd ot-config ${OT_MBEDTLS} util)
+set(COMMON_LIBS
+    openthread-ftd
+    openthread-ncp-ftd
+    ot-config
+    ${OT_MBEDTLS}
+    util
+)
 
 set(COMMON_INCLUDES ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/src/core
                     ${PROJECT_SOURCE_DIR}/examples/platforms/simulation

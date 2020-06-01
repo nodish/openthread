@@ -68,8 +68,13 @@ target_link_options(openthread-kw41z PRIVATE -Wl,--gc-sections -Wl,-Map=$<TARGET
 target_compile_definitions(openthread-kw41z PUBLIC ${OT_PLATFORM_DEFINES})
 
 target_compile_options(
-    openthread-kw41z PRIVATE ${OT_CFLAGS} -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-function
-                             -Wno-unused-parameter -Wno-empty-body
+    openthread-kw41z
+    PRIVATE ${OT_CFLAGS}
+            -Wno-unknown-pragmas
+            -Wno-sign-compare
+            -Wno-unused-function
+            -Wno-unused-parameter
+            -Wno-empty-body
 )
 
 target_include_directories(

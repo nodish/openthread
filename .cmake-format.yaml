@@ -3,3 +3,5 @@ first_comment_is_literal: true
 keyword_case: 'upper'
 line_width: 120
 tab_size: 4
+max_pargs_hwrap: 4
+max_subgroups_hwrap: 2

@@ -37,8 +37,13 @@ target_compile_definitions(ot-daemon PRIVATE OPENTHREAD_POSIX_APP_TYPE=OT_POSIX_
 target_compile_options(ot-daemon PRIVATE ${OT_CFLAGS})
 
 target_link_libraries(
-    ot-daemon PRIVATE openthread-cli-ftd ${OT_PLATFORM_LIB} openthread-ftd ${OT_PLATFORM_LIB} openthread-ncp-ftd
-                      mbedcrypto
+    ot-daemon
+    PRIVATE openthread-cli-ftd
+            ${OT_PLATFORM_LIB}
+            openthread-ftd
+            ${OT_PLATFORM_LIB}
+            openthread-ncp-ftd
+            mbedcrypto
 )
 
 add_executable(ot-ctl client.cpp)
