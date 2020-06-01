@@ -53,6 +53,7 @@ jobs:
         python3 -m pip install yapf==0.29.0
         python3 -m pip install cmake-format==0.6.10
         sudo snap install shfmt
+        command -v yapf shfmt clang-format-6.0 shellcheck cmake-format
     - name: Check
       run: |
         script/make-pretty check
