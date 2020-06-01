@@ -26,26 +26,25 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-set(COMMON_INCLUDES
-    ${OT_PUBLIC_INCLUDES}
-    ${OT_PRIVATE_INCLUDES}
-    ${PROJECT_SOURCE_DIR}/src/core
-    ${PROJECT_SOURCE_DIR}/src/posix/platform
-    ${PROJECT_SOURCE_DIR}/src/posix/platform/include
+set(COMMON_INCLUDES ${OT_PUBLIC_INCLUDES} ${OT_PRIVATE_INCLUDES} ${PROJECT_SOURCE_DIR}/src/core
+                    ${PROJECT_SOURCE_DIR}/src/posix/platform ${PROJECT_SOURCE_DIR}/src/posix/platform/include
 )
 
-set(OT_READLINE "readline" CACHE STRING "set readline library name")
+set(OT_READLINE
+    "readline"
+    CACHE STRING "set readline library name"
+)
 set_property(CACHE OT_READLINE PROPERTY STRINGS "readline" "edit")
 
 if(OT_READLINE)
     find_library(READLINE ${OT_READLINE})
 
-    if (NOT READLINE)
+    if(NOT READLINE)
         message(FATAL_ERROR "Failed to find ${OT_READLINE}")
     endif()
 
     find_library(NCURSES ncurses)
-    if (NOT NCURSES)
+    if(NOT NCURSES)
         message(FATAL_ERROR "Failed to find ncurses")
     endif()
 

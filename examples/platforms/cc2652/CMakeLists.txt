@@ -26,29 +26,39 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-set(OT_PLATFORM_LIB "openthread-cc2652" PARENT_SCOPE)
+set(OT_PLATFORM_LIB
+    "openthread-cc2652"
+    PARENT_SCOPE
+)
 
 if(NOT OT_CONFIG)
     set(OT_CONFIG "openthread-core-cc2652-config.h")
-    set(OT_CONFIG ${OT_CONFIG} PARENT_SCOPE)
+    set(OT_CONFIG
+        ${OT_CONFIG}
+        PARENT_SCOPE
+    )
 endif()
 
-list(APPEND OT_PLATFORM_DEFINES
-    "OPENTHREAD_CORE_CONFIG_PLATFORM_CHECK_FILE=\"openthread-core-cc2652-config-check.h\""
+list(APPEND OT_PLATFORM_DEFINES "OPENTHREAD_CORE_CONFIG_PLATFORM_CHECK_FILE=\"openthread-core-cc2652-config-check.h\"")
+set(OT_PLATFORM_DEFINES
+    ${OT_PLATFORM_DEFINES}
+    PARENT_SCOPE
 )
-set(OT_PLATFORM_DEFINES ${OT_PLATFORM_DEFINES} PARENT_SCOPE)
 
 target_compile_definitions(ot-config INTERFACE "MBEDTLS_USER_CONFIG_FILE=\"cc2652-mbedtls-config.h\"")
 
-list(APPEND OT_PUBLIC_INCLUDES
-    "${CMAKE_CURRENT_SOURCE_DIR}/crypto"
-    "${PROJECT_SOURCE_DIR}/third_party/ti/devices/cc13x2_cc26x2"
+list(APPEND OT_PUBLIC_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/crypto"
+     "${PROJECT_SOURCE_DIR}/third_party/ti/devices/cc13x2_cc26x2"
 )
-set(OT_PUBLIC_INCLUDES ${OT_PUBLIC_INCLUDES} PARENT_SCOPE)
+set(OT_PUBLIC_INCLUDES
+    ${OT_PUBLIC_INCLUDES}
+    PARENT_SCOPE
+)
 
 list(APPEND OT_PLATFORM_DEFINES "OPENTHREAD_PROJECT_CORE_CONFIG_FILE=\"${OT_CONFIG}\"")
 
-add_library(openthread-cc2652
+add_library(
+    openthread-cc2652
     alarm.c
     cc2652_ccfg.c
     cc2652_startup.c
@@ -66,33 +76,19 @@ add_library(openthread-cc2652
 
 set_property(TARGET openthread-cc2652 PROPERTY C_STANDARD 99)
 
-target_link_libraries(openthread-cc2652
-    PUBLIC
-        cc13x2-cc26x2-driver
-    PRIVATE
-        ${OT_MBEDTLS}
-        ot-config
+target_link_libraries(
+    openthread-cc2652
+    PUBLIC cc13x2-cc26x2-driver
+    PRIVATE ${OT_MBEDTLS} ot-config
 )
 
-target_link_options(openthread-cc2652
-    PUBLIC
-        -Wl,--gc-sections
-)
+target_link_options(openthread-cc2652 PUBLIC -Wl,--gc-sections)
 
-target_compile_definitions(openthread-cc2652
-    PUBLIC
-        ${OT_PLATFORM_DEFINES}
-)
+target_compile_definitions(openthread-cc2652 PUBLIC ${OT_PLATFORM_DEFINES})
 
-target_compile_options(openthread-cc2652
-    PRIVATE
-        ${OT_CFLAGS}
-)
+target_compile_options(openthread-cc2652 PRIVATE ${OT_CFLAGS})
 
-target_include_directories(openthread-cc2652
-    PRIVATE
-        ${OT_PUBLIC_INCLUDES}
-        ${OT_PRIVATE_INCLUDES}
-        ${PROJECT_SOURCE_DIR}/src/core
-        ${PROJECT_SOURCE_DIR}/examples/platforms
+target_include_directories(
+    openthread-cc2652 PRIVATE ${OT_PUBLIC_INCLUDES} ${OT_PRIVATE_INCLUDES} ${PROJECT_SOURCE_DIR}/src/core
+                              ${PROJECT_SOURCE_DIR}/examples/platforms
 )

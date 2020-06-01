@@ -26,21 +26,14 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-add_library(openthread-platform
-    exit_code.c
-    exit_code.h
-)
+add_library(openthread-platform exit_code.c exit_code.h)
 
-target_include_directories(openthread-platform
-    PUBLIC
-        ${OT_PUBLIC_INCLUDES}
-        ${PROJECT_SOURCE_DIR}/src/
-    PRIVATE
-        ${OT_PRIVATE_INCLUDES}
+target_include_directories(
+    openthread-platform
+    PUBLIC ${OT_PUBLIC_INCLUDES} ${PROJECT_SOURCE_DIR}/src/
+    PRIVATE ${OT_PRIVATE_INCLUDES}
 )
 
 target_link_libraries(openthread-platform PRIVATE ot-config)
 
-target_compile_options(openthread-platform PRIVATE
-    ${OT_CFLAGS}
-)
+target_compile_options(openthread-platform PRIVATE ${OT_CFLAGS})

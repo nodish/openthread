@@ -29,48 +29,38 @@
 add_library(openthread-spinel-ncp)
 add_library(openthread-spinel-rcp)
 
-set_target_properties(
-    openthread-spinel-ncp openthread-spinel-rcp
-    PROPERTIES
-        C_STANDARD 99
-        CXX_STANDARD 11
-)
+set_target_properties(openthread-spinel-ncp openthread-spinel-rcp PROPERTIES C_STANDARD 99 CXX_STANDARD 11)
 
-target_compile_definitions(openthread-spinel-ncp PRIVATE
-    OPENTHREAD_FTD=1
-    OPENTHREAD_CONFIG_NCP_UART_ENABLE=1
+target_compile_definitions(
+    openthread-spinel-ncp
+    PRIVATE OPENTHREAD_FTD=1 OPENTHREAD_CONFIG_NCP_UART_ENABLE=1
     PUBLIC OPENTHREAD_SPINEL_CONFIG_OPENTHREAD_MESSAGE_ENABLE=1
 )
 
-target_compile_definitions(openthread-spinel-rcp PRIVATE
-    OPENTHREAD_RADIO=1
-    OPENTHREAD_CONFIG_NCP_UART_ENABLE=1
+target_compile_definitions(
+    openthread-spinel-rcp
+    PRIVATE OPENTHREAD_RADIO=1 OPENTHREAD_CONFIG_NCP_UART_ENABLE=1
     PUBLIC OPENTHREAD_SPINEL_CONFIG_OPENTHREAD_MESSAGE_ENABLE=0
 )
 
-target_compile_options(openthread-spinel-ncp PRIVATE
-    ${OT_CFLAGS}
-)
+target_compile_options(openthread-spinel-ncp PRIVATE ${OT_CFLAGS})
 
-target_compile_options(openthread-spinel-rcp PRIVATE
-    ${OT_CFLAGS}
-)
+target_compile_options(openthread-spinel-rcp PRIVATE ${OT_CFLAGS})
 
-set(COMMON_INCLUDES
-    ${OT_PRIVATE_INCLUDES}
-    ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/src/core
-)
+set(COMMON_INCLUDES ${OT_PRIVATE_INCLUDES} ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/src/core)
 
-set(COMMON_SOURCES
-    spinel.c
-    spinel_buffer.cpp
-    spinel_decoder.cpp
-    spinel_encoder.cpp
-)
+set(COMMON_SOURCES spinel.c spinel_buffer.cpp spinel_decoder.cpp spinel_encoder.cpp)
 
-target_include_directories(openthread-spinel-ncp PUBLIC ${OT_PUBLIC_INCLUDES} PRIVATE ${COMMON_INCLUDES})
-target_include_directories(openthread-spinel-rcp PUBLIC ${OT_PUBLIC_INCLUDES} PRIVATE ${COMMON_INCLUDES})
+target_include_directories(
+    openthread-spinel-ncp
+    PUBLIC ${OT_PUBLIC_INCLUDES}
+    PRIVATE ${COMMON_INCLUDES}
+)
+target_include_directories(
+    openthread-spinel-rcp
+    PUBLIC ${OT_PUBLIC_INCLUDES}
+    PRIVATE ${COMMON_INCLUDES}
+)
 
 target_sources(openthread-spinel-ncp PRIVATE ${COMMON_SOURCES})
 target_sources(openthread-spinel-rcp PRIVATE ${COMMON_SOURCES})

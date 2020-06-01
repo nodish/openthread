@@ -30,41 +30,21 @@ add_library(openthread-ftd)
 add_library(openthread-mtd)
 add_library(openthread-radio)
 
-set_target_properties(
-    openthread-ftd openthread-mtd openthread-radio
-    PROPERTIES
-        C_STANDARD 99
-        CXX_STANDARD 11
-)
+set_target_properties(openthread-ftd openthread-mtd openthread-radio PROPERTIES C_STANDARD 99 CXX_STANDARD 11)
 
-target_compile_definitions(openthread-ftd PRIVATE
-    OPENTHREAD_FTD=1
-)
+target_compile_definitions(openthread-ftd PRIVATE OPENTHREAD_FTD=1)
 
-target_compile_definitions(openthread-mtd PRIVATE
-    OPENTHREAD_MTD=1
-)
+target_compile_definitions(openthread-mtd PRIVATE OPENTHREAD_MTD=1)
 
-target_compile_definitions(openthread-radio PRIVATE
-    OPENTHREAD_RADIO=1
-)
+target_compile_definitions(openthread-radio PRIVATE OPENTHREAD_RADIO=1)
 
-target_compile_options(openthread-ftd PRIVATE
-    ${OT_CFLAGS}
-)
+target_compile_options(openthread-ftd PRIVATE ${OT_CFLAGS})
 
-target_compile_options(openthread-mtd PRIVATE
-    ${OT_CFLAGS}
-)
+target_compile_options(openthread-mtd PRIVATE ${OT_CFLAGS})
 
-target_compile_options(openthread-radio PRIVATE
-    ${OT_CFLAGS}
-)
+target_compile_options(openthread-radio PRIVATE ${OT_CFLAGS})
 
-set(COMMON_INCLUDES
-    ${OT_PRIVATE_INCLUDES}
-    ${PROJECT_SOURCE_DIR}/src/core
-)
+set(COMMON_INCLUDES ${OT_PRIVATE_INCLUDES} ${PROJECT_SOURCE_DIR}/src/core)
 
 set(COMMON_SOURCES
     api/backbone_router_api.cpp
@@ -208,55 +188,56 @@ set(COMMON_SOURCES
     utils/slaac_address.cpp
 )
 
-target_include_directories(openthread-ftd PUBLIC ${OT_PUBLIC_INCLUDES} PRIVATE ${COMMON_INCLUDES})
-target_include_directories(openthread-mtd PUBLIC ${OT_PUBLIC_INCLUDES} PRIVATE ${COMMON_INCLUDES})
-target_include_directories(openthread-radio PUBLIC ${OT_PUBLIC_INCLUDES} PRIVATE ${COMMON_INCLUDES})
+target_include_directories(
+    openthread-ftd
+    PUBLIC ${OT_PUBLIC_INCLUDES}
+    PRIVATE ${COMMON_INCLUDES}
+)
+target_include_directories(
+    openthread-mtd
+    PUBLIC ${OT_PUBLIC_INCLUDES}
+    PRIVATE ${COMMON_INCLUDES}
+)
+target_include_directories(
+    openthread-radio
+    PUBLIC ${OT_PUBLIC_INCLUDES}
+    PRIVATE ${COMMON_INCLUDES}
+)
 
 target_sources(openthread-ftd PRIVATE ${COMMON_SOURCES})
 target_sources(openthread-mtd PRIVATE ${COMMON_SOURCES})
 
-target_sources(openthread-radio PRIVATE
-    api/diags_api.cpp
-    api/instance_api.cpp
-    api/link_raw_api.cpp
-    api/logging_api.cpp
-    api/random_noncrypto_api.cpp
-    api/tasklet_api.cpp
-    common/instance.cpp
-    common/logging.cpp
-    common/random_manager.cpp
-    common/string.cpp
-    common/tasklet.cpp
-    common/timer.cpp
-    crypto/aes_ccm.cpp
-    crypto/aes_ecb.cpp
-    diags/factory_diags.cpp
-    mac/link_raw.cpp
-    mac/mac_frame.cpp
-    mac/mac_types.cpp
-    mac/sub_mac.cpp
-    mac/sub_mac_callbacks.cpp
-    radio/radio.cpp
-    radio/radio_callbacks.cpp
-    radio/radio_platform.cpp
-    thread/link_quality.cpp
-    utils/parse_cmdline.cpp
+target_sources(
+    openthread-radio
+    PRIVATE api/diags_api.cpp
+            api/instance_api.cpp
+            api/link_raw_api.cpp
+            api/logging_api.cpp
+            api/random_noncrypto_api.cpp
+            api/tasklet_api.cpp
+            common/instance.cpp
+            common/logging.cpp
+            common/random_manager.cpp
+            common/string.cpp
+            common/tasklet.cpp
+            common/timer.cpp
+            crypto/aes_ccm.cpp
+            crypto/aes_ecb.cpp
+            diags/factory_diags.cpp
+            mac/link_raw.cpp
+            mac/mac_frame.cpp
+            mac/mac_types.cpp
+            mac/sub_mac.cpp
+            mac/sub_mac_callbacks.cpp
+            radio/radio.cpp
+            radio/radio_callbacks.cpp
+            radio/radio_platform.cpp
+            thread/link_quality.cpp
+            utils/parse_cmdline.cpp
 )
 
-target_link_libraries(openthread-ftd
-    PRIVATE
-        ${OT_MBEDTLS}
-        ot-config
-)
+target_link_libraries(openthread-ftd PRIVATE ${OT_MBEDTLS} ot-config)
 
-target_link_libraries(openthread-mtd
-    PRIVATE
-        ${OT_MBEDTLS}
-        ot-config
-)
+target_link_libraries(openthread-mtd PRIVATE ${OT_MBEDTLS} ot-config)
 
-target_link_libraries(openthread-radio
-    PRIVATE
-        ${OT_MBEDTLS}
-        ot-config
-)
+target_link_libraries(openthread-radio PRIVATE ${OT_MBEDTLS} ot-config)

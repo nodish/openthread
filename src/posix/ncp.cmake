@@ -26,29 +26,18 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-add_executable(ot-ncp
-    main.c
-)
+add_executable(ot-ncp main.c)
 
-set_target_properties(
-    ot-ncp
-    PROPERTIES
-        C_STANDARD 99
-        CXX_STANDARD 11
-)
+set_target_properties(ot-ncp PROPERTIES C_STANDARD 99 CXX_STANDARD 11)
 
 target_include_directories(ot-ncp PRIVATE ${COMMON_INCLUDES})
 
-target_compile_definitions(ot-ncp PRIVATE
-    OPENTHREAD_POSIX_APP_TYPE=OT_POSIX_APP_TYPE_NCP
-    ${OT_PLATFORM_DEFINES}
-)
+target_compile_definitions(ot-ncp PRIVATE OPENTHREAD_POSIX_APP_TYPE=OT_POSIX_APP_TYPE_NCP ${OT_PLATFORM_DEFINES})
 
-target_compile_options(ot-ncp PRIVATE
-    ${OT_CFLAGS}
-)
+target_compile_options(ot-ncp PRIVATE ${OT_CFLAGS})
 
-target_link_libraries(ot-ncp
+target_link_libraries(
+    ot-ncp
     openthread-ncp-ftd
     ${OT_PLATFORM_LIB}
     openthread-ftd

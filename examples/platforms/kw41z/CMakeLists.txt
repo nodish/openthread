@@ -26,21 +26,29 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-set(OT_PLATFORM_LIB "openthread-kw41z" PARENT_SCOPE)
+set(OT_PLATFORM_LIB
+    "openthread-kw41z"
+    PARENT_SCOPE
+)
 
 if(NOT OT_CONFIG)
     set(OT_CONFIG "openthread-core-kw41z-config.h")
-    set(OT_CONFIG ${OT_CONFIG} PARENT_SCOPE)
+    set(OT_CONFIG
+        ${OT_CONFIG}
+        PARENT_SCOPE
+    )
 endif()
 
-list(APPEND OT_PLATFORM_DEFINES
-    "OPENTHREAD_CORE_CONFIG_PLATFORM_CHECK_FILE=\"openthread-core-kw41z-config-check.h\""
+list(APPEND OT_PLATFORM_DEFINES "OPENTHREAD_CORE_CONFIG_PLATFORM_CHECK_FILE=\"openthread-core-kw41z-config-check.h\"")
+set(OT_PLATFORM_DEFINES
+    ${OT_PLATFORM_DEFINES}
+    PARENT_SCOPE
 )
-set(OT_PLATFORM_DEFINES ${OT_PLATFORM_DEFINES} PARENT_SCOPE)
 
 list(APPEND OT_PLATFORM_DEFINES "OPENTHREAD_PROJECT_CORE_CONFIG_FILE=\"${OT_CONFIG}\"")
 
-add_library(openthread-kw41z
+add_library(
+    openthread-kw41z
     alarm.c
     diag.c
     entropy.c
@@ -57,25 +65,14 @@ target_link_libraries(openthread-kw41z PRIVATE nxp-kw41z-driver ot-config)
 target_link_options(openthread-kw41z PRIVATE -T${PROJECT_SOURCE_DIR}/examples/platforms/kw41z/MKW41Z512xxx4.ld)
 target_link_options(openthread-kw41z PRIVATE -Wl,--gc-sections -Wl,-Map=$<TARGET_PROPERTY:NAME>.map)
 
-target_compile_definitions(openthread-kw41z
-    PUBLIC
-        ${OT_PLATFORM_DEFINES}
+target_compile_definitions(openthread-kw41z PUBLIC ${OT_PLATFORM_DEFINES})
+
+target_compile_options(
+    openthread-kw41z PRIVATE ${OT_CFLAGS} -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-function
+                             -Wno-unused-parameter -Wno-empty-body
 )
 
-target_compile_options(openthread-kw41z
-    PRIVATE
-        ${OT_CFLAGS}
-        -Wno-unknown-pragmas
-        -Wno-sign-compare
-        -Wno-unused-function
-        -Wno-unused-parameter
-        -Wno-empty-body
-)
-
-target_include_directories(openthread-kw41z
-    PRIVATE
-        ${OT_PUBLIC_INCLUDES}
-        ${OT_PRIVATE_INCLUDES}
-        ${PROJECT_SOURCE_DIR}/examples/platforms
-        ${PROJECT_SOURCE_DIR}/src/core
+target_include_directories(
+    openthread-kw41z PRIVATE ${OT_PUBLIC_INCLUDES} ${OT_PRIVATE_INCLUDES} ${PROJECT_SOURCE_DIR}/examples/platforms
+                             ${PROJECT_SOURCE_DIR}/src/core
 )

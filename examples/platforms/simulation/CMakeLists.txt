@@ -26,7 +26,10 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-set(OT_PLATFORM_LIB "openthread-simulation" PARENT_SCOPE)
+set(OT_PLATFORM_LIB
+    "openthread-simulation"
+    PARENT_SCOPE
+)
 
 option(OT_SIMULATION_VIRTUAL_TIME "enable virtual time")
 if(OT_SIMULATION_VIRTUAL_TIME)
@@ -40,21 +43,30 @@ endif()
 
 if(NOT OT_CONFIG)
     set(OT_CONFIG "openthread-core-simulation-config.h")
-    set(OT_CONFIG ${OT_CONFIG} PARENT_SCOPE)
+    set(OT_CONFIG
+        ${OT_CONFIG}
+        PARENT_SCOPE
+    )
 endif()
 
-list(APPEND OT_PLATFORM_DEFINES
+list(
+    APPEND
+    OT_PLATFORM_DEFINES
     "_BSD_SOURCE=1"
     "_DEFAULT_SOURCE=1"
     "OPENTHREAD_EXAMPLES_SIMULATION=1"
     "OPENTHREAD_POSIX=1"
     "OPENTHREAD_CONFIG_NCP_UART_ENABLE=1"
 )
-set(OT_PLATFORM_DEFINES ${OT_PLATFORM_DEFINES} PARENT_SCOPE)
+set(OT_PLATFORM_DEFINES
+    ${OT_PLATFORM_DEFINES}
+    PARENT_SCOPE
+)
 
 list(APPEND OT_PLATFORM_DEFINES "OPENTHREAD_PROJECT_CORE_CONFIG_FILE=\"${OT_CONFIG}\"")
 
-add_library(openthread-simulation
+add_library(
+    openthread-simulation
     alarm.c
     diag.c
     entropy.c
@@ -78,26 +90,15 @@ if(LIBRT)
     target_link_libraries(openthread-simulation PRIVATE ${LIBRT})
 endif()
 
-target_link_libraries(openthread-simulation PRIVATE
-    openthread-platform-utils
-    openthread-platform
-    ot-config)
+target_link_libraries(openthread-simulation PRIVATE openthread-platform-utils openthread-platform ot-config)
 
-target_compile_definitions(openthread-simulation
-    PUBLIC
-        ${OT_PLATFORM_DEFINES}
-)
+target_compile_definitions(openthread-simulation PUBLIC ${OT_PLATFORM_DEFINES})
 
-target_compile_options(openthread-simulation PRIVATE
-    ${OT_CFLAGS}
-)
+target_compile_options(openthread-simulation PRIVATE ${OT_CFLAGS})
 
-target_include_directories(openthread-simulation PRIVATE
-    ${OT_PUBLIC_INCLUDES}
-    ${OT_PRIVATE_INCLUDES}
-    ${PROJECT_SOURCE_DIR}/examples/platforms
-    ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/src/core
+target_include_directories(
+    openthread-simulation PRIVATE ${OT_PUBLIC_INCLUDES} ${OT_PRIVATE_INCLUDES} ${PROJECT_SOURCE_DIR}/examples/platforms
+                                  ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/src/core
 )
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)

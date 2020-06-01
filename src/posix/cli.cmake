@@ -26,31 +26,21 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-add_executable(ot-cli
-    main.c
-    $<$<BOOL:${READLINE}>:console_cli.cpp>
-)
+add_executable(ot-cli main.c $<$<BOOL:${READLINE}>:console_cli.cpp>)
 
-set_target_properties(
-    ot-cli
-    PROPERTIES
-        C_STANDARD 99
-        CXX_STANDARD 11
-)
+set_target_properties(ot-cli PROPERTIES C_STANDARD 99 CXX_STANDARD 11)
 
 target_include_directories(ot-cli PRIVATE ${COMMON_INCLUDES})
 
-target_compile_definitions(ot-cli PRIVATE
-    $<$<BOOL:${READLINE}>:HAVE_LIB$<UPPER_CASE:${OT_READLINE}>=1>
-    OPENTHREAD_POSIX_APP_TYPE=OT_POSIX_APP_TYPE_CLI
-    ${OT_PLATFORM_DEFINES}
+target_compile_definitions(
+    ot-cli PRIVATE $<$<BOOL:${READLINE}>:HAVE_LIB$<UPPER_CASE:${OT_READLINE}>=1>
+                   OPENTHREAD_POSIX_APP_TYPE=OT_POSIX_APP_TYPE_CLI ${OT_PLATFORM_DEFINES}
 )
 
-target_compile_options(ot-cli PRIVATE
-    ${OT_CFLAGS}
-)
+target_compile_options(ot-cli PRIVATE ${OT_CFLAGS})
 
-target_link_libraries(ot-cli
+target_link_libraries(
+    ot-cli
     openthread-cli-ftd
     ${OT_PLATFORM_LIB}
     openthread-ftd
@@ -62,6 +52,4 @@ target_link_libraries(ot-cli
     ${READLINE_LINK_LIBRARIES}
 )
 
-
 install(TARGETS ot-cli DESTINATION bin)
-

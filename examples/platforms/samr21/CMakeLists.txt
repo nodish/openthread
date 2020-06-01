@@ -26,27 +26,36 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-set(OT_PLATFORM_LIB "openthread-samr21" PARENT_SCOPE)
+set(OT_PLATFORM_LIB
+    "openthread-samr21"
+    PARENT_SCOPE
+)
 
 if(NOT OT_CONFIG)
     set(OT_CONFIG "openthread-core-samr21-config.h")
-    set(OT_CONFIG ${OT_CONFIG} PARENT_SCOPE)
+    set(OT_CONFIG
+        ${OT_CONFIG}
+        PARENT_SCOPE
+    )
 endif()
 
-list(APPEND OT_PLATFORM_DEFINES
-    "OPENTHREAD_CORE_CONFIG_PLATFORM_CHECK_FILE=\"openthread-core-samr21-config-check.h\""
+list(APPEND OT_PLATFORM_DEFINES "OPENTHREAD_CORE_CONFIG_PLATFORM_CHECK_FILE=\"openthread-core-samr21-config-check.h\"")
+set(OT_PLATFORM_DEFINES
+    ${OT_PLATFORM_DEFINES}
+    PARENT_SCOPE
 )
-set(OT_PLATFORM_DEFINES ${OT_PLATFORM_DEFINES} PARENT_SCOPE)
 
 target_compile_definitions(ot-config INTERFACE "MBEDTLS_USER_CONFIG_FILE=\"samr21-mbedtls-config.h\"")
-list(APPEND OT_PUBLIC_INCLUDES
-    "${PROJECT_SOURCE_DIR}/examples/platforms/samr21/crypto"
+list(APPEND OT_PUBLIC_INCLUDES "${PROJECT_SOURCE_DIR}/examples/platforms/samr21/crypto")
+set(OT_PUBLIC_INCLUDES
+    ${OT_PUBLIC_INCLUDES}
+    PARENT_SCOPE
 )
-set(OT_PUBLIC_INCLUDES ${OT_PUBLIC_INCLUDES} PARENT_SCOPE)
 
 list(APPEND OT_PLATFORM_DEFINES "OPENTHREAD_PROJECT_CORE_CONFIG_FILE=\"${OT_CONFIG}\"")
 
-add_library(openthread-samr21
+add_library(
+    openthread-samr21
     alarm.c
     crypto/aes_alt.c
     cxx_helpers.c
@@ -66,36 +75,21 @@ if(OT_CFLAGS MATCHES "-pedantic-errors")
     string(REPLACE "-pedantic-errors" "" OT_CFLAGS "${OT_CFLAGS}")
 endif()
 
-target_link_libraries(openthread-samr21
-    PUBLIC
-        samr21-driver
-    PRIVATE
-        ${OT_MBEDTLS}
-        ot-config
+target_link_libraries(
+    openthread-samr21
+    PUBLIC samr21-driver
+    PRIVATE ${OT_MBEDTLS} ot-config
 )
 
-target_link_options(openthread-samr21
-    PUBLIC
-        -Wl,--gc-sections
-        -Wl,-Map=$<TARGET_PROPERTY:NAME>.map
+target_link_options(openthread-samr21 PUBLIC -Wl,--gc-sections -Wl,-Map=$<TARGET_PROPERTY:NAME>.map)
+
+target_compile_definitions(openthread-samr21 PUBLIC ${OT_PLATFORM_DEFINES})
+
+target_compile_options(
+    openthread-samr21 PRIVATE -Wno-implicit-function-declaration -Wno-expansion-to-defined ${OT_CFLAGS}
 )
 
-target_compile_definitions(openthread-samr21
-    PUBLIC
-        ${OT_PLATFORM_DEFINES}
-)
-
-target_compile_options(openthread-samr21
-    PRIVATE
-        -Wno-implicit-function-declaration
-        -Wno-expansion-to-defined
-        ${OT_CFLAGS}
-)
-
-target_include_directories(openthread-samr21
-    PRIVATE
-        ${OT_PUBLIC_INCLUDES}
-        ${OT_PRIVATE_INCLUDES}
-        ${PROJECT_SOURCE_DIR}/src/core
-        ${PROJECT_SOURCE_DIR}/examples/platforms
+target_include_directories(
+    openthread-samr21 PRIVATE ${OT_PUBLIC_INCLUDES} ${OT_PRIVATE_INCLUDES} ${PROJECT_SOURCE_DIR}/src/core
+                              ${PROJECT_SOURCE_DIR}/examples/platforms
 )

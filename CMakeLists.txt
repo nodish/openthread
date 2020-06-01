@@ -36,12 +36,15 @@ project(openthread VERSION ${OT_DEFAULT_VERSION})
 
 option(OT_BUILD_EXECUTABLES "Build executables" ON)
 option(OT_COVERAGE "enable coverage" OFF)
-set(OT_EXTERNAL_MBEDTLS "" CACHE STRING "Specify external mbedtls library")
+set(OT_EXTERNAL_MBEDTLS
+    ""
+    CACHE STRING "Specify external mbedtls library"
+)
 
 add_library(ot-config INTERFACE)
 
 include(TestBigEndian)
-TEST_BIG_ENDIAN(OT_BIG_ENDIAN)
+test_big_endian(OT_BIG_ENDIAN)
 if(OT_BIG_ENDIAN)
     target_compile_definitions(ot-config INTERFACE "BYTE_ORDER_BIG_ENDIAN=1")
 endif()
@@ -52,7 +55,7 @@ include("${PROJECT_SOURCE_DIR}/etc/cmake/functions.cmake")
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "(Apple)?[Cc]lang")
     option(OT_COMPILE_WARNING_AS_ERROR "whether to include -Werror -pedantic-errors with gcc-compatible compilers")
-    if (OT_COMPILE_WARNING_AS_ERROR)
+    if(OT_COMPILE_WARNING_AS_ERROR)
         set(OT_CFLAGS -Werror -pedantic-errors)
     endif()
 
@@ -63,24 +66,33 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "(Apple)?[Cc]lang")
     endif()
 
     set(OT_CFLAGS
-        $<$<COMPILE_LANGUAGE:C>:${OT_CFLAGS} -Wall -Wextra -Wshadow>
-        $<$<COMPILE_LANGUAGE:CXX>:${OT_CFLAGS} -Wall -Wextra -Wshadow -Wno-c++14-compat -fno-exceptions>
+        $<$<COMPILE_LANGUAGE:C>:${OT_CFLAGS}
+        -Wall
+        -Wextra
+        -Wshadow>
+        $<$<COMPILE_LANGUAGE:CXX>:${OT_CFLAGS}
+        -Wall
+        -Wextra
+        -Wshadow
+        -Wno-c++14-compat
+        -fno-exceptions>
     )
 endif()
 
 execute_process(
     COMMAND bash "-c" "third_party/nlbuild-autotools/repo/scripts/mkversion -b ${OT_DEFAULT_VERSION}"
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    OUTPUT_VARIABLE OT_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE
+    OUTPUT_VARIABLE OT_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 message(STATUS "Version: ${OT_VERSION}")
 
-target_compile_definitions(ot-config INTERFACE
-    "PACKAGE_NAME=\"OPENTHREAD\""
-    "PACKAGE_VERSION=\"${OT_VERSION}\""
-)
+target_compile_definitions(ot-config INTERFACE "PACKAGE_NAME=\"OPENTHREAD\"" "PACKAGE_VERSION=\"${OT_VERSION}\"")
 
-set(OT_THREAD_VERSION "1.1" CACHE STRING "Thread version chosen by the user at configure time")
+set(OT_THREAD_VERSION
+    "1.1"
+    CACHE STRING "Thread version chosen by the user at configure time"
+)
 set_property(CACHE OT_THREAD_VERSION PROPERTY STRINGS "1.1" "1.2")
 if(${OT_THREAD_VERSION} EQUAL "1.1")
     target_compile_definitions(ot-config INTERFACE "OPENTHREAD_CONFIG_THREAD_VERSION=OT_THREAD_VERSION_1_1")
@@ -90,7 +102,10 @@ else()
     message(FATAL_ERROR "Thread version unknown: ${OT_THREAD_VERSION}")
 endif()
 
-set(OT_PLATFORM "none" CACHE STRING "Target platform chosen by the user at configure time")
+set(OT_PLATFORM
+    "none"
+    CACHE STRING "Target platform chosen by the user at configure time"
+)
 ot_get_platforms(OT_EXAMPLE_PLATFORMS)
 set_property(CACHE OT_PLATFORM PROPERTY STRINGS ${OT_EXAMPLE_PLATFORMS})
 if(NOT OT_PLATFORM IN_LIST OT_EXAMPLE_PLATFORMS)
@@ -99,34 +114,37 @@ if(NOT OT_PLATFORM IN_LIST OT_EXAMPLE_PLATFORMS)
     endif()
 endif()
 
-set(OT_LOG_OUTPUT_VALUES
-    "APP"
-    "DEBUG_UART"
-    "NCP_SPINEL"
-    "NONE"
-    "PLATFORM_DEFINED"
-)
+set(OT_LOG_OUTPUT_VALUES "APP" "DEBUG_UART" "NCP_SPINEL" "NONE" "PLATFORM_DEFINED")
 if(OT_REFERENCE_DEVICE AND NOT OT_PLATFORM STREQUAL "posix")
-    set(OT_LOG_OUTPUT "APP" CACHE STRING "Set log output to application for reference device")
+    set(OT_LOG_OUTPUT
+        "APP"
+        CACHE STRING "Set log output to application for reference device"
+    )
 else()
-    set(OT_LOG_OUTPUT "" CACHE STRING "Where log output goes to")
+    set(OT_LOG_OUTPUT
+        ""
+        CACHE STRING "Where log output goes to"
+    )
 endif()
 set_property(CACHE OT_LOG_OUTPUT PROPERTY STRINGS ${OT_LOG_OUTPUT_VALUES})
 if(OT_LOG_OUTPUT)
     if(NOT OT_LOG_OUTPUT IN_LIST OT_LOG_OUTPUT_VALUES)
         message(FATAL_ERROR "Log output unknown: ${OT_LOG_OUTPUT}")
     endif()
-    target_compile_definitions(ot-config INTERFACE "OPENTHREAD_CONFIG_LOG_OUTPUT=OPENTHREAD_CONFIG_LOG_OUTPUT_${OT_LOG_OUTPUT}")
+    target_compile_definitions(
+        ot-config INTERFACE "OPENTHREAD_CONFIG_LOG_OUTPUT=OPENTHREAD_CONFIG_LOG_OUTPUT_${OT_LOG_OUTPUT}"
+    )
     message(STATUS "Log output: ${OT_LOG_OUTPUT}")
 endif()
 
-# OT_CONFIG allows users to specify the path to OpenThread project core
-# config header file. The default value of this parameter is empty string.
-# When not specified by user (value is ""), a platform cmake file may
-# choose to change this variable to provide its own core config header
-# file instead.
+# OT_CONFIG allows users to specify the path to OpenThread project core config header file. The default value of this
+# parameter is empty string. When not specified by user (value is ""), a platform cmake file may choose to change this
+# variable to provide its own core config header file instead.
 
-set(OT_CONFIG "" CACHE STRING "OpenThread project-specific config header file chosen by user at configure time")
+set(OT_CONFIG
+    ""
+    CACHE STRING "OpenThread project-specific config header file chosen by user at configure time"
+)
 
 list(APPEND OT_PUBLIC_INCLUDES ${PROJECT_BINARY_DIR}/etc/cmake)
 list(APPEND OT_PUBLIC_INCLUDES ${PROJECT_SOURCE_DIR}/etc/cmake)
@@ -165,4 +183,6 @@ if(OT_PLATFORM STREQUAL "simulation")
     add_subdirectory(tests)
 endif()
 
-add_custom_target(print-ot-config ALL COMMAND echo -e "$<JOIN:$<TARGET_PROPERTY:ot-config,INTERFACE_COMPILE_DEFINITIONS>,\"\\n\">")
+add_custom_target(
+    print-ot-config ALL COMMAND echo -e "$<JOIN:$<TARGET_PROPERTY:ot-config,INTERFACE_COMPILE_DEFINITIONS>,\"\\n\">"
+)

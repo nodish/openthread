@@ -30,12 +30,19 @@
 function(ot_get_platforms arg_platforms)
     set(result "none")
     set(platforms_dir "${PROJECT_SOURCE_DIR}/examples/platforms")
-    file(GLOB platforms RELATIVE "${platforms_dir}" "${platforms_dir}/*")
+    file(
+        GLOB platforms
+        RELATIVE "${platforms_dir}"
+        "${platforms_dir}/*"
+    )
     foreach(platform IN LISTS platforms)
         if(IS_DIRECTORY "${platforms_dir}/${platform}")
             list(APPEND result "${platform}")
         endif()
     endforeach()
 
-    set(${arg_platforms} "${result}" PARENT_SCOPE)
+    set(${arg_platforms}
+        "${result}"
+        PARENT_SCOPE
+    )
 endfunction()

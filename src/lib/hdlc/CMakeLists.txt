@@ -26,27 +26,16 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-add_library(openthread-hdlc
-    hdlc.cpp
-)
+add_library(openthread-hdlc hdlc.cpp)
 
-set_target_properties(
+set_target_properties(openthread-hdlc PROPERTIES C_STANDARD 99 CXX_STANDARD 11)
+
+target_include_directories(
     openthread-hdlc
-    PROPERTIES
-        C_STANDARD 99
-        CXX_STANDARD 11
-)
-
-target_include_directories(openthread-hdlc
-    PUBLIC
-        ${OT_PUBLIC_INCLUDES}
-    PRIVATE
-        ${PROJECT_SOURCE_DIR}/src/core
-        ${OT_PRIVATE_INCLUDES}
+    PUBLIC ${OT_PUBLIC_INCLUDES}
+    PRIVATE ${PROJECT_SOURCE_DIR}/src/core ${OT_PRIVATE_INCLUDES}
 )
 
 target_link_libraries(openthread-hdlc PRIVATE ot-config)
 
-target_compile_options(openthread-hdlc PRIVATE
-    ${OT_CFLAGS}
-)
+target_compile_options(openthread-hdlc PRIVATE ${OT_CFLAGS})
