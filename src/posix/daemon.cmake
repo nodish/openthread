@@ -56,7 +56,7 @@ target_compile_definitions(
 
 target_compile_options(ot-ctl PRIVATE ${OT_CFLAGS})
 
-target_link_libraries(ot-ctl openthread-platform ${READLINE_LINK_LIBRARIES})
+target_link_libraries(ot-ctl PRIVATE openthread-platform ${READLINE_LINK_LIBRARIES})
 
 target_include_directories(ot-ctl PRIVATE ${COMMON_INCLUDES})
 
