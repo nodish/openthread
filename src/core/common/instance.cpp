@@ -33,6 +33,7 @@
 
 #include "instance.hpp"
 
+#include <openthread/instance.h>
 #include <openthread/platform/misc.h>
 
 #include "common/logging.hpp"
@@ -112,6 +113,8 @@ Instance::Instance(void)
 #endif
     , mIsInitialized(false)
 {
+    otLogInfoCore("OpenThread version: %s", otGetVersionString());
+    otLogInfoCore("Thread version: %hu", otThreadGetVersion());
 }
 
 #if !OPENTHREAD_CONFIG_MULTIPLE_INSTANCE_ENABLE
