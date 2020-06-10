@@ -40,6 +40,17 @@ jobs:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       if: "github.ref != 'refs/heads/master'"
 
+  iwyu:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Bootstrap
+      run: |
+        sudo apt-get --no-install-recommends iwyu
+    - name: Check
+      run: |
+        script/make-pretty check
+
   pretty:
     runs-on: ubuntu-18.04
     steps:
