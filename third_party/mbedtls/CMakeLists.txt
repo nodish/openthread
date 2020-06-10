@@ -33,7 +33,19 @@ set(OT_MBEDTLS_CONFIG_FILE "" CACHE STRING "The mbedTLS config file")
 set(ENABLE_TESTING OFF CACHE BOOL "Disable mbedtls test" FORCE)
 set(ENABLE_PROGRAMS OFF CACHE BOOL "Disable mbetls program" FORCE)
 
+find_program(UNIFDEFALL_EXE unifdefall)
+
 add_subdirectory(repo)
+
+if(UNIFDEFALL_EXE)
+    add_custom_target(mbedtls-config.h
+        ${UNIFDEFALL_EXE} "-D$<JOIN:$<TARGET_PROPERTY:ot-config,INTERFACE_COMPILE_DEFINITIONS>,;-D>" mbedtls-config.h.in -o ${CMAKE_CURRENT_BINARY_DIR}/mbedtls-config.h COMMAND_EXPAND_LISTS)
+    add_dependencies(mbedtls mbedtls-config.h)
+    add_dependencies(mbedx509 mbedtls-config.h)
+    add_dependencies(mbedcrypto mbedtls-config.h)
+else()
+    configure_file(mbedtls-config.h.in mbedtls-config.h COPYONLY)
+endif()
 
 target_compile_definitions(mbedtls
     PUBLIC
