@@ -302,6 +302,9 @@ private:
     uint8_t        mSequence;
 
 #if OPENTHREAD_FTD
+    constexpr uint16_t kSharedSeedId = 0xfc00; ///< Use leader's aloc as the id of the shared seed
+    uint8_t            mSharedSequence;
+
     struct Metadata
     {
         otError AppendTo(Message &aMessage) const { return aMessage.Append(this, sizeof(*this)); }
