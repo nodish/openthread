@@ -37,6 +37,7 @@ readonly OT_SRCDIR="$(pwd)"
 
 readonly COLOR_PASS='\033[0;32m'
 readonly COLOR_FAIL='\033[0;31m'
+readonly COLOR_SKIP='\033[0;33m'
 readonly COLOR_NONE='\033[0m'
 
 readonly NODE_MODE="${NODE_MODE:-standalone}"
@@ -239,10 +240,15 @@ do_expect()
                 OT_COMMAND="${ot_command}" RCP_COMMAND="${rcp_command}" expect -df "${script}" 2>"${log_file}"
             fi
         } || {
-            local exit_code=$?
-            cat "${log_file}" >&2
-            echo -e "${COLOR_FAIL}FAIL${COLOR_NONE} ${script}"
-            exit "${exit_code}"
+            local -r EXIT_CODE=$?
+
+            if [[ ${EXIT_CODE} == 77 ]]; then
+                echo -e "${COLOR_SKIP}SKIP${COLOR_NONE} ${script}"
+            else
+                cat "${log_file}" >&2
+                echo -e "${COLOR_FAIL}FAIL${COLOR_NONE} ${script}"
+                exit "${EXIT_CODE}"
+            fi
         }
         if [[ ${VERBOSE} == 1 ]]; then
             cat "${log_file}" >&2
@@ -252,7 +258,7 @@ do_expect()
         if [[ $# != 0 ]]; then
             for script in "$@"; do echo ${script}; done
         else
-            find tests/scripts/expect -type f -executable \( "${test_patterns[@]}" \)
+            find tests/scripts/expect -type f -perm +111 \( "${test_patterns[@]}" \)
         fi
     )
 

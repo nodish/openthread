@@ -41,6 +41,33 @@ jobs:
       if: "github.ref != 'refs/heads/master'"
 
 
+  macOS:
+    runs-on: macos-10.15
+    env:
+      CFLAGS: -DCLI_COAP_SECURE_USE_COAP_DEFAULT_HANDLER=1 -DOPENTHREAD_CONFIG_MLE_MAX_CHILDREN=15
+      CXXFLAGS: -DCLI_COAP_SECURE_USE_COAP_DEFAULT_HANDLER=1 -DOPENTHREAD_CONFIG_MLE_MAX_CHILDREN=15
+    steps:
+    - uses: actions/checkout@v2
+    - name: Bootstrap
+      run: |
+        brew install ninja
+    - name: Codecov
+      uses: codecov/codecov-action@v1
+    - name: Run RCP Mode
+      run: |
+        OT_OPTIONS=-DOT_READLINE=OFF NODE_MODE=rcp ./script/test build expect
+    - name: Codecov
+      uses: codecov/codecov-action@v1
+    - name: Run TUN Mode
+      run: |
+        brew install dnsmasq
+        echo 'listen-address=::1' | sudo tee $(brew --prefix)/etc/dnsmasq.conf
+        sudo brew services start dnsmasq
+        host ipv6.google.com ::1
+        OT_OPTIONS=-DOT_READLINE=OFF OT_NATIVE_IP=1 VIRTUAL_TIME=0 NODE_MODE=rcp ./script/test clean build expect
+    - name: Codecov
+      uses: codecov/codecov-action@v1
+
   posix-cli:
     runs-on: ubuntu-18.04
     env:

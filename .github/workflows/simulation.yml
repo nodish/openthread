@@ -204,15 +204,15 @@ jobs:
     - uses: actions/checkout@v2
     - name: Bootstrap
       run: |
-        OT_OPTIONS=-DOT_READLINE=OFF sudo apt-get --no-install-recommends install -y expect ninja-build
+        sudo apt-get --no-install-recommends install -y expect ninja-build
     - name: Run
       run: |
-        OT_OPTIONS=-DOT_TIME_SYNC=ON VIRTUAL_TIME=0 ./script/test build expect
+        OT_OPTIONS=-DOT_TIME_SYNC=ON ./script/test build expect
     - name: Codecov
       uses: codecov/codecov-action@v1
     - name: Run RCP Mode
       run: |
-        OT_OPTIONS=-DOT_READLINE=OFF VIRTUAL_TIME=0 NODE_MODE=rcp ./script/test clean build expect
+        OT_OPTIONS=-DOT_READLINE=OFF NODE_MODE=rcp ./script/test clean build expect
     - name: Codecov
       uses: codecov/codecov-action@v1
     - name: Run TUN Mode
