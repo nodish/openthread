@@ -273,7 +273,8 @@ ENVIRONMENTS:
     NODE_TYPE       'sim' for CLI, 'ncp-sim' for NCP. The default is 'sim'.
     NODE_MODE       'rcp' for RCP mode, otherwise for standalone mode. The default is standalone mode.
     VERBOSE         1 to build or test verbosely. The default is 0.
-    VIRTUAL_TIME    1 for virtual time, otherwise real time. The default is 1.
+    VIRTUAL_TIME    1 for virtual time, otherwise real time. The default value is 0 when running expect tests,
+                    otherwise default value is 1.
     THREAD_VERSION  1.1 for Thread 1.1 stack, 1.2 for Thread 1.2 stack. The default is 1.1.
 
 COMMANDS:
