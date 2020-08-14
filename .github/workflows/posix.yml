@@ -53,12 +53,12 @@ jobs:
         brew install ninja
     - name: Codecov
       uses: codecov/codecov-action@v1
-    - name: Run RCP Mode
+    - name: Separate IP Mode
       run: |
         OT_OPTIONS=-DOT_READLINE=OFF NODE_MODE=rcp ./script/test build expect
     - name: Codecov
       uses: codecov/codecov-action@v1
-    - name: Run TUN Mode
+    - name: Native IP Mode
       run: |
         brew install dnsmasq
         echo 'listen-address=::1' | sudo tee $(brew --prefix)/etc/dnsmasq.conf
