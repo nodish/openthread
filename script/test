@@ -215,6 +215,13 @@ do_expect()
     local ot_command
     local rcp_command=
     local test_patterns
+    local log_file="tmp/log_expect"
+
+    if [[ $OSTYPE = darwin* ]]; then
+        local -r SYSLOG_FILE="/var/log/system.log"
+    else
+        local -r SYSLOG_FILE="/var/log/syslog"
+    fi
 
     if [[ ${NODE_MODE} == rcp ]]; then
         ot_command="${OT_CLI_PATH}"
@@ -229,9 +236,9 @@ do_expect()
         test_patterns=(-name 'cli-*.exp' -o -name 'simulation-*.exp')
     fi
 
-    local log_file="tmp/log_expect"
     while read -r script; do
         sudo rm -rf tmp
+        echo | sudo tee "${SYSLOG_FILE}"
         mkdir tmp
         {
             if [[ ${OT_NATIVE_IP} == 1 ]]; then
@@ -246,15 +253,18 @@ do_expect()
                 echo -e "${COLOR_SKIP}SKIP${COLOR_NONE} ${script}"
                 continue
             else
-                cat "${log_file}" >&2
                 echo -e "${COLOR_FAIL}FAIL${COLOR_NONE} ${script}"
+                echo -e "\n\n\n########### Console Output ##########\n\n\n"
+                cat "${log_file}" >&2
+                echo -e "\n\n\n########### Syslog Output  ##########\n\n\n"
+                cat "${SYSLOG_FILE}" >&2
                 exit "${EXIT_CODE}"
             fi
         }
+        echo -e "${COLOR_PASS}PASS${COLOR_NONE} ${script}"
         if [[ ${VERBOSE} == 1 ]]; then
             cat "${log_file}" >&2
         fi
-        echo -e "${COLOR_PASS}PASS${COLOR_NONE} ${script}"
     done < <(
         if [[ $# != 0 ]]; then
             for script in "$@"; do echo ${script}; done
