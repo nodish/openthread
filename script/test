@@ -244,6 +244,7 @@ do_expect()
 
             if [[ ${EXIT_CODE} == 77 ]]; then
                 echo -e "${COLOR_SKIP}SKIP${COLOR_NONE} ${script}"
+                continue
             else
                 cat "${log_file}" >&2
                 echo -e "${COLOR_FAIL}FAIL${COLOR_NONE} ${script}"
