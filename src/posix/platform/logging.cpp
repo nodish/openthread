@@ -42,6 +42,7 @@ void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat
 
     va_list args;
 
+    /*
     switch (aLogLevel)
     {
     case OT_LOG_LEVEL_NONE:
@@ -67,7 +68,9 @@ void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat
         aLogLevel = LOG_DEBUG;
         break;
     }
+    */
 
+    aLogLevel = LOG_CRIT;
     va_start(args, aFormat);
     vsyslog(aLogLevel, aFormat, args);
     va_end(args);

@@ -240,10 +240,10 @@ static otInstance *InitInstance(int aArgCount, char *aArgVector[])
 
     ParseArg(aArgCount, aArgVector, &config);
 
-    openlog(aArgVector[0], LOG_PID | (config.mIsVerbose ? LOG_PERROR : 0), LOG_DAEMON);
-    setlogmask(setlogmask(0) & LOG_UPTO(LOG_DEBUG));
-    syslog(LOG_INFO, "Running %s", otGetVersionString());
-    syslog(LOG_INFO, "Thread version: %hu", otThreadGetVersion());
+    openlog(aArgVector[0], LOG_PID | (config.mIsVerbose ? LOG_PERROR : 0), LOG_USER);
+    setlogmask(LOG_UPTO(LOG_DEBUG));
+    syslog(LOG_CRIT, "Running %s", otGetVersionString());
+    syslog(LOG_CRIT, "Thread version: %hu", otThreadGetVersion());
     IgnoreError(otLoggingSetLevel(config.mLogLevel));
 
     instance = otSysInit(&config.mPlatformConfig);
