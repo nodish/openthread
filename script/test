@@ -255,15 +255,15 @@ do_expect()
             else
                 echo -e "${COLOR_FAIL}FAIL${COLOR_NONE} ${script}"
                 echo -e "\n\n\n########### Console Output ##########\n\n\n"
-                cat "${log_file}" >&2
+                cat "${log_file}"
                 echo -e "\n\n\n########### Syslog Output  ##########\n\n\n"
-                cat "${SYSLOG_FILE}" >&2
+                cat "${SYSLOG_FILE}"
                 exit "${EXIT_CODE}"
             fi
         }
         echo -e "${COLOR_PASS}PASS${COLOR_NONE} ${script}"
         if [[ ${VERBOSE} == 1 ]]; then
-            cat "${log_file}" >&2
+            cat "${log_file}"
         fi
     done < <(
         if [[ $# != 0 ]]; then
