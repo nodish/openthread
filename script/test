@@ -218,7 +218,7 @@ do_expect()
     local log_file="tmp/log_expect"
 
     if [[ $OSTYPE = darwin* ]]; then
-        local -r SYSLOG_FILE="/var/log/system.log"
+        local -r SYSLOG_FILE="/tmp/ot-posix.log"
     else
         local -r SYSLOG_FILE="/var/log/syslog"
     fi

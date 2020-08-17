@@ -54,6 +54,10 @@ jobs:
       uses: codecov/codecov-action@v1
     - name: Run Separate IP Mode
       run: |
+        cat /etc/syslog.conf
+        echo 'daemon.* /tmp/ot-posix.log' | sudo tee /etc/syslog.conf
+        sudo launchctl unload /System/Library/LaunchDaemons/com.apple.syslogd.plist
+        sudo launchctl load /System/Library/LaunchDaemons/com.apple.syslogd.plist
         OT_OPTIONS=-DOT_READLINE=OFF NODE_MODE=rcp ./script/test build expect
     - name: Codecov
       uses: codecov/codecov-action@v1
