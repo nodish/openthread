@@ -36,6 +36,7 @@
 #include <openthread/platform/logging.h>
 
 #if OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
+extern FILE *logFile;
 void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ...)
 {
     OT_UNUSED_VARIABLE(aLogRegion);
@@ -72,6 +73,8 @@ void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat
 
     aLogLevel = LOG_CRIT;
     va_start(args, aFormat);
+    vfprintf(logFile, aFormat, args);
+    fflush(logFile);
     vsyslog(aLogLevel, aFormat, args);
     va_end(args);
 }

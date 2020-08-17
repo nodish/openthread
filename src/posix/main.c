@@ -97,6 +97,8 @@ static jmp_buf gResetJump;
 
 void __gcov_flush();
 
+FILE *logFile = NULL;
+
 /**
  * This enumeration defines the argument return values.
  *
@@ -240,6 +242,7 @@ static otInstance *InitInstance(int aArgCount, char *aArgVector[])
 
     ParseArg(aArgCount, aArgVector, &config);
 
+    logFile = fopen("/tmp/ot-posix.log", "w");
     openlog(aArgVector[0], LOG_PID | (config.mIsVerbose ? LOG_PERROR : 0), LOG_USER);
     setlogmask(LOG_UPTO(LOG_DEBUG));
     syslog(LOG_CRIT, "Running %s", otGetVersionString());
