@@ -61,11 +61,13 @@ proc spawn_node {id} {
 
     send_user "\n# ${id}\n"
     if {[info exists ::env(RCP_COMMAND)] && $::env(RCP_COMMAND) != ""} {
-        spawn $::env(OT_COMMAND) "spinel+hdlc+uart://$::env(RCP_COMMAND)?forkpty-arg=$id"
+        set pid [spawn -noecho $::env(OT_COMMAND) "spinel+hdlc+uart://$::env(RCP_COMMAND)?forkpty-arg=$id"]
     } else {
-        spawn $::env(OT_COMMAND) $id
+        set pid [spawn -noecho $::env(OT_COMMAND) $id]
     }
-    stty -echo
+    if {$pid == 0} {
+        exit 1
+    }
     expect_after {
         timeout { exit 1 }
     }
