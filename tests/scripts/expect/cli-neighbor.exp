@@ -32,7 +32,7 @@ source "tests/scripts/expect/_multinode.exp"
 
 setup_two_nodes
 
-set spawn_id $spawn_2
+switch_node 2
 send "rloc16\n"
 expect "rloc16"
 expect -re {([0-9a-f]{4})}
@@ -44,7 +44,7 @@ expect -re {([0-9a-f]{16})}
 set extaddr $expect_out(1,string)
 expect "Done"
 
-set spawn_id $spawn_1
+switch_node 1
 send "neighbor table\n"
 expect "| Role | RLOC16 | Age | Avg RSSI | Last RSSI |R|S|D|N| Extended MAC     |"
 expect "+------+--------+-----+----------+-----------+-+-+-+-+------------------+"

@@ -56,6 +56,11 @@ proc wait_for {command success {failure {[\r\n]FAILURE_NOT_EXPECTED[\r\n]}}} {
 }
 
 proc spawn_node {id} {
+    global spawn_id
+    global spawn_ids
+
+    send_user "\n# ${id}\n"
+
     if {[info exists ::env(RCP_COMMAND)] && $::env(RCP_COMMAND) != ""} {
         spawn $::env(OT_COMMAND) "spinel+hdlc+uart://$::env(RCP_COMMAND)?forkpty-arg=$id"
     } else {
@@ -64,7 +69,18 @@ proc spawn_node {id} {
     expect_after {
         timeout { exit 1 }
     }
+
+    set spawn_ids($id) $spawn_id
+
     return $spawn_id
+}
+
+proc switch_node {id} {
+    global spawn_ids
+    global spawn_id
+
+    send_user "\n# ${id}\n"
+    set spawn_id $spawn_ids($id)
 }
 
 proc dispose_node {id} {

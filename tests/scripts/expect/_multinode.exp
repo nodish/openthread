@@ -32,24 +32,18 @@ source "tests/scripts/expect/_common.exp"
 proc setup_two_nodes {} {
     # Sets up a Thread network with 2 nodes, spawn_1 as the leader and spawn_2
     # as a child.
-
-    global spawn_1
-    global spawn_2
-    global spawn_id
-    global env
-
-    set spawn_2 [spawn_node 2]
     set psk "J01NME"
 
-    set spawn_id $spawn_2
+    spawn_node 2
     send "eui64\n"
     expect -re {([0-9a-f]{16})}
     set eui64 $expect_out(1,string)
     expect "Done"
 
+    # Sets up a Thread network with node 1 as the leader.
+    spawn_node 1
     setup_leader
 
-    set spawn_id $spawn_1
     send "commissioner start\n"
     expect "Done"
     expect "Commissioner: active"
@@ -61,7 +55,7 @@ proc setup_two_nodes {} {
     set channel $expect_out(1,string)
     expect "Done"
 
-    set spawn_id $spawn_2
+    switch_node 2
     send "mode rs\n"
     expect "Done"
     send "ifconfig up\n"
