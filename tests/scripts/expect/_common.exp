@@ -56,11 +56,13 @@ proc wait_for {command success {failure {[\r\n]FAILURE_NOT_EXPECTED[\r\n]}}} {
 }
 
 proc spawn_node {id} {
+    send_user "Spawning node ${id}"
     if {[info exists ::env(RCP_COMMAND)] && $::env(RCP_COMMAND) != ""} {
         spawn $::env(OT_COMMAND) "spinel+hdlc+uart://$::env(RCP_COMMAND)?forkpty-arg=$id"
     } else {
         spawn $::env(OT_COMMAND) $id
     }
+    stty -echo
     expect_after {
         timeout { exit 1 }
     }
