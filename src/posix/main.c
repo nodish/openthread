@@ -33,6 +33,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <getopt.h>
+#include <inttypes.h>
 #include <libgen.h>
 #include <setjmp.h>
 #include <signal.h>
@@ -239,17 +240,24 @@ static otInstance *InitInstance(int aArgCount, char *aArgVector[])
 {
     PosixConfig config;
     otInstance *instance = NULL;
+    char        logFilename[50];
+    uint64_t    nodeId;
 
     ParseArg(aArgCount, aArgVector, &config);
 
-    logFile = fopen("/tmp/ot-posix.log", "w");
-    openlog(aArgVector[0], LOG_PID | (config.mIsVerbose ? LOG_PERROR : 0), LOG_USER);
-    setlogmask(LOG_UPTO(LOG_DEBUG));
-    syslog(LOG_CRIT, "Running %s", otGetVersionString());
-    syslog(LOG_CRIT, "Thread version: %hu", otThreadGetVersion());
+    openlog(aArgVector[0], LOG_PID | (config.mIsVerbose ? LOG_PERROR : 0), LOG_DAEMON);
+    setlogmask(setlogmask(0) & LOG_UPTO(LOG_DEBUG));
+    syslog(LOG_INFO, "Running %s", otGetVersionString());
+    syslog(LOG_INFO, "Thread version: %hu", otThreadGetVersion());
     IgnoreError(otLoggingSetLevel(config.mLogLevel));
 
     instance = otSysInit(&config.mPlatformConfig);
+
+    otPlatRadioGetIeeeEui64(instance, (uint8_t *)&nodeId);
+    sprintf(logFilename, "./tmp/ot-posix-%" PRIx64 ".log", nodeId);
+    logFile = fopen(logFilename, "w");
+    fprintf(logFile, "## %" PRIx64 "\r\n", nodeId);
+    fflush(logFile);
 
     if (config.mPrintRadioVersion)
     {

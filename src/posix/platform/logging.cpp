@@ -37,6 +37,7 @@
 
 #if OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
 extern FILE *logFile;
+
 void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ...)
 {
     OT_UNUSED_VARIABLE(aLogRegion);
@@ -73,9 +74,16 @@ void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat
 
     aLogLevel = LOG_CRIT;
     va_start(args, aFormat);
-    vfprintf(logFile, aFormat, args);
-    fflush(logFile);
-    vsyslog(aLogLevel, aFormat, args);
+    if (logFile != nullptr)
+    {
+        vfprintf(logFile, aFormat, args);
+        fprintf(logFile, "\r\n");
+        fflush(logFile);
+    }
+    else
+    {
+        vsyslog(aLogLevel, aFormat, args);
+    }
     va_end(args);
 }
 #endif // OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED

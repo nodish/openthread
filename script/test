@@ -217,11 +217,7 @@ do_expect()
     local test_patterns
     local log_file="tmp/log_expect"
 
-    if [[ $OSTYPE = darwin* ]]; then
-        local -r SYSLOG_FILE="/tmp/ot-posix.log"
-    else
-        local -r SYSLOG_FILE="/var/log/syslog"
-    fi
+    local -r OT_LOG_FILES="tmp/ot-posix-*"
 
     if [[ ${NODE_MODE} == rcp ]]; then
         ot_command="${OT_CLI_PATH}"
@@ -238,7 +234,6 @@ do_expect()
 
     while read -r script; do
         sudo rm -rf tmp
-        echo | sudo tee "${SYSLOG_FILE}"
         mkdir tmp
         {
             if [[ ${OT_NATIVE_IP} == 1 ]]; then
@@ -257,7 +252,7 @@ do_expect()
                 echo -e "\n\n\n########### Console Output ##########\n\n\n"
                 cat "${log_file}"
                 echo -e "\n\n\n########### Syslog Output  ##########\n\n\n"
-                cat "${SYSLOG_FILE}"
+                cat ${OT_LOG_FILES}
                 exit "${EXIT_CODE}"
             fi
         }

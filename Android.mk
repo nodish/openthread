@@ -30,7 +30,7 @@ LOCAL_PATH := $(call my-dir)
 
 OPENTHREAD_DEFAULT_VERSION := $(shell cat $(LOCAL_PATH)/.default-version)
 OPENTHREAD_SOURCE_VERSION := $(shell git -C $(LOCAL_PATH) describe --always --match "[0-9].*" 2> /dev/null)
-OPENTHREAD_PROJECT_CFLAGS ?= -DOPENTHREAD_PROJECT_CORE_CONFIG_FILE=\"openthread-core-posix-config.h\"
+OPENTHREAD_PROJECT_CFLAGS ?= -DOPENTHREAD_CONFIG_FILE=\"openthread-core-posix-config.h\"
 
 OPENTHREAD_PUBLIC_CFLAGS                                         := \
     -DOPENTHREAD_CONFIG_COMMISSIONER_ENABLE=1                       \
