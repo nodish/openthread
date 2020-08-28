@@ -33,6 +33,17 @@ source "tests/scripts/expect/_common.exp"
 
 set spawn_id [spawn_node 1]
 
+send "panid 0xface\n"
+expect "Done"
+
+send "ifconfig up\n"
+expect "Done"
+
+send "thread start\n"
+expect "Done"
+
+wait_for "state" "leader"
+
 send "udp open\n"
 expect "Done"
 
