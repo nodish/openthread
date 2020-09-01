@@ -1074,6 +1074,19 @@ public:
      */
     const uint64_t &GetTimestamp(void) const { return mInfo.mRxInfo.mTimestamp; }
 
+    /**
+     * This method performs AES CCM on the frame which is received.
+     *
+     * @param[in]  aExtAddress  A reference to the extended address, which will be used to generate nonce
+     *                          for AES CCM computation.
+     * @param[in]  aMacKey      A reference to the MAC key to decrypt the received frame.
+     *
+     * @retval OT_ERROR_NONE      Process of received frame AES CCM succeeded.
+     * @retval OT_ERROR_SECURITY  Received frame MIC check failed.
+     *
+     */
+    otError ProcessReceiveAesCcm(const ExtAddress &aExtAddress, const Key &aMacKey);
+
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
     /**
      * This method gets the offset to network time.
@@ -1296,6 +1309,11 @@ public:
      *
      */
     otError GenerateEnhAck(const RxFrame &aFrame, bool aIsFramePending, const uint8_t *aIeData, uint8_t aIeLength);
+
+#if OPENTHREAD_CONFIG_MAC_CSL_TRANSMITTER_ENABLE
+    void SetTxPhase(uint16_t aPhase) { mInfo.mTxInfo.mPhase = aPhase; }
+    void SetTxPeriod(uint16_t aPeriod) { mInfo.mTxInfo.mPeriod = aPeriod; }
+#endif
 };
 
 OT_TOOL_PACKED_BEGIN

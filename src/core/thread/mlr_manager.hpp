@@ -42,6 +42,7 @@
 #include "coap/coap_message.hpp"
 #include "common/locator.hpp"
 #include "common/notifier.hpp"
+#include "common/time_ticker.hpp"
 #include "common/timer.hpp"
 #include "net/netif.hpp"
 #include "thread/thread_tlvs.hpp"
@@ -70,6 +71,7 @@ namespace ot {
 class MlrManager : public InstanceLocator
 {
     friend class ot::Notifier;
+    friend class ot::TimeTicker;
 
 public:
     /**
@@ -105,37 +107,75 @@ public:
                                     uint16_t            aOldMlrRegisteredAddressNum);
 #endif
 
-private:
-    enum
-    {
-        kTimerInterval = 1000,
-    };
+#if OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
+    /**
+     * This method registers Multicast Listeners to Primary Backbone Router.
+     *
+     * Note: only available when both `OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE` and
+     * `OPENTHREAD_CONFIG_COMMISSIONER_ENABLE` are enabled)
+     *
+     * @param aAddresses   A pointer to Ip6 multicast addresses to register.
+     * @param aAddressNum  The number of Ip6 multicast addresses.
+     * @param aTimeout     A pointer to the timeout (in seconds), or nullptr to use the default MLR timeout.
+     *                     A timeout of 0 seconds removes the Multicast Listener addresses.
+     * @param aCallback    A callback function.
+     * @param aContext     A user context pointer.
+     *
+     * @retval OT_ERROR_NONE           Successfully sent MLR.req. The @p aCallback will be called iff this method
+     *                                 returns OT_ERROR_NONE.
+     * @retval OT_ERROR_BUSY           If a previous registration was ongoing.
+     * @retval OT_ERROR_INVALID_ARGS   If one or more arguments are invalid.
+     * @retval OT_ERROR_INVALID_STATE  If the device was not in a valid state to send MLR.req (e.g. Commissioner not
+     *                                 started, Primary Backbone Router not found).
+     * @retval OT_ERROR_NO_BUFS        If insufficient message buffers available.
+     *
+     */
+    otError RegisterMulticastListeners(const otIp6Address *                    aAddresses,
+                                       uint8_t                                 aAddressNum,
+                                       const uint32_t *                        aTimeout,
+                                       otIp6RegisterMulticastListenersCallback aCallback,
+                                       void *                                  aContext);
+#endif
 
+private:
     void HandleNotifierEvents(Events aEvents);
 
-    void SendMulticastListenerRegistration(void);
+    void    SendMulticastListenerRegistration(void);
+    otError SendMulticastListenerRegistrationMessage(const otIp6Address *  aAddresses,
+                                                     uint8_t               aAddressNum,
+                                                     const uint32_t *      aTimeout,
+                                                     Coap::ResponseHandler aResponseHandler,
+                                                     void *                aResponseContext);
 
-    static void HandleMulticastListenerRegistrationResponse(void *               aContext,
-                                                            otMessage *          aMessage,
-                                                            const otMessageInfo *aMessageInfo,
-                                                            otError              aResult)
-    {
-        static_cast<MlrManager *>(aContext)->HandleMulticastListenerRegistrationResponse(
-            static_cast<Coap::Message *>(aMessage), static_cast<const Ip6::MessageInfo *>(aMessageInfo), aResult);
-    }
+    static void    HandleMulticastListenerRegistrationResponse(void *               aContext,
+                                                               otMessage *          aMessage,
+                                                               const otMessageInfo *aMessageInfo,
+                                                               otError              aResult);
+    void           HandleMulticastListenerRegistrationResponse(Coap::Message *         aMessage,
+                                                               const Ip6::MessageInfo *aMessageInfo,
+                                                               otError                 aResult);
+    static otError ParseMulticastListenerRegistrationResponse(otError        aResult,
+                                                              Coap::Message *aMessage,
+                                                              uint8_t &      aStatus,
+                                                              Ip6::Address * aFailedAddresses,
+                                                              uint8_t &      aFailedAddressNum);
 
-    void HandleMulticastListenerRegistrationResponse(Coap::Message *         aMessage,
-                                                     const Ip6::MessageInfo *aMessageInfo,
-                                                     otError                 aResult);
+#if OPENTHREAD_FTD && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
+    static void HandleRegisterMulticastListenersResponse(void *               aContext,
+                                                         otMessage *          aMessage,
+                                                         const otMessageInfo *aMessageInfo,
+                                                         otError              aResult);
+    void        HandleRegisterMulticastListenersResponse(otMessage *          aMessage,
+                                                         const otMessageInfo *aMessageInfo,
+                                                         otError              aResult);
+#endif
 
 #if OPENTHREAD_CONFIG_MLR_ENABLE
     void UpdateLocalSubscriptions(void);
-    void SetNetifMulticastAddressMlrState(MlrState aFromState, MlrState aToState);
     bool IsAddressMlrRegisteredByNetif(const Ip6::Address &aAddress) const;
 #endif
 
 #if OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE
-    void SetChildMulticastAddressMlrState(MlrState aFromState, MlrState aToState);
     bool IsAddressMlrRegisteredByAnyChild(const Ip6::Address &aAddress) const
     {
         return IsAddressMlrRegisteredByAnyChildExcept(aAddress, nullptr);
@@ -143,34 +183,44 @@ private:
     bool IsAddressMlrRegisteredByAnyChildExcept(const Ip6::Address &aAddress, const Child *aExceptChild) const;
 #endif
 
-    void SetMulticastAddressMlrState(MlrState aFromState, MlrState aToState)
-    {
-#if OPENTHREAD_CONFIG_MLR_ENABLE
-        SetNetifMulticastAddressMlrState(aFromState, aToState);
-#endif
-#if OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE
-        SetChildMulticastAddressMlrState(aFromState, aToState);
-#endif
-    }
+    void SetMulticastAddressMlrState(MlrState aFromState, MlrState aToState);
+    void FinishMulticastListenerRegistration(bool                aSuccess,
+                                             const Ip6::Address *aFailedAddresses,
+                                             uint8_t             aFailedAddressNum);
 
-    void AppendToUniqueAddressList(Ip6::Address (&aAddresses)[kIPv6AddressesNumMax],
-                                   uint8_t &           aAddressNum,
-                                   const Ip6::Address &aAddress);
+    void        AppendToUniqueAddressList(Ip6::Address (&aAddresses)[kIPv6AddressesNumMax],
+                                          uint8_t &           aAddressNum,
+                                          const Ip6::Address &aAddress);
+    static bool AddressListContains(const Ip6::Address *aAddressList,
+                                    uint8_t             aAddressListSize,
+                                    const Ip6::Address &aAddress);
 
     void ScheduleSend(uint16_t aDelay);
-    void ResetTimer(void);
+    void UpdateTimeTickerRegistration(void);
     void UpdateReregistrationDelay(bool aRereg);
     void Reregister(void);
+    void HandleTimeTick(void);
 
-    static void HandleTimer(Timer &aTimer) { aTimer.GetOwner<MlrManager>().HandleTimer(); }
-    void        HandleTimer(void);
+    void        LogMulticastAddresses(void);
+    void        CheckInvariants(void) const;
+    static void LogMlrResponse(otError             aResult,
+                               otError             aError,
+                               uint8_t             aStatus,
+                               const Ip6::Address *aFailedAddresses,
+                               uint8_t             aFailedAddressNum);
 
-    void LogMulticastAddresses(void);
+#if OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
+    otIp6RegisterMulticastListenersCallback mRegisterMulticastListenersCallback;
+    void *                                  mRegisterMulticastListenersContext;
+#endif
 
-    TimerMilli mTimer;
-    uint32_t   mReregistrationDelay;
-    uint16_t   mSendDelay;
-    bool       mMlrPending : 1;
+    uint32_t mReregistrationDelay;
+    uint16_t mSendDelay;
+
+    bool mMlrPending : 1;
+#if OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
+    bool mRegisterMulticastListenersPending : 1;
+#endif
 };
 
 } // namespace ot

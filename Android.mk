@@ -30,11 +30,14 @@ LOCAL_PATH := $(call my-dir)
 
 OPENTHREAD_DEFAULT_VERSION := $(shell cat $(LOCAL_PATH)/.default-version)
 OPENTHREAD_SOURCE_VERSION := $(shell git -C $(LOCAL_PATH) describe --always --match "[0-9].*" 2> /dev/null)
-OPENTHREAD_PROJECT_CFLAGS ?= -DOPENTHREAD_PROJECT_CORE_CONFIG_FILE=\"openthread-core-posix-config.h\"
+
+OPENTHREAD_PROJECT_CFLAGS                                                 ?= \
+    -DOPENTHREAD_PROJECT_CORE_CONFIG_FILE=\"openthread-core-posix-config.h\" \
+    -DOPENTHREAD_CONFIG_FILE=\<openthread-config-android.h\>                 \
+    $(NULL)
 
 OPENTHREAD_PUBLIC_CFLAGS                                         := \
     -DOPENTHREAD_CONFIG_COMMISSIONER_ENABLE=1                       \
-    -DOPENTHREAD_CONFIG_FILE=\<openthread-config-android.h\>        \
     -DOPENTHREAD_CONFIG_LOG_LEVEL_DYNAMIC_ENABLE=1                  \
     -DOPENTHREAD_CONFIG_MAC_FILTER_ENABLE=1                         \
     -DOPENTHREAD_POSIX_CONFIG_RCP_PTY_ENABLE=1                      \
@@ -176,6 +179,7 @@ LOCAL_SRC_FILES                                          := \
     src/core/backbone_router/bbr_leader.cpp                 \
     src/core/backbone_router/bbr_local.cpp                  \
     src/core/backbone_router/bbr_manager.cpp                \
+    src/core/backbone_router/multicast_listeners_table.cpp  \
     src/core/coap/coap.cpp                                  \
     src/core/coap/coap_message.cpp                          \
     src/core/coap/coap_secure.cpp                           \
@@ -188,6 +192,7 @@ LOCAL_SRC_FILES                                          := \
     src/core/common/settings.cpp                            \
     src/core/common/string.cpp                              \
     src/core/common/tasklet.cpp                             \
+    src/core/common/time_ticker.cpp                         \
     src/core/common/timer.cpp                               \
     src/core/common/tlvs.cpp                                \
     src/core/common/trickle_timer.cpp                       \
@@ -241,6 +246,7 @@ LOCAL_SRC_FILES                                          := \
     src/core/thread/announce_begin_server.cpp               \
     src/core/thread/announce_sender.cpp                     \
     src/core/thread/child_table.cpp                         \
+    src/core/thread/csl_tx_scheduler.cpp                    \
     src/core/thread/discover_scanner.cpp                    \
     src/core/thread/dua_manager.cpp                         \
     src/core/thread/energy_scan_server.cpp                  \
@@ -266,6 +272,7 @@ LOCAL_SRC_FILES                                          := \
     src/core/thread/router_table.cpp                        \
     src/core/thread/src_match_controller.cpp                \
     src/core/thread/thread_netif.cpp                        \
+    src/core/thread/tmf.cpp                                 \
     src/core/thread/topology.cpp                            \
     src/core/utils/channel_manager.cpp                      \
     src/core/utils/channel_monitor.cpp                      \
@@ -498,8 +505,10 @@ LOCAL_CPPFLAGS                                                              := \
     -pedantic-errors                                                           \
     $(NULL)
 
-LOCAL_CFLAGS                                               := \
-    -DOPENTHREAD_CONFIG_FILE=\<openthread-config-android.h\>  \
+LOCAL_CFLAGS                                                                := \
+    $(OPENTHREAD_PUBLIC_CFLAGS)                                                \
+    $(OPENTHREAD_PRIVATE_CFLAGS)                                               \
+    $(OPENTHREAD_PROJECT_CFLAGS)                                               \
     $(NULL)
 
 LOCAL_C_INCLUDES                                         := \

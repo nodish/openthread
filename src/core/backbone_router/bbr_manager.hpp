@@ -41,6 +41,7 @@
 #include <openthread/backbone_router_ftd.h>
 
 #include "backbone_router/bbr_leader.hpp"
+#include "backbone_router/multicast_listeners_table.hpp"
 #include "common/locator.hpp"
 #include "net/netif.hpp"
 #include "thread/network_data.hpp"
@@ -79,9 +80,34 @@ public:
      *
      */
     void ConfigNextDuaRegistrationResponse(const Ip6::InterfaceIdentifier *aMlIid, uint8_t aStatus);
+
+    /**
+     * This method configures response status for next Multicast Listener Registration.
+     *
+     * Note: available only when `OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE` is enabled.
+     *       Only used for test and certification.
+     *
+     * @param[in] aStatus  The status to respond.
+     *
+     */
+    void ConfigNextMulticastListenerRegistrationResponse(ThreadStatusTlv::MlrStatus aStatus);
+
 #endif
 
+    /**
+     * This method gets the Multicast Listeners Table.
+     *
+     * @returns The Multicast Listeners Table.
+     *
+     */
+    MulticastListenersTable &GetMulticastListenersTable(void) { return mMulticastListenersTable; }
+
 private:
+    enum
+    {
+        kTimerInterval = 1000,
+    };
+
     static void HandleMulticastListenerRegistration(void *               aContext,
                                                     otMessage *          aMessage,
                                                     const otMessageInfo *aMessageInfo)
@@ -92,7 +118,9 @@ private:
     void HandleMulticastListenerRegistration(const Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
     void SendMulticastListenerRegistrationResponse(const Coap::Message &      aMessage,
                                                    const Ip6::MessageInfo &   aMessageInfo,
-                                                   ThreadStatusTlv::MlrStatus aStatus);
+                                                   ThreadStatusTlv::MlrStatus aStatus,
+                                                   Ip6::Address *             aFailedAddresses,
+                                                   uint8_t                    aFailedAddressNum);
 
     static void HandleDuaRegistration(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
     {
@@ -104,15 +132,24 @@ private:
                                      const Ip6::MessageInfo &   aMessageInfo,
                                      const Ip6::Address &       aTarget,
                                      ThreadStatusTlv::DuaStatus aStatus);
+
     void HandleNotifierEvents(Events aEvents);
+
+    static void HandleTimer(Timer &aTimer) { aTimer.GetOwner<Manager>().HandleTimer(); }
+    void        HandleTimer(void);
 
     Coap::Resource mMulticastListenerRegistration;
     Coap::Resource mDuaRegistration;
 
+    MulticastListenersTable mMulticastListenersTable;
+    TimerMilli              mTimer;
+
 #if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
     Ip6::InterfaceIdentifier   mDuaResponseTargetMlIid;
     ThreadStatusTlv::DuaStatus mDuaResponseStatus;
+    ThreadStatusTlv::MlrStatus mMlrResponseStatus;
     bool                       mDuaResponseIsSpecified : 1;
+    bool                       mMlrResponseIsSpecified : 1;
 #endif
 };
 

@@ -365,13 +365,9 @@ otError Message::Append(const void *aBuf, uint16_t aLength)
 {
     otError  error     = OT_ERROR_NONE;
     uint16_t oldLength = GetLength();
-    int      bytesWritten;
 
     SuccessOrExit(error = SetLength(GetLength() + aLength));
-    bytesWritten = Write(oldLength, aLength, aBuf);
-
-    OT_ASSERT(bytesWritten == (int)aLength);
-    OT_UNUSED_VARIABLE(bytesWritten);
+    Write(oldLength, aLength, aBuf);
 
 exit:
     return error;
@@ -429,175 +425,144 @@ void Message::RemoveHeader(uint16_t aLength)
     }
 }
 
-uint16_t Message::Read(uint16_t aOffset, uint16_t aLength, void *aBuf) const
+void Message::GetFirstChunk(uint16_t aOffset, uint16_t &aLength, Chunk &aChunk) const
 {
-    const Buffer *curBuffer;
-    uint16_t      bytesCopied = 0;
-    uint16_t      bytesToCopy;
+    // This method gets the first message chunk (contiguous data
+    // buffer) corresponding to a given offset and length. On exit
+    // `aChunk` is updated such that `aChunk.GetData()` gives the
+    // pointer to the start of chunk and `aChunk.GetLength()` gives
+    // its length. The `aLength` is also decreased by the chunk
+    // length.
 
-    if (aOffset >= GetLength())
+    VerifyOrExit(aOffset < GetLength(), aChunk.mLength = 0);
+
+    if (aOffset + aLength >= GetLength())
     {
+        aLength = GetLength() - aOffset;
+    }
+
+    aOffset += GetReserved();
+
+    aChunk.mBuffer = this;
+
+    // Special case for the first buffer
+
+    if (aOffset < kHeadBufferDataSize)
+    {
+        aChunk.mData   = GetFirstData() + aOffset;
+        aChunk.mLength = kHeadBufferDataSize - aOffset;
         ExitNow();
     }
 
-    if (aOffset + aLength >= GetLength())
+    aOffset -= kHeadBufferDataSize;
+
+    // Find the `Buffer` matching the offset
+
+    while (true)
     {
-        aLength = GetLength() - aOffset;
-    }
+        aChunk.mBuffer = aChunk.mBuffer->GetNextBuffer();
+        OT_ASSERT(aChunk.mBuffer != nullptr);
 
-    aOffset += GetReserved();
-
-    // special case first buffer
-    if (aOffset < kHeadBufferDataSize)
-    {
-        bytesToCopy = kHeadBufferDataSize - aOffset;
-
-        if (bytesToCopy > aLength)
+        if (aOffset < kBufferDataSize)
         {
-            bytesToCopy = aLength;
+            aChunk.mData   = aChunk.mBuffer->GetData() + aOffset;
+            aChunk.mLength = kBufferDataSize - aOffset;
+            ExitNow();
         }
 
-        memcpy(aBuf, GetFirstData() + aOffset, bytesToCopy);
-
-        aLength -= bytesToCopy;
-        bytesCopied += bytesToCopy;
-        aBuf = static_cast<uint8_t *>(aBuf) + bytesToCopy;
-
-        aOffset = 0;
-    }
-    else
-    {
-        aOffset -= kHeadBufferDataSize;
-    }
-
-    // advance to offset
-    curBuffer = GetNextBuffer();
-
-    while (aOffset >= kBufferDataSize)
-    {
-        OT_ASSERT(curBuffer != nullptr);
-
-        curBuffer = curBuffer->GetNextBuffer();
         aOffset -= kBufferDataSize;
-    }
-
-    // begin copy
-    while (aLength > 0)
-    {
-        OT_ASSERT(curBuffer != nullptr);
-
-        bytesToCopy = kBufferDataSize - aOffset;
-
-        if (bytesToCopy > aLength)
-        {
-            bytesToCopy = aLength;
-        }
-
-        memcpy(aBuf, curBuffer->GetData() + aOffset, bytesToCopy);
-
-        aLength -= bytesToCopy;
-        bytesCopied += bytesToCopy;
-        aBuf = static_cast<uint8_t *>(aBuf) + bytesToCopy;
-
-        curBuffer = curBuffer->GetNextBuffer();
-        aOffset   = 0;
     }
 
 exit:
-    return bytesCopied;
+    if (aChunk.mLength > aLength)
+    {
+        aChunk.mLength = aLength;
+    }
+
+    aLength -= aChunk.mLength;
 }
 
-int Message::Write(uint16_t aOffset, uint16_t aLength, const void *aBuf)
+void Message::GetNextChunk(uint16_t &aLength, Chunk &aChunk) const
 {
-    Buffer * curBuffer;
-    uint16_t bytesCopied = 0;
-    uint16_t bytesToCopy;
+    // This method gets the next message chunk. On input, the
+    // `aChunk` should be the previous chunk. On exit, it is
+    // updated to provide info about next chunk, and `aLength`
+    // is decreased by the chunk length. If there is no more
+    // chunk, `aChunk.GetLength()` would be zero.
+
+    VerifyOrExit(aLength > 0, aChunk.mLength = 0);
+
+    aChunk.mBuffer = aChunk.mBuffer->GetNextBuffer();
+    OT_ASSERT(aChunk.mBuffer != nullptr);
+
+    aChunk.mData   = aChunk.mBuffer->GetData();
+    aChunk.mLength = kBufferDataSize;
+
+    if (aChunk.mLength > aLength)
+    {
+        aChunk.mLength = aLength;
+    }
+
+    aLength -= aChunk.mLength;
+
+exit:
+    return;
+}
+
+uint16_t Message::Read(uint16_t aOffset, uint16_t aLength, void *aBuf) const
+{
+    uint8_t *bufPtr = reinterpret_cast<uint8_t *>(aBuf);
+    Chunk    chunk;
+
+    GetFirstChunk(aOffset, aLength, chunk);
+
+    while (chunk.GetLength() > 0)
+    {
+        memcpy(bufPtr, chunk.GetData(), chunk.GetLength());
+        bufPtr += chunk.GetLength();
+        GetNextChunk(aLength, chunk);
+    }
+
+    return static_cast<uint16_t>(bufPtr - reinterpret_cast<uint8_t *>(aBuf));
+}
+
+void Message::Write(uint16_t aOffset, uint16_t aLength, const void *aBuf)
+{
+    const uint8_t *bufPtr = reinterpret_cast<const uint8_t *>(aBuf);
+    WritableChunk  chunk;
 
     OT_ASSERT(aOffset + aLength <= GetLength());
 
-    if (aOffset + aLength >= GetLength())
+    GetFirstChunk(aOffset, aLength, chunk);
+
+    while (chunk.GetLength() > 0)
     {
-        aLength = GetLength() - aOffset;
+        memmove(chunk.GetData(), bufPtr, chunk.GetLength());
+        bufPtr += chunk.GetLength();
+        GetNextChunk(aLength, chunk);
     }
-
-    aOffset += GetReserved();
-
-    // special case first buffer
-    if (aOffset < kHeadBufferDataSize)
-    {
-        bytesToCopy = kHeadBufferDataSize - aOffset;
-
-        if (bytesToCopy > aLength)
-        {
-            bytesToCopy = aLength;
-        }
-
-        memcpy(GetFirstData() + aOffset, aBuf, bytesToCopy);
-
-        aLength -= bytesToCopy;
-        bytesCopied += bytesToCopy;
-        aBuf = static_cast<const uint8_t *>(aBuf) + bytesToCopy;
-
-        aOffset = 0;
-    }
-    else
-    {
-        aOffset -= kHeadBufferDataSize;
-    }
-
-    // advance to offset
-    curBuffer = GetNextBuffer();
-
-    while (aOffset >= kBufferDataSize)
-    {
-        OT_ASSERT(curBuffer != nullptr);
-
-        curBuffer = curBuffer->GetNextBuffer();
-        aOffset -= kBufferDataSize;
-    }
-
-    // begin copy
-    while (aLength > 0)
-    {
-        OT_ASSERT(curBuffer != nullptr);
-
-        bytesToCopy = kBufferDataSize - aOffset;
-
-        if (bytesToCopy > aLength)
-        {
-            bytesToCopy = aLength;
-        }
-
-        memcpy(curBuffer->GetData() + aOffset, aBuf, bytesToCopy);
-
-        aLength -= bytesToCopy;
-        bytesCopied += bytesToCopy;
-        aBuf = static_cast<const uint8_t *>(aBuf) + bytesToCopy;
-
-        curBuffer = curBuffer->GetNextBuffer();
-        aOffset   = 0;
-    }
-
-    return bytesCopied;
 }
 
-int Message::CopyTo(uint16_t aSourceOffset, uint16_t aDestinationOffset, uint16_t aLength, Message &aMessage) const
+uint16_t Message::CopyTo(uint16_t aSourceOffset, uint16_t aDestinationOffset, uint16_t aLength, Message &aMessage) const
 {
     uint16_t bytesCopied = 0;
-    uint16_t bytesToCopy;
-    uint8_t  buf[16];
+    Chunk    chunk;
 
-    while (aLength > 0)
+    // This implementing can potentially overwrite the data when bytes are
+    // being copied forward within the same message, i.e., source and
+    // destination messages are the same, and source offset is smaller than
+    // the destination offset. We assert not allowing such a use.
+
+    OT_ASSERT((&aMessage != this) || (aSourceOffset >= aDestinationOffset));
+
+    GetFirstChunk(aSourceOffset, aLength, chunk);
+
+    while (chunk.GetLength() > 0)
     {
-        bytesToCopy = (aLength < sizeof(buf)) ? aLength : sizeof(buf);
-
-        Read(aSourceOffset, bytesToCopy, buf);
-        aMessage.Write(aDestinationOffset, bytesToCopy, buf);
-
-        aSourceOffset += bytesToCopy;
-        aDestinationOffset += bytesToCopy;
-        aLength -= bytesToCopy;
-        bytesCopied += bytesToCopy;
+        aMessage.Write(aDestinationOffset, chunk.GetLength(), chunk.GetData());
+        aDestinationOffset += chunk.GetLength();
+        bytesCopied += chunk.GetLength();
+        GetNextChunk(aLength, chunk);
     }
 
     return bytesCopied;
@@ -686,66 +651,16 @@ uint16_t Message::UpdateChecksum(uint16_t aChecksum, const void *aBuf, uint16_t 
 
 uint16_t Message::UpdateChecksum(uint16_t aChecksum, uint16_t aOffset, uint16_t aLength) const
 {
-    const Buffer *curBuffer;
-    uint16_t      bytesCovered = 0;
-    uint16_t      bytesToCover;
+    Chunk chunk;
 
     OT_ASSERT(aOffset + aLength <= GetLength());
 
-    aOffset += GetReserved();
+    GetFirstChunk(aOffset, aLength, chunk);
 
-    // special case first buffer
-    if (aOffset < kHeadBufferDataSize)
+    while (chunk.GetLength() > 0)
     {
-        bytesToCover = kHeadBufferDataSize - aOffset;
-
-        if (bytesToCover > aLength)
-        {
-            bytesToCover = aLength;
-        }
-
-        aChecksum = Message::UpdateChecksum(aChecksum, GetFirstData() + aOffset, bytesToCover);
-
-        aLength -= bytesToCover;
-        bytesCovered += bytesToCover;
-
-        aOffset = 0;
-    }
-    else
-    {
-        aOffset -= kHeadBufferDataSize;
-    }
-
-    // advance to offset
-    curBuffer = GetNextBuffer();
-
-    while (aOffset >= kBufferDataSize)
-    {
-        OT_ASSERT(curBuffer != nullptr);
-
-        curBuffer = curBuffer->GetNextBuffer();
-        aOffset -= kBufferDataSize;
-    }
-
-    // begin copy
-    while (aLength > 0)
-    {
-        OT_ASSERT(curBuffer != nullptr);
-
-        bytesToCover = kBufferDataSize - aOffset;
-
-        if (bytesToCover > aLength)
-        {
-            bytesToCover = aLength;
-        }
-
-        aChecksum = Message::UpdateChecksum(aChecksum, curBuffer->GetData() + aOffset, bytesToCover);
-
-        aLength -= bytesToCover;
-        bytesCovered += bytesToCover;
-
-        curBuffer = curBuffer->GetNextBuffer();
-        aOffset   = 0;
+        aChecksum = Message::UpdateChecksum(aChecksum, chunk.GetData(), chunk.GetLength());
+        GetNextChunk(aLength, chunk);
     }
 
     return aChecksum;

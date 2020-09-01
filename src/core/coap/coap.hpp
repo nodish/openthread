@@ -534,7 +534,7 @@ private:
     {
         otError AppendTo(Message &aMessage) const { return aMessage.Append(this, sizeof(*this)); }
         void    ReadFrom(const Message &aMessage);
-        int     UpdateIn(Message &aMessage) const;
+        void    UpdateIn(Message &aMessage) const;
 
         Ip6::Address    mSourceAddress;            // IPv6 address of the message source.
         Ip6::Address    mDestinationAddress;       // IPv6 address of the message destination.
@@ -623,12 +623,13 @@ public:
      */
     otError Stop(void);
 
+protected:
+    Ip6::Udp::Socket mSocket;
+
 private:
     static otError Send(CoapBase &aCoapBase, ot::Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
     static void    HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
     otError        Send(ot::Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
-
-    Ip6::Udp::Socket mSocket;
 };
 
 } // namespace Coap

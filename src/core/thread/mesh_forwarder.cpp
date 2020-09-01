@@ -41,6 +41,7 @@
 #include "common/logging.hpp"
 #include "common/message.hpp"
 #include "common/random.hpp"
+#include "common/time_ticker.hpp"
 #include "net/ip6.hpp"
 #include "net/ip6_filter.hpp"
 #include "net/netif.hpp"
@@ -58,7 +59,12 @@ namespace ot {
 void ThreadLinkInfo::SetFrom(const Mac::RxFrame &aFrame)
 {
     Clear();
-    IgnoreError(aFrame.GetSrcPanId(mPanId));
+
+    if (OT_ERROR_NONE != aFrame.GetSrcPanId(mPanId))
+    {
+        IgnoreError(aFrame.GetDstPanId(mPanId));
+    }
+
     mChannel      = aFrame.GetChannel();
     mRss          = aFrame.GetRssi();
     mLqi          = aFrame.GetLqi();
@@ -74,7 +80,6 @@ void ThreadLinkInfo::SetFrom(const Mac::RxFrame &aFrame)
 
 MeshForwarder::MeshForwarder(Instance &aInstance)
     : InstanceLocator(aInstance)
-    , mUpdateTimer(aInstance, MeshForwarder::HandleUpdateTimer, this)
     , mMessageNextOffset(0)
     , mSendMessage(nullptr)
     , mMeshSource()
@@ -118,7 +123,7 @@ void MeshForwarder::Stop(void)
     VerifyOrExit(mEnabled, OT_NOOP);
 
     mDataPollSender.StopPolling();
-    mUpdateTimer.Stop();
+    Get<TimeTicker>().UnregisterReceiver(TimeTicker::kMeshForwarder);
     Get<Mle::DiscoverScanner>().Stop();
 
     while ((message = mSendQueue.GetHead()) != nullptr)
@@ -429,7 +434,12 @@ otError MeshForwarder::HandleFrameRequest(Mac::TxFrame &aFrame)
         {
             SuccessOrExit(error = Get<Mle::DiscoverScanner>().PrepareDiscoveryRequestFrame(aFrame));
         }
-
+#if OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
+        if (Get<Mac::Mac>().IsCslEnabled() && mSendMessage->IsSubTypeMle())
+        {
+            mSendMessage->SetLinkSecurityEnabled(true);
+        }
+#endif
         mMessageNextOffset =
             PrepareDataFrame(aFrame, *mSendMessage, mMacSource, mMacDest, mAddMeshHeader, mMeshSource, mMeshDest);
 
@@ -503,7 +513,7 @@ start:
     // Initialize MAC header
     fcf = Mac::Frame::kFcfFrameData;
 
-    Get<Mac::Mac>().UpdateFrameControlField(aMessage.IsTimeSync(), fcf);
+    Get<Mac::Mac>().UpdateFrameControlField(Get<NeighborTable>().FindNeighbor(aMacDest), aMessage.IsTimeSync(), fcf);
 
     fcf |= (aMacDest.IsShort()) ? Mac::Frame::kFcfDstAddrShort : Mac::Frame::kFcfDstAddrExt;
     fcf |= (aMacSource.IsShort()) ? Mac::Frame::kFcfSrcAddrShort : Mac::Frame::kFcfSrcAddrExt;
@@ -560,26 +570,16 @@ start:
 
     if (dstpan == Get<Mac::Mac>().GetPanId())
     {
-#if OPENTHREAD_CONFIG_MAC_HEADER_IE_SUPPORT
-        // Handle a special case in IEEE 802.15.4-2015, when PAN ID
-        // Compression is 0, but Src PAN ID is not present:
-        //  Dest Address:       Extended
-        //  Src Address:        Extended
-        //  Dest Pan ID:        Present
-        //  Src Pan ID:         Not Present
-        //  Pan ID Compression: 0
-
-        if ((fcf & Mac::Frame::kFcfFrameVersionMask) != Mac::Frame::kFcfFrameVersion2015 ||
-            (fcf & Mac::Frame::kFcfDstAddrMask) != Mac::Frame::kFcfDstAddrExt ||
-            (fcf & Mac::Frame::kFcfSrcAddrMask) != Mac::Frame::kFcfSrcAddrExt)
-#endif
-        {
-            fcf |= Mac::Frame::kFcfPanidCompression;
-        }
+        fcf |= Mac::Frame::kFcfPanidCompression;
     }
 
     aFrame.InitMacHeader(fcf, secCtl);
-    aFrame.SetDstPanId(dstpan);
+
+    if (aFrame.IsDstPanIdPresent())
+    {
+        aFrame.SetDstPanId(dstpan);
+    }
+
     IgnoreError(aFrame.SetSrcPanId(Get<Mac::Mac>().GetPanId()));
     aFrame.SetDstAddr(aMacDest);
     aFrame.SetSrcAddr(aMacSource);
@@ -1009,10 +1009,7 @@ void MeshForwarder::HandleFragment(const uint8_t *       aFrame,
 
         mReassemblyList.Enqueue(*message);
 
-        if (!mUpdateTimer.IsRunning())
-        {
-            mUpdateTimer.Start(kStateUpdatePeriod);
-        }
+        Get<TimeTicker>().RegisterReceiver(TimeTicker::kMeshForwarder);
     }
     else // Received frame is a "next fragment".
     {
@@ -1091,22 +1088,19 @@ void MeshForwarder::ClearReassemblyList(void)
     }
 }
 
-void MeshForwarder::HandleUpdateTimer(Timer &aTimer)
+void MeshForwarder::HandleTimeTick(void)
 {
-    aTimer.GetOwner<MeshForwarder>().HandleUpdateTimer();
-}
-
-void MeshForwarder::HandleUpdateTimer(void)
-{
-    bool shouldRun = false;
+    bool contineRxingTicks = false;
 
 #if OPENTHREAD_FTD
-    shouldRun = mFragmentPriorityList.UpdateOnTimeTick();
+    contineRxingTicks = mFragmentPriorityList.UpdateOnTimeTick();
 #endif
 
-    if (UpdateReassemblyList() || shouldRun)
+    contineRxingTicks = UpdateReassemblyList() || contineRxingTicks;
+
+    if (!contineRxingTicks)
     {
-        mUpdateTimer.Start(kStateUpdatePeriod);
+        Get<TimeTicker>().UnregisterReceiver(TimeTicker::kMeshForwarder);
     }
 }
 
@@ -1277,7 +1271,7 @@ otError MeshForwarder::GetFramePriority(const uint8_t *     aFrame,
             dstPort = reinterpret_cast<const Ip6::Udp::Header *>(aFrame)->GetDestinationPort();
         }
 
-        if ((dstPort == Mle::kUdpPort) || (dstPort == kCoapUdpPort))
+        if ((dstPort == Mle::kUdpPort) || (dstPort == Tmf::kUdpPort))
         {
             aPriority = Message::kPriorityNet;
         }

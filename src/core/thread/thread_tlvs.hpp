@@ -50,8 +50,6 @@ using ot::Encoding::BigEndian::HostSwap32;
 
 enum
 {
-    kCoapUdpPort = 61631,
-
     // Thread 1.2.0 5.19.13 limits the number of IPv6 addresses should be [1, 15].
     kIPv6AddressesNumMin = 1,
     kIPv6AddressesNumMax = 15,
@@ -71,17 +69,19 @@ public:
      */
     enum Type
     {
-        kTarget              = 0,  ///< Target EID TLV
-        kExtMacAddress       = 1,  ///< Extended MAC Address TLV
-        kRloc16              = 2,  ///< RLOC16 TLV
-        kMeshLocalEid        = 3,  ///< ML-EID TLV
-        kStatus              = 4,  ///< Status TLV
-        kLastTransactionTime = 6,  ///< Time Since Last Transaction TLV
-        kRouterMask          = 7,  ///< Router Mask TLV
-        kNDOption            = 8,  ///< ND Option TLV
-        kNDData              = 9,  ///< ND Data TLV
-        kThreadNetworkData   = 10, ///< Thread Network Data TLV
-        kIPv6Addresses       = 14, ///< IPv6 Addresses TLV
+        kTarget                = 0,  ///< Target EID TLV
+        kExtMacAddress         = 1,  ///< Extended MAC Address TLV
+        kRloc16                = 2,  ///< RLOC16 TLV
+        kMeshLocalEid          = 3,  ///< ML-EID TLV
+        kStatus                = 4,  ///< Status TLV
+        kLastTransactionTime   = 6,  ///< Time Since Last Transaction TLV
+        kRouterMask            = 7,  ///< Router Mask TLV
+        kNDOption              = 8,  ///< ND Option TLV
+        kNDData                = 9,  ///< ND Data TLV
+        kThreadNetworkData     = 10, ///< Thread Network Data TLV
+        kTimeout               = 11, ///< Timeout TLV
+        kIPv6Addresses         = 14, ///< IPv6 Addresses TLV
+        kCommissionerSessionId = 15, ///< Commissioner Session ID TLV
     };
 
     /**
@@ -134,6 +134,7 @@ public:
         kMlrNoResources    = 4, ///< BBR resource shortage.
         kMlrBbrNotPrimary  = 5, ///< BBR is not Primary at this moment.
         kMlrGeneralFailure = 6, ///< Reason(s) for failure are not further specified.
+        kMlrStatusMax      = 6, ///< Max MLR status.
     };
 
     /**
@@ -259,7 +260,7 @@ private:
     uint8_t mTlvs[kMaxSize];
 } OT_TOOL_PACKED_END;
 
-#if OPENTHREAD_CONFIG_MLR_ENABLE || OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE
+#if OPENTHREAD_CONFIG_THREAD_VERSION >= OT_THREAD_VERSION_1_2
 
 /**
  * This class implements IPv6 Addresses TLV generation and parsing.
@@ -302,7 +303,7 @@ public:
     }
 } OT_TOOL_PACKED_END;
 
-#endif // OPENTHREAD_CONFIG_MLR_ENABLE || OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE
+#endif // OPENTHREAD_CONFIG_THREAD_VERSION >= OT_THREAD_VERSION_1_2
 
 } // namespace ot
 

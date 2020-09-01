@@ -110,7 +110,9 @@ uint16_t otMessageRead(const otMessage *aMessage, uint16_t aOffset, void *aBuf, 
 int otMessageWrite(otMessage *aMessage, uint16_t aOffset, const void *aBuf, uint16_t aLength)
 {
     Message &message = *static_cast<Message *>(aMessage);
-    return message.Write(aOffset, aLength, aBuf);
+    message.Write(aOffset, aLength, aBuf);
+
+    return aLength;
 }
 
 void otMessageQueueInit(otMessageQueue *aQueue)
@@ -199,8 +201,8 @@ void otMessageGetBufferInfo(otInstance *aInstance, otBufferInfo *aBufferInfo)
 
     instance.Get<Mle::MleRouter>().GetMessageQueue().GetInfo(aBufferInfo->mMleMessages, aBufferInfo->mMleBuffers);
 
-    instance.Get<Coap::Coap>().GetRequestMessages().GetInfo(aBufferInfo->mCoapMessages, aBufferInfo->mCoapBuffers);
-    instance.Get<Coap::Coap>().GetCachedResponses().GetInfo(messages, buffers);
+    instance.Get<Tmf::TmfAgent>().GetRequestMessages().GetInfo(aBufferInfo->mCoapMessages, aBufferInfo->mCoapBuffers);
+    instance.Get<Tmf::TmfAgent>().GetCachedResponses().GetInfo(messages, buffers);
     aBufferInfo->mCoapMessages += messages;
     aBufferInfo->mCoapBuffers += buffers;
 

@@ -64,11 +64,10 @@ AddressResolver::AddressResolver(Instance &aInstance)
     , mQueryList()
     , mQueryRetryList()
     , mIcmpHandler(&AddressResolver::HandleIcmpReceive, this)
-    , mTimer(aInstance, AddressResolver::HandleTimer, this)
 {
-    Get<Coap::Coap>().AddResource(mAddressError);
-    Get<Coap::Coap>().AddResource(mAddressQuery);
-    Get<Coap::Coap>().AddResource(mAddressNotification);
+    Get<Tmf::TmfAgent>().AddResource(mAddressError);
+    Get<Tmf::TmfAgent>().AddResource(mAddressQuery);
+    Get<Tmf::TmfAgent>().AddResource(mAddressNotification);
 
     IgnoreError(Get<Ip6::Icmp>().RegisterHandler(mIcmpHandler));
 }
@@ -396,10 +395,7 @@ void AddressResolver::AddSnoopedCacheEntry(const Ip6::Address &aEid, Mac::ShortA
         entry->SetCanEvict(false);
         entry->SetTimeout(kSnoopBlockEvictionTimeout);
 
-        if (!mTimer.IsRunning())
-        {
-            mTimer.Start(kStateUpdatePeriod);
-        }
+        Get<TimeTicker>().RegisterReceiver(TimeTicker::kAddressResolver);
     }
     else
     {
@@ -527,7 +523,7 @@ otError AddressResolver::SendAddressQuery(const Ip6::Address &aEid)
     Coap::Message *  message;
     Ip6::MessageInfo messageInfo;
 
-    VerifyOrExit((message = Get<Coap::Coap>().NewPriorityMessage()) != nullptr, error = OT_ERROR_NO_BUFS);
+    VerifyOrExit((message = Get<Tmf::TmfAgent>().NewPriorityMessage()) != nullptr, error = OT_ERROR_NO_BUFS);
 
     message->Init(OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_POST);
     SuccessOrExit(error = message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_QUERY));
@@ -538,18 +534,15 @@ otError AddressResolver::SendAddressQuery(const Ip6::Address &aEid)
     messageInfo.GetPeerAddr().SetToRealmLocalAllRoutersMulticast();
 
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
-    messageInfo.SetPeerPort(kCoapUdpPort);
+    messageInfo.SetPeerPort(Tmf::kUdpPort);
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Tmf::TmfAgent>().SendMessage(*message, messageInfo));
 
     otLogInfoArp("Sending address query for %s", aEid.ToString().AsCString());
 
 exit:
 
-    if (!mTimer.IsRunning())
-    {
-        mTimer.Start(kStateUpdatePeriod);
-    }
+    Get<TimeTicker>().RegisterReceiver(TimeTicker::kAddressResolver);
 
     if (error != OT_ERROR_NONE && message != nullptr)
     {
@@ -622,7 +615,7 @@ void AddressResolver::HandleAddressNotification(Coap::Message &aMessage, const I
 
     LogCacheEntryChange(kEntryUpdated, kReasonReceivedNotification, *entry);
 
-    if (Get<Coap::Coap>().SendEmptyAck(aMessage, aMessageInfo) == OT_ERROR_NONE)
+    if (Get<Tmf::TmfAgent>().SendEmptyAck(aMessage, aMessageInfo) == OT_ERROR_NONE)
     {
         otLogInfoArp("Sending address notification acknowledgment");
     }
@@ -641,7 +634,7 @@ void AddressResolver::SendAddressError(const Ip6::Address &            aTarget,
     Coap::Message *  message;
     Ip6::MessageInfo messageInfo;
 
-    VerifyOrExit((message = Get<Coap::Coap>().NewMessage()) != nullptr, error = OT_ERROR_NO_BUFS);
+    VerifyOrExit((message = Get<Tmf::TmfAgent>().NewMessage()) != nullptr, error = OT_ERROR_NO_BUFS);
 
     message->Init(aDestination == nullptr ? OT_COAP_TYPE_NON_CONFIRMABLE : OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
     SuccessOrExit(error = message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_ERROR));
@@ -660,9 +653,9 @@ void AddressResolver::SendAddressError(const Ip6::Address &            aTarget,
     }
 
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
-    messageInfo.SetPeerPort(kCoapUdpPort);
+    messageInfo.SetPeerPort(Tmf::kUdpPort);
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Tmf::TmfAgent>().SendMessage(*message, messageInfo));
 
     otLogInfoArp("Sending address error for target %s", aTarget.ToString().AsCString());
 
@@ -699,7 +692,7 @@ void AddressResolver::HandleAddressError(Coap::Message &aMessage, const Ip6::Mes
 
     if (aMessage.IsConfirmable() && !aMessageInfo.GetSockAddr().IsMulticast())
     {
-        if (Get<Coap::Coap>().SendEmptyAck(aMessage, aMessageInfo) == OT_ERROR_NONE)
+        if (Get<Tmf::TmfAgent>().SendEmptyAck(aMessage, aMessageInfo) == OT_ERROR_NONE)
         {
             otLogInfoArp("Sent address error notification acknowledgment");
         }
@@ -804,7 +797,7 @@ void AddressResolver::SendAddressQueryResponse(const Ip6::Address &            a
     Coap::Message *  message;
     Ip6::MessageInfo messageInfo;
 
-    VerifyOrExit((message = Get<Coap::Coap>().NewPriorityMessage()) != nullptr, error = OT_ERROR_NO_BUFS);
+    VerifyOrExit((message = Get<Tmf::TmfAgent>().NewPriorityMessage()) != nullptr, error = OT_ERROR_NO_BUFS);
 
     message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
     SuccessOrExit(error = message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_NOTIFY));
@@ -821,9 +814,9 @@ void AddressResolver::SendAddressQueryResponse(const Ip6::Address &            a
 
     messageInfo.SetPeerAddr(aDestination);
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
-    messageInfo.SetPeerPort(kCoapUdpPort);
+    messageInfo.SetPeerPort(Tmf::kUdpPort);
 
-    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
+    SuccessOrExit(error = Get<Tmf::TmfAgent>().SendMessage(*message, messageInfo));
 
     otLogInfoArp("Sending address notification for target %s", aTarget.ToString().AsCString());
 
@@ -835,14 +828,9 @@ exit:
     }
 }
 
-void AddressResolver::HandleTimer(Timer &aTimer)
+void AddressResolver::HandleTimeTick(void)
 {
-    aTimer.GetOwner<AddressResolver>().HandleTimer();
-}
-
-void AddressResolver::HandleTimer(void)
-{
-    bool        continueTimer = false;
+    bool        continueRxingTicks = false;
     CacheEntry *prev;
     CacheEntry *entry;
 
@@ -853,7 +841,7 @@ void AddressResolver::HandleTimer(void)
             continue;
         }
 
-        continueTimer = true;
+        continueRxingTicks = true;
         entry->DecrementTimeout();
 
         if (entry->IsTimeoutZero())
@@ -869,7 +857,7 @@ void AddressResolver::HandleTimer(void)
             continue;
         }
 
-        continueTimer = true;
+        continueRxingTicks = true;
         entry->DecrementTimeout();
     }
 
@@ -879,7 +867,7 @@ void AddressResolver::HandleTimer(void)
     {
         OT_ASSERT(!entry->IsTimeoutZero());
 
-        continueTimer = true;
+        continueRxingTicks = true;
         entry->DecrementTimeout();
 
         if (entry->IsTimeoutZero())
@@ -916,9 +904,9 @@ void AddressResolver::HandleTimer(void)
         }
     }
 
-    if (continueTimer)
+    if (!continueRxingTicks)
     {
-        mTimer.Start(kStateUpdatePeriod);
+        Get<TimeTicker>().UnregisterReceiver(TimeTicker::kAddressResolver);
     }
 }
 

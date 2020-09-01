@@ -918,6 +918,12 @@ public:
     otError GetLocatorAddress(Ip6::Address &aAddress, uint16_t aLocator) const;
 
     /**
+     * This method schedules a Child Update Request.
+     *
+     */
+    void ScheduleChildUpdateRequest(void);
+
+    /*
      * This method indicates whether or not the device has restored the network information from
      * non-volatile settings after boot.
      *
@@ -1349,6 +1355,30 @@ protected:
     otError AppendXtalAccuracy(Message &aMessage);
 #endif // OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
 
+#if OPENTHREAD_CONFIG_MAC_CSL_TRANSMITTER_ENABLE || OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
+    /**
+     * This method appends a CSL Channel TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     *
+     * @retval OT_ERROR_NONE     Successfully appended the CSL Channel TLV.
+     * @retval OT_ERROR_NO_BUFS  Insufficient buffers available to append the CSL Channel TLV.
+     *
+     */
+    otError AppendCslChannel(Message &aMessage);
+
+    /**
+     * This method appends a CSL Sync Timeout TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     *
+     * @retval OT_ERROR_NONE     Successfully appended the CSL Timeout TLV.
+     * @retval OT_ERROR_NO_BUFS  Insufficient buffers available to append the CSL Timeout TLV.
+     *
+     */
+    otError AppendCslTimeout(Message &aMessage);
+#endif // OPENTHREAD_CONFIG_MAC_CSL_TRANSMITTER_ENABLE || OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
+
     /**
      * This method appends a Active Timestamp TLV to a message.
      *
@@ -1487,24 +1517,58 @@ protected:
      */
     otError AddDelayedResponse(Message &aMessage, const Ip6::Address &aDestination, uint16_t aDelay);
 
+#if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_INFO) && (OPENTHREAD_CONFIG_LOG_MLE == 1)
     /**
-     * This method prints an MLE log message with an IPv6 address.
+     * This static method emits a log message with an IPv6 address.
      *
      * @param[in]  aLogString  The log message string.
      * @param[in]  aAddress    The IPv6 address of the peer.
      *
      */
-    void LogMleMessage(const char *aLogString, const Ip6::Address &aAddress) const;
+    static void Log(const char *aLogString, const Ip6::Address &aAddress);
 
     /**
-     * This method prints an MLE log message with an IPv6 address and RLOC16.
+     * This static method emits a log message with an IPv6 address and RLOC16.
      *
      * @param[in]  aLogString  The log message string.
      * @param[in]  aAddress    The IPv6 address of the peer.
      * @param[in]  aRloc       The RLOC16.
      *
      */
-    void LogMleMessage(const char *aLogString, const Ip6::Address &aAddress, uint16_t aRloc) const;
+    static void Log(const char *aLogString, const Ip6::Address &aAddress, uint16_t aRloc);
+#else
+    static void Log(const char *, const Ip6::Address &) {}
+    static void Log(const char *, const Ip6::Address &, uint16_t) {}
+#endif // #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_INFO) && (OPENTHREAD_CONFIG_LOG_MLE == 1)
+
+#if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_WARN) && (OPENTHREAD_CONFIG_LOG_MLE == 1)
+    /**
+     * This static method emits a log message indicating an error in processing of an MLE message.
+     *
+     * Note that log message is emitted only if there is an error, i.e., @p aError is not `OT_ERROR_NONE`. The log
+     * message will have the format "Failed to process {aMessageString} : {ErrorString}".
+     *
+     * @param[in]  aMessageString    A string representing the MLE message type.
+     * @param[in]  aError            The error in processing the MLE message.
+     *
+     */
+    static void LogProcessError(const char *aMessageString, otError aError);
+
+    /**
+     * This static method emits a log message indicating an error when sending an MLE message.
+     *
+     * Note that log message is emitted only if there is an error, i.e. @p aError is not `OT_ERROR_NONE`. The log
+     * message will have the format "Failed to send {aMessageString} : {ErrorString}".
+     *
+     * @param[in]  aMessageString    A string representing the MLE message type.
+     * @param[in]  aError            The error in sending the MLE message.
+     *
+     */
+    static void LogSendError(const char *aMessageString, otError aError);
+#else
+    static void LogProcessError(const char *, otError) {}
+    static void LogSendError(const char *, otError) {}
+#endif // #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_WARN) && (OPENTHREAD_CONFIG_LOG_MLE == 1)
 
     /**
      * This method triggers MLE Announce on previous channel after the Thread device successfully

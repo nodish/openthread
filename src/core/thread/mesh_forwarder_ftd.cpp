@@ -150,7 +150,7 @@ void MeshForwarder::HandleResolved(const Ip6::Address &aEid, otError aError)
             continue;
         }
 
-        cur->Read(Ip6::Header::GetDestinationOffset(), sizeof(ip6Dst), &ip6Dst);
+        cur->Read(Ip6::Header::kDestinationFieldOffset, sizeof(ip6Dst), &ip6Dst);
 
         if (ip6Dst == aEid)
         {
@@ -346,12 +346,27 @@ void MeshForwarder::SendMesh(Message &aMessage, Mac::TxFrame &aFrame)
     // initialize MAC header
     fcf = Mac::Frame::kFcfFrameData | Mac::Frame::kFcfPanidCompression | Mac::Frame::kFcfDstAddrShort |
           Mac::Frame::kFcfSrcAddrShort | Mac::Frame::kFcfAckRequest | Mac::Frame::kFcfSecurityEnabled;
-    Get<Mac::Mac>().UpdateFrameControlField(aMessage.IsTimeSync(), fcf);
+    Get<Mac::Mac>().UpdateFrameControlField(nullptr, aMessage.IsTimeSync(), fcf);
 
     aFrame.InitMacHeader(fcf, Mac::Frame::kKeyIdMode1 | Mac::Frame::kSecEncMic32);
     aFrame.SetDstPanId(Get<Mac::Mac>().GetPanId());
     aFrame.SetDstAddr(mMacDest.GetShort());
     aFrame.SetSrcAddr(mMacSource.GetShort());
+
+#if OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
+    if (Get<Mac::Mac>().IsCslEnabled())
+    {
+        Mac::HeaderIe ieList[2]; // CSL + Termination
+
+        ieList[0].Init();
+        ieList[0].SetId(Mac::Frame::kHeaderIeCsl);
+        ieList[0].SetLength(sizeof(Mac::CslIe));
+        ieList[1].Init();
+        ieList[1].SetId(Mac::Frame::kHeaderIeTermination2);
+        ieList[1].SetLength(0);
+        IgnoreError(aFrame.AppendHeaderIe(ieList, 2));
+    }
+#endif
 
     // write payload
     OT_ASSERT(aMessage.GetLength() <= aFrame.GetMaxPayloadLength());
@@ -726,7 +741,7 @@ exit:
 
 bool MeshForwarder::FragmentPriorityList::UpdateOnTimeTick(void)
 {
-    bool shouldRun = false;
+    bool contineRxingTicks = false;
 
     for (Entry &entry : mEntries)
     {
@@ -736,12 +751,12 @@ bool MeshForwarder::FragmentPriorityList::UpdateOnTimeTick(void)
 
             if (!entry.IsExpired())
             {
-                shouldRun = true;
+                contineRxingTicks = true;
             }
         }
     }
 
-    return shouldRun;
+    return contineRxingTicks;
 }
 
 void MeshForwarder::UpdateFragmentPriority(Lowpan::FragmentHeader &aFragmentHeader,
@@ -757,15 +772,8 @@ void MeshForwarder::UpdateFragmentPriority(Lowpan::FragmentHeader &aFragmentHead
     {
         VerifyOrExit(aFragmentHeader.GetDatagramOffset() == 0, OT_NOOP);
 
-        entry = mFragmentPriorityList.AllocateEntry(aSrcRloc16, aFragmentHeader.GetDatagramTag(), aPriority);
-
-        VerifyOrExit(entry != nullptr, OT_NOOP);
-
-        if (!mUpdateTimer.IsRunning())
-        {
-            mUpdateTimer.Start(kStateUpdatePeriod);
-        }
-
+        mFragmentPriorityList.AllocateEntry(aSrcRloc16, aFragmentHeader.GetDatagramTag(), aPriority);
+        Get<TimeTicker>().RegisterReceiver(TimeTicker::kMeshForwarder);
         ExitNow();
     }
 
