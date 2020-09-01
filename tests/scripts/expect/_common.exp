@@ -67,15 +67,13 @@ proc spawn_node {id} {
     return $spawn_id
 }
 
+proc dispose_node {id} {
+    switch_node $id
+    send "\x04"
+    expect eof
+}
+
 proc setup_leader {} {
-    # Sets up a Thread network spawn_1 as the leader.
-    global spawn_1
-    global spawn_id
-    global env
-
-    set spawn_1 [spawn_node 1]
-
-    set spawn_id $spawn_1
     send "dataset init new\n"
     expect "Done"
     send "dataset commit active\n"
@@ -88,17 +86,12 @@ proc setup_leader {} {
     expect "Done"
 }
 
-proc dispose {} {
-    send "\x04"
-    expect eof
-}
-
-proc dispose_leader {} {
-    global spawn_1
-    global spawn_id
-
-    set spawn_id $spawn_1
-    dispose
+proc dispose_all {} {
+    global spawn_ids
+    set max_node [array size spawn_ids]
+    for {set i 1} {$i <= $max_node} {incr i} {
+        dispose_node $i
+    }
 }
 
 set timeout 10

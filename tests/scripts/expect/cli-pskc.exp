@@ -52,4 +52,4 @@ sleep 0.1
 send "pskc -x\n"
 expect "Error 7: InvalidArgs"
 
-dispose
+dispose_all

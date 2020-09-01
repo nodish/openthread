@@ -30,7 +30,7 @@
 source "tests/scripts/expect/_common.exp"
 source "tests/scripts/expect/_multinode.exp"
 
-setup_nodes
+setup_two_nodes
 
 set spawn_id $spawn_1
 send "coaps x509\n"
@@ -113,4 +113,4 @@ set spawn_id $spawn_1
 send "coaps stop\n"
 expect "Done"
 
-dispose_nodes
+dispose_all

@@ -35,4 +35,4 @@ send "netif\n"
 expect -re {[\r\n][^\r\n:]+?:\d+}
 expect "Done"
 
-dispose
+dispose_all

@@ -30,7 +30,7 @@
 source "tests/scripts/expect/_common.exp"
 source "tests/scripts/expect/_multinode.exp"
 
-setup_nodes
+setup_two_nodes
 
 set spawn_id $spawn_1
 send "dataset active\n"
@@ -243,4 +243,4 @@ expect "Error 7: InvalidArgs"
 send "dataset set something_invalid 00\n"
 expect "Error 7: InvalidArgs"
 
-dispose_nodes
+dispose_all

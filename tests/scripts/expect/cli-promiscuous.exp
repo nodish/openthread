@@ -46,10 +46,10 @@ expect "Done"
 send "promiscuous a\n"
 expect "Error 7: InvalidArgs"
 
-dispose
+dispose_all
 
 
-setup_nodes
+setup_two_nodes
 
 set spawn_id $spawn_1
 send "channel\n"
@@ -82,7 +82,4 @@ expect -- "---------------------------------------------------------------------
 send "promiscuous disable\n"
 expect "Done"
 
-set spawn_id $spawn_3
-dispose
-
-dispose_nodes
+dispose_all

@@ -50,4 +50,4 @@ send "sntp query ::1 123\n"
 expect -re {SNTP response - Unix time: \d+ \(era: \d+\)}
 expect "Done"
 
-dispose
+dispose_all

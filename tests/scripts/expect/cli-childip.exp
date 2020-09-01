@@ -30,7 +30,7 @@
 source "tests/scripts/expect/_common.exp"
 source "tests/scripts/expect/_multinode.exp"
 
-setup_nodes
+setup_two_nodes
 
 set spawn_id $spawn_2
 send "ipaddr mleid\n"
@@ -58,4 +58,4 @@ expect "Error 7: InvalidArgs"
 send "childip something_invalid\n"
 expect "Error 35: InvalidCommand"
 
-dispose_nodes
+dispose_all

@@ -51,4 +51,4 @@ expect "Done"
 send "routereligible enable\n"
 expect "Error 27: NotCapable"
 
-dispose
+dispose_all

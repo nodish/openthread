@@ -54,4 +54,4 @@ expect "Done"
 send "diag rcp power 10\n"
 expect "Done"
 
-dispose
+dispose_all

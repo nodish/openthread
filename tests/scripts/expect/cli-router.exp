@@ -30,7 +30,7 @@
 source "tests/scripts/expect/_common.exp"
 source "tests/scripts/expect/_multinode.exp"
 
-setup_nodes
+setup_two_nodes
 
 set spawn_id $spawn_1
 send "extaddr\n"
@@ -70,4 +70,4 @@ expect -re {Link Quality In: \d+}
 expect -re {Link Quality Out: \d+}
 expect -re {Age: \d+}
 
-dispose_nodes
+dispose_all

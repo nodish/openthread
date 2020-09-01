@@ -50,4 +50,4 @@ expect "Error 7: InvalidArgs"
 send "counters other\n"
 expect "Error 7: InvalidArgs"
 
-dispose
+dispose_all
