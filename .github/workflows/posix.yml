@@ -52,8 +52,6 @@ jobs:
         brew install ninja
     - name: Codecov
       uses: codecov/codecov-action@v1
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v2
     - name: Run Separate IP Mode
       run: |
         cat /etc/syslog.conf
