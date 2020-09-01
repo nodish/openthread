@@ -55,17 +55,43 @@ jobs:
     - name: Run Separate IP Mode
       run: |
         OT_OPTIONS=-DOT_READLINE=OFF NODE_MODE=rcp ./script/test build expect
+    - name: Keep POSIX Only
+      run: |
+        ./script/test tar simulation 1.1
     - name: Codecov
       uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
+    - name: Keep Simulation Only
+      run: |
+        ./script/test tar posix 1.1
+        ./script/test untar simulation 1.1
+    - name: Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
     - name: Run Native IP Mode
       run: |
         brew install dnsmasq
         echo 'listen-address=::1' | sudo tee $(brew --prefix)/etc/dnsmasq.conf
         sudo brew services start dnsmasq
         host ipv6.google.com ::1
-        OT_OPTIONS=-DOT_READLINE=OFF OT_NATIVE_IP=1 VIRTUAL_TIME=0 NODE_MODE=rcp ./script/test clean build expect
+        OT_OPTIONS=-DOT_READLINE=OFF OT_NATIVE_IP=1 NODE_MODE=rcp ./script/test clean build expect
+    - name: Keep POSIX Only
+      run: |
+        ./script/test tar simulation 1.1
     - name: Codecov
       uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
+    - name: Keep Simulation Only
+      run: |
+        ./script/test tar posix 1.1
+        ./script/test untar simulation 1.1
+    - name: Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
 
   Linux:
     runs-on: ubuntu-18.04
@@ -80,8 +106,21 @@ jobs:
     - name: Run Separate IP Mode
       run: |
         OT_OPTIONS=-DOT_READLINE=OFF NODE_MODE=rcp ./script/test clean build expect
+    - name: Keep POSIX Only
+      run: |
+        ./script/test tar simulation 1.1
     - name: Codecov
       uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
+    - name: Keep Simulation Only
+      run: |
+        ./script/test tar posix 1.1
+        ./script/test untar simulation 1.1
+    - name: Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
     - name: Run Native IP Mode
       run: |
         sudo apt-get install --no-install-recommends -y dnsmasq bind9-host ntp
@@ -91,9 +130,22 @@ jobs:
         echo 0 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
         sudo systemctl restart dnsmasq
         host ipv6.google.com ::1
-        OT_OPTIONS=-DOT_READLINE=OFF OT_NATIVE_IP=1 VIRTUAL_TIME=0 NODE_MODE=rcp ./script/test clean build expect
+        OT_OPTIONS=-DOT_READLINE=OFF OT_NATIVE_IP=1 NODE_MODE=rcp ./script/test clean build expect
+    - name: Keep POSIX Only
+      run: |
+        ./script/test tar simulation 1.1
     - name: Codecov
       uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
+    - name: Keep Simulation Only
+      run: |
+        ./script/test tar posix 1.1
+        ./script/test untar simulation 1.1
+    - name: Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
 
   posix-cli:
     runs-on: ubuntu-18.04

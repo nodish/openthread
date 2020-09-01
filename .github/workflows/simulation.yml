@@ -228,49 +228,6 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
-    - name: Run RCP Mode
-      run: |
-        OT_OPTIONS=-DOT_READLINE=OFF VIRTUAL_TIME=0 NODE_MODE=rcp ./script/test clean build expect
-    - name: Keep POSIX Only
-      run: |
-        ./script/test tar simulation 1.1
-    - name: Codecov
-      uses: codecov/codecov-action@v1
-      with:
-        fail_ci_if_error: true
-    - name: Keep Simulation Only
-      run: |
-        ./script/test tar posix 1.1
-        ./script/test untar simulation 1.1
-    - name: Codecov
-      uses: codecov/codecov-action@v1
-      with:
-        fail_ci_if_error: true
-    - name: Run TUN Mode
-      run: |
-        sudo apt-get install --no-install-recommends -y dnsmasq bind9-host ntp
-        sudo systemctl start dnsmasq ntp
-        host ipv6.google.com 127.0.0.1
-        echo 'listen-address=::1' | sudo tee /etc/dnsmasq.conf
-        echo 0 | sudo tee /proc/sys/net/ipv6/conf/all/disable_ipv6
-        sudo systemctl restart dnsmasq
-        host ipv6.google.com ::1
-        OT_OPTIONS=-DOT_READLINE=OFF OT_NATIVE_IP=1 VIRTUAL_TIME=0 NODE_MODE=rcp ./script/test clean build expect
-    - name: Keep POSIX Only
-      run: |
-        ./script/test tar simulation 1.1
-    - name: Codecov
-      uses: codecov/codecov-action@v1
-      with:
-        fail_ci_if_error: true
-    - name: Keep Simulation Only
-      run: |
-        ./script/test tar posix 1.1
-        ./script/test untar simulation 1.1
-    - name: Codecov
-      uses: codecov/codecov-action@v1
-      with:
-        fail_ci_if_error: true
 
   external-commissioner:
     runs-on: ubuntu-18.04
