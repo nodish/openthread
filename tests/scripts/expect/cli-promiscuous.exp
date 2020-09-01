@@ -46,10 +46,10 @@ expect "Done"
 send "promiscuous a\n"
 expect "Error 7: InvalidArgs"
 
-dispose
+dispose_all
 
 
-setup_nodes
+setup_two_nodes
 
 switch_node 1
 send "channel\n"
@@ -81,7 +81,4 @@ expect -- "---------------------------------------------------------------------
 send "promiscuous disable\n"
 expect "Done"
 
-switch_node 3
-dispose
-
-dispose_nodes
+dispose_all

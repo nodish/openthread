@@ -96,6 +96,4 @@ expect "Done"
 wait_for "state" "child"
 expect "Done"
 
-dispose
-
-dispose_leader
+dispose_all

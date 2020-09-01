@@ -44,4 +44,4 @@ send "dns resolve ipv6.google.com ::1 53\n"
 expect "DNS response for ipv6.google.com"
 expect "Done"
 
-dispose
+dispose_all

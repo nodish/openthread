@@ -87,7 +87,8 @@ proc switch_node {id} {
 
 proc dispose_node {id} {
     switch_node $id
-    dispose
+    send "\x04"
+    expect eof
 }
 
 proc setup_leader {} {
@@ -103,14 +104,12 @@ proc setup_leader {} {
     expect "Done"
 }
 
-proc dispose {} {
-    send "\x04"
-    expect eof
-}
-
-proc dispose_leader {} {
-    switch_node 1
-    dispose
+proc dispose_all {} {
+    global spawn_ids
+    set max_node [array size spawn_ids]
+    for {set i 1} {$i <= $max_node} {incr i} {
+        dispose_node $i
+    }
 }
 
 set timeout 10

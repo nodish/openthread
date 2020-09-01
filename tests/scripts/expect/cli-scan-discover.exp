@@ -30,7 +30,7 @@
 source "tests/scripts/expect/_common.exp"
 source "tests/scripts/expect/_multinode.exp"
 
-setup_nodes
+setup_two_nodes
 
 spawn_node 3
 
@@ -94,9 +94,8 @@ switch_node 3
 send "joiner start 123456\n"
 set timeout 10
 expect "NotFound"
-dispose
 
 switch_node 1
 expect "version=2,joiner=1"
 
-dispose_nodes
+dispose_all

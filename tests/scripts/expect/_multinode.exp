@@ -29,7 +29,7 @@
 
 source "tests/scripts/expect/_common.exp"
 
-proc setup_nodes {} {
+proc setup_two_nodes {} {
     # Sets up a Thread network with 2 nodes, spawn_1 as the leader and spawn_2
     # as a child.
     set psk "J01NME"
@@ -67,12 +67,4 @@ proc setup_nodes {} {
     expect "Done"
     wait_for "state" "child"
     expect "Done"
-}
-
-proc dispose_nodes {} {
-    global spawn_ids
-    set max_node [array size spawn_ids]
-    for {set i 1} {$i <= $max_node} {incr i} {
-        dispose_node $i
-    }
 }

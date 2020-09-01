@@ -30,7 +30,7 @@
 source "tests/scripts/expect/_common.exp"
 source "tests/scripts/expect/_multinode.exp"
 
-setup_nodes
+setup_two_nodes
 
 switch_node 1
 send "ipmaddr add ff0e::1\n"
@@ -66,4 +66,4 @@ expect "Done"
 send "ipmaddr something_invalid\n"
 expect "Error 35: InvalidCommand"
 
-dispose_nodes
+dispose_all

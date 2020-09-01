@@ -30,7 +30,7 @@
 source "tests/scripts/expect/_common.exp"
 source "tests/scripts/expect/_multinode.exp"
 
-setup_nodes
+setup_two_nodes
 
 set eui64 "d45e64fa83f81cf7"
 switch_node 1
@@ -84,4 +84,4 @@ expect "Error 7: InvalidArgs"
 send "commissioner\n"
 expect "Error 35: InvalidCommand"
 
-dispose_nodes
+dispose_all

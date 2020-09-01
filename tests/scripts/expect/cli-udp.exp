@@ -30,7 +30,7 @@
 source "tests/scripts/expect/_common.exp"
 source "tests/scripts/expect/_multinode.exp"
 
-setup_nodes
+setup_two_nodes
 
 switch_node 2
 send "udp open\n"
@@ -93,4 +93,4 @@ expect "Done"
 send "udp linksecurity something_invalid\n"
 expect "Error 35: InvalidCommand"
 
-dispose_nodes
+dispose_all

@@ -46,4 +46,4 @@ expect "Error 7: InvalidArgs"
 send "extaddr\n"
 expect "99aabbccddeeff00"
 
-dispose
+dispose_all

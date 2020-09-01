@@ -140,4 +140,4 @@ expect "Done"
 send "macfilter rss something_invalid\n"
 expect "Error 35: InvalidCommand"
 
-dispose
+dispose_all
