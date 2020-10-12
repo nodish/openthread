@@ -48,7 +48,7 @@
 #include "thread/mle_router.hpp"
 #include "thread/thread_netif.hpp"
 #include "thread/thread_tlvs.hpp"
-#include "thread/thread_uri_paths.hpp"
+#include "thread/uri_paths.hpp"
 
 namespace ot {
 namespace NetworkData {
@@ -432,10 +432,9 @@ otError LeaderBase::SetNetworkData(uint8_t        aVersion,
     Mle::Tlv tlv;
     uint16_t length;
 
-    length = aMessage.Read(aMessageOffset, sizeof(tlv), &tlv);
-    VerifyOrExit(length == sizeof(tlv), error = OT_ERROR_PARSE);
+    SuccessOrExit(error = aMessage.Read(aMessageOffset, tlv));
 
-    length = aMessage.Read(aMessageOffset + sizeof(tlv), tlv.GetLength(), mTlvs);
+    length = aMessage.ReadBytes(aMessageOffset + sizeof(tlv), mTlvs, tlv.GetLength());
     VerifyOrExit(length == tlv.GetLength(), error = OT_ERROR_PARSE);
 
     mLength        = tlv.GetLength();

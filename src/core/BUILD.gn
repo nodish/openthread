@@ -160,6 +160,10 @@ if (openthread_enable_core_config_args) {
       defines += [ "OPENTHREAD_CONFIG_LEGACY_ENABLE=1" ]
     }
 
+    if (openthread_config_link_metrics_enable) {
+      defines += [ "OPENTHREAD_CONFIG_MLE_LINK_METRICS_ENABLE=1" ]
+    }
+
     if (openthread_config_link_raw_enable) {
       defines += [ "OPENTHREAD_CONFIG_LINK_RAW_ENABLE=1" ]
     }
@@ -305,6 +309,7 @@ openthread_core_files = [
   "api/jam_detection_api.cpp",
   "api/joiner_api.cpp",
   "api/link_api.cpp",
+  "api/link_metrics_api.cpp",
   "api/link_raw_api.cpp",
   "api/logging_api.cpp",
   "api/message_api.cpp",
@@ -319,6 +324,8 @@ openthread_core_files = [
   "api/thread_api.cpp",
   "api/thread_ftd_api.cpp",
   "api/udp_api.cpp",
+  "backbone_router/backbone_tmf.cpp",
+  "backbone_router/backbone_tmf.hpp",
   "backbone_router/bbr_leader.cpp",
   "backbone_router/bbr_leader.hpp",
   "backbone_router/bbr_local.cpp",
@@ -327,6 +334,8 @@ openthread_core_files = [
   "backbone_router/bbr_manager.hpp",
   "backbone_router/multicast_listeners_table.cpp",
   "backbone_router/multicast_listeners_table.hpp",
+  "backbone_router/ndproxy_table.cpp",
+  "backbone_router/ndproxy_table.hpp",
   "coap/coap.cpp",
   "coap/coap.hpp",
   "coap/coap_message.cpp",
@@ -440,6 +449,8 @@ openthread_core_files = [
   "meshcop/panid_query_client.hpp",
   "meshcop/timestamp.cpp",
   "meshcop/timestamp.hpp",
+  "net/checksum.cpp",
+  "net/checksum.hpp",
   "net/dhcp6.hpp",
   "net/dhcp6_client.cpp",
   "net/dhcp6_client.hpp",
@@ -481,6 +492,8 @@ openthread_core_files = [
   "thread/child_mask.hpp",
   "thread/child_table.cpp",
   "thread/child_table.hpp",
+  "thread/csl_tx_scheduler.cpp",
+  "thread/csl_tx_scheduler.hpp",
   "thread/discover_scanner.cpp",
   "thread/discover_scanner.hpp",
   "thread/dua_manager.cpp",
@@ -492,6 +505,9 @@ openthread_core_files = [
   "thread/indirect_sender_frame_context.hpp",
   "thread/key_manager.cpp",
   "thread/key_manager.hpp",
+  "thread/link_metrics.cpp",
+  "thread/link_metrics.hpp",
+  "thread/link_metrics_tlvs.hpp",
   "thread/link_quality.cpp",
   "thread/link_quality.hpp",
   "thread/lowpan.cpp",
@@ -535,13 +551,14 @@ openthread_core_files = [
   "thread/thread_netif.cpp",
   "thread/thread_netif.hpp",
   "thread/thread_tlvs.hpp",
-  "thread/thread_uri_paths.hpp",
   "thread/time_sync_service.cpp",
   "thread/time_sync_service.hpp",
   "thread/tmf.cpp",
   "thread/tmf.hpp",
   "thread/topology.cpp",
   "thread/topology.hpp",
+  "thread/uri_paths.cpp",
+  "thread/uri_paths.hpp",
   "utils/channel_manager.cpp",
   "utils/channel_manager.hpp",
   "utils/channel_monitor.cpp",
@@ -554,6 +571,8 @@ openthread_core_files = [
   "utils/heap.hpp",
   "utils/jam_detector.cpp",
   "utils/jam_detector.hpp",
+  "utils/lookup_table.cpp",
+  "utils/lookup_table.hpp",
   "utils/otns.cpp",
   "utils/otns.hpp",
   "utils/parse_cmdline.cpp",
@@ -587,6 +606,7 @@ openthread_radio_sources = [
   "radio/radio_callbacks.cpp",
   "radio/radio_platform.cpp",
   "thread/link_quality.cpp",
+  "utils/lookup_table.cpp",
   "utils/parse_cmdline.cpp",
 ]
 

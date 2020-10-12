@@ -42,7 +42,7 @@
 #include "mac/mac_types.hpp"
 #include "thread/thread_netif.hpp"
 #include "thread/thread_tlvs.hpp"
-#include "thread/thread_uri_paths.hpp"
+#include "thread/uri_paths.hpp"
 
 namespace ot {
 namespace NetworkData {
@@ -808,7 +808,7 @@ otError NetworkData::SendServerDataNotification(uint16_t aRloc16, Coap::Response
 
     VerifyOrExit((message = Get<Tmf::TmfAgent>().NewMessage()) != nullptr, error = OT_ERROR_NO_BUFS);
 
-    SuccessOrExit(error = message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST, OT_URI_PATH_SERVER_DATA));
+    SuccessOrExit(error = message->InitAsConfirmablePost(UriPath::kServerData));
     SuccessOrExit(error = message->SetPayloadMarker());
 
     if (mType == kTypeLocal)
@@ -816,8 +816,8 @@ otError NetworkData::SendServerDataNotification(uint16_t aRloc16, Coap::Response
         ThreadTlv tlv;
         tlv.SetType(ThreadTlv::kThreadNetworkData);
         tlv.SetLength(mLength);
-        SuccessOrExit(error = message->Append(&tlv, sizeof(tlv)));
-        SuccessOrExit(error = message->Append(mTlvs, mLength));
+        SuccessOrExit(error = message->Append(tlv));
+        SuccessOrExit(error = message->AppendBytes(mTlvs, mLength));
     }
 
     if (aRloc16 != Mac::kShortAddrInvalid)
@@ -833,12 +833,7 @@ otError NetworkData::SendServerDataNotification(uint16_t aRloc16, Coap::Response
     otLogInfoNetData("Sent server data notification");
 
 exit:
-
-    if (error != OT_ERROR_NONE && message != nullptr)
-    {
-        message->Free();
-    }
-
+    FreeMessageOnError(message, error);
     return error;
 }
 

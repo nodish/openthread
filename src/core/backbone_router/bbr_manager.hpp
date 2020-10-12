@@ -40,8 +40,10 @@
 #include <openthread/backbone_router.h>
 #include <openthread/backbone_router_ftd.h>
 
+#include "backbone_router/backbone_tmf.hpp"
 #include "backbone_router/bbr_leader.hpp"
 #include "backbone_router/multicast_listeners_table.hpp"
+#include "backbone_router/ndproxy_table.hpp"
 #include "common/locator.hpp"
 #include "net/netif.hpp"
 #include "thread/network_data.hpp"
@@ -66,6 +68,14 @@ public:
      *
      */
     explicit Manager(Instance &aInstance);
+
+    /**
+     * This method returns the NdProxy Table.
+     *
+     * @returns The NdProxy Table.
+     *
+     */
+    NdProxyTable &GetNdProxyTable(void);
 
 #if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
     /**
@@ -102,6 +112,26 @@ public:
      */
     MulticastListenersTable &GetMulticastListenersTable(void) { return mMulticastListenersTable; }
 
+    /**
+     * This method returns if messages destined to a given Domain Unicast Address should be forwarded to the Backbone
+     * link.
+     *
+     * @param aAddress The Domain Unicast Address.
+     *
+     * @retval TRUE   If messages destined to the Domain Unicast Address should be forwarded to the Backbone link.
+     * @retval FALSE  If messages destined to the Domain Unicast Address should not be forwarded to the Backbone link.
+     *
+     */
+    bool ShouldForwardDuaToBackbone(const Ip6::Address &aAddress);
+
+    /**
+     * This method returns a reference to the Backbone TMF agent.
+     *
+     * @returns A reference to the Backbone TMF agent.
+     *
+     */
+    BackboneTmfAgent &GetBackboneTmfAgent(void) { return mBackboneTmfAgent; }
+
 private:
     enum
     {
@@ -121,6 +151,9 @@ private:
                                                    ThreadStatusTlv::MlrStatus aStatus,
                                                    Ip6::Address *             aFailedAddresses,
                                                    uint8_t                    aFailedAddressNum);
+    void SendBackboneMulticastListenerRegistration(const Ip6::Address *aAddresses,
+                                                   uint8_t             aAddressNum,
+                                                   uint32_t            aTimeout);
 
     static void HandleDuaRegistration(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
     {
@@ -140,13 +173,16 @@ private:
 
     Coap::Resource mMulticastListenerRegistration;
     Coap::Resource mDuaRegistration;
+    NdProxyTable   mNdProxyTable;
 
     MulticastListenersTable mMulticastListenersTable;
     TimerMilli              mTimer;
 
+    BackboneTmfAgent mBackboneTmfAgent;
+
 #if OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE
     Ip6::InterfaceIdentifier   mDuaResponseTargetMlIid;
-    ThreadStatusTlv::DuaStatus mDuaResponseStatus;
+    uint8_t                    mDuaResponseStatus;
     ThreadStatusTlv::MlrStatus mMlrResponseStatus;
     bool                       mDuaResponseIsSpecified : 1;
     bool                       mMlrResponseIsSpecified : 1;

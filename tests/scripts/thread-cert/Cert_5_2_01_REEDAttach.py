@@ -43,28 +43,28 @@ MED1 = 4
 class Cert_5_2_01_REEDAttach(thread_cert.TestCase):
     TOPOLOGY = {
         LEADER: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
-            'whitelist': [DUT_ROUTER1]
+            'allowlist': [DUT_ROUTER1]
         },
         DUT_ROUTER1: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
             'router_selection_jitter': 1,
-            'whitelist': [LEADER, REED1]
+            'allowlist': [LEADER, REED1]
         },
         REED1: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
             'router_selection_jitter': 1,
             'router_upgrade_threshold': 1,
-            'whitelist': [DUT_ROUTER1, MED1]
+            'allowlist': [DUT_ROUTER1, MED1]
         },
         MED1: {
             'is_mtd': True,
-            'mode': 'rsn',
+            'mode': 'rn',
             'panid': 0xface,
-            'whitelist': [REED1]
+            'allowlist': [REED1]
         },
     }
 

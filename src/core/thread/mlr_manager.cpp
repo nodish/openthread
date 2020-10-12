@@ -41,7 +41,7 @@
 #include "common/logging.hpp"
 #include "net/ip6_address.hpp"
 #include "thread/thread_netif.hpp"
-#include "thread/thread_uri_paths.hpp"
+#include "thread/uri_paths.hpp"
 #include "utils/slaac_address.hpp"
 
 namespace ot {
@@ -394,15 +394,15 @@ otError MlrManager::SendMulticastListenerRegistrationMessage(const otIp6Address 
 
     VerifyOrExit((message = Get<Tmf::TmfAgent>().NewMessage()) != nullptr, error = OT_ERROR_NO_BUFS);
 
-    message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
+    message->InitAsConfirmablePost();
     SuccessOrExit(message->SetToken(Coap::Message::kDefaultTokenLength));
-    SuccessOrExit(message->AppendUriPathOptions(OT_URI_PATH_MLR));
+    SuccessOrExit(message->AppendUriPathOptions(UriPath::kMlr));
     SuccessOrExit(message->SetPayloadMarker());
 
     addressesTlv.Init();
     addressesTlv.SetLength(sizeof(Ip6::Address) * aAddressNum);
-    SuccessOrExit(error = message->Append(&addressesTlv, sizeof(addressesTlv)));
-    SuccessOrExit(error = message->Append(aAddresses, sizeof(Ip6::Address) * aAddressNum));
+    SuccessOrExit(error = message->Append(addressesTlv));
+    SuccessOrExit(error = message->AppendBytes(aAddresses, sizeof(Ip6::Address) * aAddressNum));
 
 #if OPENTHREAD_CONFIG_TMF_PROXY_MLR_ENABLE && OPENTHREAD_CONFIG_COMMISSIONER_ENABLE
     if (Get<MeshCoP::Commissioner>().IsActive())
@@ -439,12 +439,7 @@ otError MlrManager::SendMulticastListenerRegistrationMessage(const otIp6Address 
 
 exit:
     otLogInfoMlr("Send MLR.req: %s, addressNum=%d", otThreadErrorToString(error), aAddressNum);
-
-    if (error != OT_ERROR_NONE && message != nullptr)
-    {
-        message->Free();
-    }
-
+    FreeMessageOnError(message, error);
     return error;
 }
 
@@ -508,7 +503,7 @@ otError MlrManager::ParseMulticastListenerRegistrationResponse(otError        aR
     aStatus = ThreadStatusTlv::MlrStatus::kMlrGeneralFailure;
 
     VerifyOrExit(aResult == OT_ERROR_NONE && aMessage != nullptr, error = OT_ERROR_PARSE);
-    VerifyOrExit(aMessage->GetCode() == OT_COAP_CODE_CHANGED, error = OT_ERROR_PARSE);
+    VerifyOrExit(aMessage->GetCode() == Coap::kCodeChanged, error = OT_ERROR_PARSE);
 
     SuccessOrExit(error = Tlv::FindUint8Tlv(*aMessage, ThreadTlv::kStatus, aStatus));
 
@@ -520,8 +515,7 @@ otError MlrManager::ParseMulticastListenerRegistrationResponse(otError        aR
 
         for (uint16_t offset = 0; offset < addressesLength; offset += sizeof(Ip6::Address))
         {
-            IgnoreReturnValue(
-                aMessage->Read(addressesOffset + offset, sizeof(Ip6::Address), &aFailedAddresses[aFailedAddressNum]));
+            IgnoreError(aMessage->Read(addressesOffset + offset, aFailedAddresses[aFailedAddressNum]));
             aFailedAddressNum++;
         }
     }

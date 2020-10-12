@@ -40,21 +40,21 @@ ROUTER1 = 2
 class Cert_5_1_05_RouterAddressTimeout(thread_cert.TestCase):
     TOPOLOGY = {
         LEADER: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
-            'whitelist': [ROUTER1]
+            'allowlist': [ROUTER1]
         },
         ROUTER1: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
             'router_selection_jitter': 1,
-            'whitelist': [LEADER]
+            'allowlist': [LEADER]
         },
     }
 
     def _setUpRouter1(self):
-        self.nodes[ROUTER1].add_whitelist(self.nodes[LEADER].get_addr64())
-        self.nodes[ROUTER1].enable_whitelist()
+        self.nodes[ROUTER1].add_allowlist(self.nodes[LEADER].get_addr64())
+        self.nodes[ROUTER1].enable_allowlist()
         self.nodes[ROUTER1].set_router_selection_jitter(1)
 
     def test(self):

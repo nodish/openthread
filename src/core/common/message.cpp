@@ -38,6 +38,7 @@
 #include "common/instance.hpp"
 #include "common/locator-getters.hpp"
 #include "common/logging.hpp"
+#include "net/checksum.hpp"
 #include "net/ip6.hpp"
 
 namespace ot {
@@ -361,19 +362,19 @@ exit:
     return error;
 }
 
-otError Message::Append(const void *aBuf, uint16_t aLength)
+otError Message::AppendBytes(const void *aBuf, uint16_t aLength)
 {
     otError  error     = OT_ERROR_NONE;
     uint16_t oldLength = GetLength();
 
     SuccessOrExit(error = SetLength(GetLength() + aLength));
-    Write(oldLength, aLength, aBuf);
+    WriteBytes(oldLength, aBuf, aLength);
 
 exit:
     return error;
 }
 
-otError Message::Prepend(const void *aBuf, uint16_t aLength)
+otError Message::PrependBytes(const void *aBuf, uint16_t aLength)
 {
     otError error     = OT_ERROR_NONE;
     Buffer *newBuffer = nullptr;
@@ -401,7 +402,7 @@ otError Message::Prepend(const void *aBuf, uint16_t aLength)
 
     if (aBuf != nullptr)
     {
-        Write(0, aLength, aBuf);
+        WriteBytes(0, aBuf, aLength);
     }
 
 exit:
@@ -509,7 +510,7 @@ exit:
     return;
 }
 
-uint16_t Message::Read(uint16_t aOffset, uint16_t aLength, void *aBuf) const
+uint16_t Message::ReadBytes(uint16_t aOffset, void *aBuf, uint16_t aLength) const
 {
     uint8_t *bufPtr = reinterpret_cast<uint8_t *>(aBuf);
     Chunk    chunk;
@@ -526,7 +527,12 @@ uint16_t Message::Read(uint16_t aOffset, uint16_t aLength, void *aBuf) const
     return static_cast<uint16_t>(bufPtr - reinterpret_cast<uint8_t *>(aBuf));
 }
 
-void Message::Write(uint16_t aOffset, uint16_t aLength, const void *aBuf)
+otError Message::Read(uint16_t aOffset, void *aBuf, uint16_t aLength) const
+{
+    return (ReadBytes(aOffset, aBuf, aLength) == aLength) ? OT_ERROR_NONE : OT_ERROR_PARSE;
+}
+
+void Message::WriteBytes(uint16_t aOffset, const void *aBuf, uint16_t aLength)
 {
     const uint8_t *bufPtr = reinterpret_cast<const uint8_t *>(aBuf);
     WritableChunk  chunk;
@@ -559,7 +565,7 @@ uint16_t Message::CopyTo(uint16_t aSourceOffset, uint16_t aDestinationOffset, ui
 
     while (chunk.GetLength() > 0)
     {
-        aMessage.Write(aDestinationOffset, chunk.GetLength(), chunk.GetData());
+        aMessage.WriteBytes(aDestinationOffset, chunk.GetData(), chunk.GetLength());
         aDestinationOffset += chunk.GetLength();
         bytesCopied += chunk.GetLength();
         GetNextChunk(aLength, chunk);
@@ -590,13 +596,7 @@ Message *Message::Clone(uint16_t aLength) const
 #endif
 
 exit:
-
-    if (error != OT_ERROR_NONE && messageCopy != nullptr)
-    {
-        messageCopy->Free();
-        messageCopy = nullptr;
-    }
-
+    FreeAndNullMessageOnError(messageCopy, error);
     return messageCopy;
 }
 
@@ -625,45 +625,13 @@ void Message::SetLinkInfo(const ThreadLinkInfo &aLinkInfo)
     SetLinkSecurityEnabled(aLinkInfo.mLinkSecurity);
     SetPanId(aLinkInfo.mPanId);
     AddRss(aLinkInfo.mRss);
+#if OPENTHREAD_CONFIG_MLE_LINK_METRICS_ENABLE
+    AddLqi(aLinkInfo.mLqi);
+#endif
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
     SetTimeSyncSeq(aLinkInfo.mTimeSyncSeq);
     SetNetworkTimeOffset(aLinkInfo.mNetworkTimeOffset);
 #endif
-}
-
-uint16_t Message::UpdateChecksum(uint16_t aChecksum, uint16_t aValue)
-{
-    uint16_t result = aChecksum + aValue;
-    return result + (result < aChecksum);
-}
-
-uint16_t Message::UpdateChecksum(uint16_t aChecksum, const void *aBuf, uint16_t aLength)
-{
-    const uint8_t *bytes = reinterpret_cast<const uint8_t *>(aBuf);
-
-    for (int i = 0; i < aLength; i++)
-    {
-        aChecksum = UpdateChecksum(aChecksum, (i & 1) ? bytes[i] : static_cast<uint16_t>(bytes[i] << 8));
-    }
-
-    return aChecksum;
-}
-
-uint16_t Message::UpdateChecksum(uint16_t aChecksum, uint16_t aOffset, uint16_t aLength) const
-{
-    Chunk chunk;
-
-    OT_ASSERT(aOffset + aLength <= GetLength());
-
-    GetFirstChunk(aOffset, aLength, chunk);
-
-    while (chunk.GetLength() > 0)
-    {
-        aChecksum = Message::UpdateChecksum(aChecksum, chunk.GetData(), chunk.GetLength());
-        GetNextChunk(aLength, chunk);
-    }
-
-    return aChecksum;
 }
 
 bool Message::IsTimeSync(void) const

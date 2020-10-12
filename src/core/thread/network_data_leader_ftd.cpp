@@ -50,7 +50,7 @@
 #include "thread/mle_router.hpp"
 #include "thread/thread_netif.hpp"
 #include "thread/thread_tlvs.hpp"
-#include "thread/thread_uri_paths.hpp"
+#include "thread/uri_paths.hpp"
 
 namespace ot {
 namespace NetworkData {
@@ -58,9 +58,9 @@ namespace NetworkData {
 Leader::Leader(Instance &aInstance)
     : LeaderBase(aInstance)
     , mTimer(aInstance, Leader::HandleTimer, this)
-    , mServerData(OT_URI_PATH_SERVER_DATA, &Leader::HandleServerData, this)
-    , mCommissioningDataGet(OT_URI_PATH_COMMISSIONER_GET, &Leader::HandleCommissioningGet, this)
-    , mCommissioningDataSet(OT_URI_PATH_COMMISSIONER_SET, &Leader::HandleCommissioningSet, this)
+    , mServerData(UriPath::kServerData, &Leader::HandleServerData, this)
+    , mCommissioningDataGet(UriPath::kCommissionerGet, &Leader::HandleCommissioningGet, this)
+    , mCommissioningDataSet(UriPath::kCommissionerSet, &Leader::HandleCommissioningSet, this)
 {
     Reset();
 }
@@ -195,7 +195,7 @@ void Leader::HandleCommissioningSet(Coap::Message &aMessage, const Ip6::MessageI
     VerifyOrExit(length <= sizeof(tlvs), OT_NOOP);
     VerifyOrExit(Get<Mle::MleRouter>().IsLeader(), OT_NOOP);
 
-    aMessage.Read(offset, length, tlvs);
+    aMessage.ReadBytes(offset, tlvs, length);
 
     // Session Id and Border Router Locator MUST NOT be set, but accept including unexpected or
     // unknown TLV as long as there is at least one valid TLV.
@@ -322,7 +322,7 @@ void Leader::SendCommissioningGetResponse(const Coap::Message &   aRequest,
 
     if (aLength == 0)
     {
-        SuccessOrExit(error = message->Append(data, length));
+        SuccessOrExit(error = message->AppendBytes(data, length));
     }
     else
     {
@@ -330,7 +330,7 @@ void Leader::SendCommissioningGetResponse(const Coap::Message &   aRequest,
         {
             uint8_t type;
 
-            aRequest.Read(aRequest.GetOffset() + index, sizeof(type), &type);
+            IgnoreError(aRequest.Read(aRequest.GetOffset() + index, type));
 
             for (MeshCoP::Tlv *cur                                          = reinterpret_cast<MeshCoP::Tlv *>(data);
                  cur < reinterpret_cast<MeshCoP::Tlv *>(data + length); cur = cur->GetNext())
@@ -355,11 +355,7 @@ void Leader::SendCommissioningGetResponse(const Coap::Message &   aRequest,
     otLogInfoMeshCoP("sent commissioning dataset get response");
 
 exit:
-
-    if (error != OT_ERROR_NONE && message != nullptr)
-    {
-        message->Free();
-    }
+    FreeMessageOnError(message, error);
 }
 
 void Leader::SendCommissioningSetResponse(const Coap::Message &    aRequest,
@@ -381,11 +377,7 @@ void Leader::SendCommissioningSetResponse(const Coap::Message &    aRequest,
     otLogInfoMeshCoP("sent commissioning dataset set response");
 
 exit:
-
-    if (error != OT_ERROR_NONE && message != nullptr)
-    {
-        message->Free();
-    }
+    FreeMessageOnError(message, error);
 }
 
 bool Leader::RlocMatch(uint16_t aFirstRloc16, uint16_t aSecondRloc16, MatchMode aMatchMode)
@@ -1384,7 +1376,7 @@ otError Leader::RemoveStaleChildEntries(Coap::ResponseHandler aHandler, void *aC
             Get<ChildTable>().FindChild(rloc16, Child::kInStateValid) == nullptr)
         {
             // In Thread 1.1 Specification 5.15.6.1, only one RLOC16 TLV entry may appear in SRV_DATA.ntf.
-            error = NetworkData::SendServerDataNotification(rloc16, aHandler, aContext);
+            error = SendServerDataNotification(rloc16, aHandler, aContext);
             ExitNow();
         }
     }

@@ -44,7 +44,7 @@
 #include "radio/radio.hpp"
 #include "thread/thread_netif.hpp"
 #include "thread/thread_tlvs.hpp"
-#include "thread/thread_uri_paths.hpp"
+#include "thread/uri_paths.hpp"
 
 namespace ot {
 namespace MeshCoP {
@@ -280,11 +280,11 @@ void DatasetManager::SendSet(void)
 
     VerifyOrExit((message = NewMeshCoPMessage(Get<Tmf::TmfAgent>())) != nullptr, error = OT_ERROR_NO_BUFS);
 
-    SuccessOrExit(error = message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST, mUriSet));
+    SuccessOrExit(error = message->InitAsConfirmablePost(mUriSet));
     SuccessOrExit(error = message->SetPayloadMarker());
 
     IgnoreError(mLocal.Read(dataset));
-    SuccessOrExit(error = message->Append(dataset.GetBytes(), dataset.GetSize()));
+    SuccessOrExit(error = message->AppendBytes(dataset.GetBytes(), dataset.GetSize()));
 
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     IgnoreError(Get<Mle::MleRouter>().GetLeaderAloc(messageInfo.GetPeerAddr()));
@@ -308,12 +308,7 @@ exit:
 
     default:
         otLogWarnMeshCoP("Failed to send %s to leader: %s", mUriSet, otThreadErrorToString(error));
-
-        if (message != nullptr)
-        {
-            message->Free();
-        }
-
+        FreeMessage(message);
         break;
     }
 }
@@ -345,7 +340,7 @@ void DatasetManager::HandleGet(const Coap::Message &aMessage, const Ip6::Message
 
     while (offset < aMessage.GetLength())
     {
-        aMessage.Read(offset, sizeof(tlv), &tlv);
+        IgnoreError(aMessage.Read(offset, tlv));
 
         if (tlv.GetType() == Tlv::kGet)
         {
@@ -357,7 +352,7 @@ void DatasetManager::HandleGet(const Coap::Message &aMessage, const Ip6::Message
                 length = sizeof(tlvs) - 1;
             }
 
-            aMessage.Read(offset + sizeof(Tlv), length, tlvs);
+            aMessage.ReadBytes(offset + sizeof(Tlv), tlvs, length);
             break;
         }
 
@@ -365,7 +360,7 @@ void DatasetManager::HandleGet(const Coap::Message &aMessage, const Ip6::Message
     }
 
     // MGMT_PENDING_GET.rsp must include Delay Timer TLV (Thread 1.1.1 Section 8.7.5.4)
-    VerifyOrExit(length > 0 && strcmp(mUriGet, OT_URI_PATH_PENDING_GET) == 0, OT_NOOP);
+    VerifyOrExit(length > 0 && strcmp(mUriGet, UriPath::kPendingGet) == 0, OT_NOOP);
 
     for (uint8_t i = 0; i < length; i++)
     {
@@ -436,11 +431,7 @@ void DatasetManager::SendGetResponse(const Coap::Message &   aRequest,
     otLogInfoMeshCoP("sent dataset get response");
 
 exit:
-
-    if (error != OT_ERROR_NONE && message != nullptr)
-    {
-        message->Free();
-    }
+    FreeMessageOnError(message, error);
 }
 
 otError DatasetManager::SendSetRequest(const otOperationalDataset &aDataset, const uint8_t *aTlvs, uint8_t aLength)
@@ -451,7 +442,7 @@ otError DatasetManager::SendSetRequest(const otOperationalDataset &aDataset, con
 
     VerifyOrExit((message = NewMeshCoPMessage(Get<Tmf::TmfAgent>())) != nullptr, error = OT_ERROR_NO_BUFS);
 
-    SuccessOrExit(error = message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST, mUriSet));
+    SuccessOrExit(error = message->InitAsConfirmablePost(mUriSet));
     SuccessOrExit(error = message->SetPayloadMarker());
 
 #if OPENTHREAD_CONFIG_COMMISSIONER_ENABLE && OPENTHREAD_FTD
@@ -567,7 +558,7 @@ otError DatasetManager::SendSetRequest(const otOperationalDataset &aDataset, con
 
     if (aLength > 0)
     {
-        SuccessOrExit(error = message->Append(aTlvs, aLength));
+        SuccessOrExit(error = message->AppendBytes(aTlvs, aLength));
     }
 
     if (message->GetLength() == message->GetOffset())
@@ -584,12 +575,7 @@ otError DatasetManager::SendSetRequest(const otOperationalDataset &aDataset, con
     otLogInfoMeshCoP("sent dataset set request to leader");
 
 exit:
-
-    if (error != OT_ERROR_NONE && message != nullptr)
-    {
-        message->Free();
-    }
-
+    FreeMessageOnError(message, error);
     return error;
 }
 
@@ -669,7 +655,7 @@ otError DatasetManager::SendGetRequest(const otOperationalDatasetComponents &aDa
 
     VerifyOrExit((message = NewMeshCoPMessage(Get<Tmf::TmfAgent>())) != nullptr, error = OT_ERROR_NO_BUFS);
 
-    SuccessOrExit(error = message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST, mUriGet));
+    SuccessOrExit(error = message->InitAsConfirmablePost(mUriGet));
 
     if (aLength + length > 0)
     {
@@ -680,16 +666,16 @@ otError DatasetManager::SendGetRequest(const otOperationalDatasetComponents &aDa
     {
         tlv.SetType(Tlv::kGet);
         tlv.SetLength(aLength + length);
-        SuccessOrExit(error = message->Append(&tlv, sizeof(tlv)));
+        SuccessOrExit(error = message->Append(tlv));
 
         if (length > 0)
         {
-            SuccessOrExit(error = message->Append(datasetTlvs, length));
+            SuccessOrExit(error = message->AppendBytes(datasetTlvs, length));
         }
 
         if (aLength > 0)
         {
-            SuccessOrExit(error = message->Append(aTlvTypes, aLength));
+            SuccessOrExit(error = message->AppendBytes(aTlvTypes, aLength));
         }
     }
 
@@ -709,24 +695,15 @@ otError DatasetManager::SendGetRequest(const otOperationalDatasetComponents &aDa
     otLogInfoMeshCoP("sent dataset get request");
 
 exit:
-
-    if (error != OT_ERROR_NONE && message != nullptr)
-    {
-        message->Free();
-    }
-
+    FreeMessageOnError(message, error);
     return error;
 }
 
 ActiveDataset::ActiveDataset(Instance &aInstance)
-    : DatasetManager(aInstance,
-                     Dataset::kActive,
-                     OT_URI_PATH_ACTIVE_GET,
-                     OT_URI_PATH_ACTIVE_SET,
-                     ActiveDataset::HandleTimer)
-    , mResourceGet(OT_URI_PATH_ACTIVE_GET, &ActiveDataset::HandleGet, this)
+    : DatasetManager(aInstance, Dataset::kActive, UriPath::kActiveGet, UriPath::kActiveSet, ActiveDataset::HandleTimer)
+    , mResourceGet(UriPath::kActiveGet, &ActiveDataset::HandleGet, this)
 #if OPENTHREAD_FTD
-    , mResourceSet(OT_URI_PATH_ACTIVE_SET, &ActiveDataset::HandleSet, this)
+    , mResourceSet(UriPath::kActiveSet, &ActiveDataset::HandleSet, this)
 #endif
 {
     Get<Tmf::TmfAgent>().AddResource(mResourceGet);
@@ -769,13 +746,13 @@ void ActiveDataset::HandleTimer(Timer &aTimer)
 PendingDataset::PendingDataset(Instance &aInstance)
     : DatasetManager(aInstance,
                      Dataset::kPending,
-                     OT_URI_PATH_PENDING_GET,
-                     OT_URI_PATH_PENDING_SET,
+                     UriPath::kPendingGet,
+                     UriPath::kPendingSet,
                      PendingDataset::HandleTimer)
     , mDelayTimer(aInstance, PendingDataset::HandleDelayTimer, this)
-    , mResourceGet(OT_URI_PATH_PENDING_GET, &PendingDataset::HandleGet, this)
+    , mResourceGet(UriPath::kPendingGet, &PendingDataset::HandleGet, this)
 #if OPENTHREAD_FTD
-    , mResourceSet(OT_URI_PATH_PENDING_SET, &PendingDataset::HandleSet, this)
+    , mResourceSet(UriPath::kPendingSet, &PendingDataset::HandleSet, this)
 #endif
 {
     Get<Tmf::TmfAgent>().AddResource(mResourceGet);

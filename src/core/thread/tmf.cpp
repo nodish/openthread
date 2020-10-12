@@ -40,16 +40,7 @@ namespace Tmf {
 
 otError TmfAgent::Start(void)
 {
-    otError error;
-
-    SuccessOrExit(error = Coap::Start(kUdpPort));
-#if OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE
-    error = mSocket.BindToNetif(OT_NETIF_THREAD);
-    VerifyOrExit(OT_ERROR_NONE == error, IgnoreError(mSocket.Close()));
-#endif
-
-exit:
-    return error;
+    return Coap::Start(kUdpPort, OT_NETIF_THREAD);
 }
 
 otError TmfAgent::Filter(const ot::Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo, void *aContext)

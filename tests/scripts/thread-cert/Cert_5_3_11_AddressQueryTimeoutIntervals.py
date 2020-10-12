@@ -41,21 +41,21 @@ MED1 = 3
 class Cert_5_3_11_AddressQueryTimeoutIntervals(thread_cert.TestCase):
     TOPOLOGY = {
         LEADER: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
-            'whitelist': [DUT_ROUTER1]
+            'allowlist': [DUT_ROUTER1]
         },
         DUT_ROUTER1: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
             'router_selection_jitter': 1,
-            'whitelist': [LEADER, MED1]
+            'allowlist': [LEADER, MED1]
         },
         MED1: {
             'is_mtd': True,
-            'mode': 'rsn',
+            'mode': 'rn',
             'panid': 0xface,
-            'whitelist': [DUT_ROUTER1]
+            'allowlist': [DUT_ROUTER1]
         },
     }
 

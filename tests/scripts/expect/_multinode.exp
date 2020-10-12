@@ -29,7 +29,7 @@
 
 source "tests/scripts/expect/_common.exp"
 
-proc setup_two_nodes {} {
+proc setup_two_nodes {{childmode {r}}} {
     # Sets up a Thread network with 2 nodes, spawn_1 as the leader and spawn_2
     # as a child.
     set psk "J01NME"
@@ -56,7 +56,7 @@ proc setup_two_nodes {} {
     expect "Done"
 
     switch_node 2
-    send "mode rs\n"
+    send "mode $childmode\n"
     expect "Done"
     send "ifconfig up\n"
     expect "Done"

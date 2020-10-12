@@ -114,44 +114,44 @@ class TestDomainUnicastAddressRegistration(thread_cert.TestCase):
     TOPOLOGY = {
         BBR_1: {
             'version': '1.2',
-            'whitelist': [ROUTER_1_1, ROUTER_1_2],
+            'allowlist': [ROUTER_1_1, ROUTER_1_2],
             'is_bbr': True
         },
         ROUTER_1_1: {
             'version': '1.1',
-            'whitelist': [BBR_1, FED_1_2_1, MED_1_2_1, SED_1_2_1]
+            'allowlist': [BBR_1, FED_1_2_1, MED_1_2_1, SED_1_2_1]
         },
         ROUTER_1_2: {
             'version': '1.2',
-            'whitelist': [BBR_1, FED_1_2_2, MED_1_2_2, SED_1_2_2]
+            'allowlist': [BBR_1, FED_1_2_2, MED_1_2_2, SED_1_2_2]
         },
         FED_1_2_1: {
             'version': '1.2',
-            'whitelist': [ROUTER_1_1],
+            'allowlist': [ROUTER_1_1],
         },
         MED_1_2_1: {
-            'mode': 'rsn',
+            'mode': 'rn',
             'version': '1.2',
-            'whitelist': [ROUTER_1_1],
+            'allowlist': [ROUTER_1_1],
         },
         SED_1_2_1: {
-            'mode': 'sn',
+            'mode': 'n',
             'version': '1.2',
-            'whitelist': [ROUTER_1_1],
+            'allowlist': [ROUTER_1_1],
         },
         FED_1_2_2: {
             'version': '1.2',
-            'whitelist': [ROUTER_1_2],
+            'allowlist': [ROUTER_1_2],
         },
         MED_1_2_2: {
-            'mode': 'rsn',
+            'mode': 'rn',
             'version': '1.2',
-            'whitelist': [ROUTER_1_2],
+            'allowlist': [ROUTER_1_2],
         },
         SED_1_2_2: {
-            'mode': 'sn',
+            'mode': 'n',
             'version': '1.2',
-            'whitelist': [ROUTER_1_2],
+            'allowlist': [ROUTER_1_2],
         },
     }
     """All nodes are created with default configurations"""
@@ -281,8 +281,8 @@ class TestDomainUnicastAddressRegistration(thread_cert.TestCase):
         #   - increase BBR seqno to trigger reregistration
         #   - ROUTER_1_2 should re-register within BBR_REREGISTRATION_DELAY. For the not fatal errors, ROUTER_1_2
         #     should re-register within another BBR_REREGISTRATION_DELAY (with least delay if ST_DUA_REREGISTER)
-        for status in [ST_DUA_REREGISTER, ST_DUA_NO_RESOURCES, ST_DUA_BBR_NOT_PRIMARY, ST_DUA_GENERAL_FAILURE]:
-            print('Testing Status %d...'.format(status))
+        for status in ['5.00', ST_DUA_REREGISTER, ST_DUA_NO_RESOURCES, ST_DUA_BBR_NOT_PRIMARY, ST_DUA_GENERAL_FAILURE]:
+            print(f'Testing Status {status}...')
             # Flush relative message queues.
             self.flush_nodes([ROUTER_1_2])
             seq_num = seq_num + 1

@@ -42,17 +42,17 @@ class Cert_6_6_1_KeyIncrement(thread_cert.TestCase):
         LEADER: {
             'name': 'LEADER',
             'key_switch_guardtime': 0,
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
-            'whitelist': [ED]
+            'allowlist': [ED]
         },
         ED: {
             'name': 'ED',
             'is_mtd': True,
             'key_switch_guardtime': 0,
-            'mode': 'rsn',
+            'mode': 'rn',
             'panid': 0xface,
-            'whitelist': [LEADER]
+            'allowlist': [LEADER]
         },
     }
 

@@ -45,22 +45,22 @@ MED = 3
 class Cert_6_1_2_REEDAttach_MED(thread_cert.TestCase):
     TOPOLOGY = {
         LEADER: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
-            'whitelist': [REED]
+            'allowlist': [REED]
         },
         REED: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
             'router_upgrade_threshold': 0,
-            'whitelist': [LEADER, MED]
+            'allowlist': [LEADER, MED]
         },
         MED: {
             'is_mtd': True,
-            'mode': 'rsn',
+            'mode': 'rn',
             'panid': 0xface,
             'timeout': config.DEFAULT_CHILD_TIMEOUT,
-            'whitelist': [REED]
+            'allowlist': [REED]
         },
     }
 

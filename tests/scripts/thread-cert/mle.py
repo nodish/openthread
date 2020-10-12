@@ -87,7 +87,10 @@ class TlvType(IntEnum):
     ACTIVE_OPERATIONAL_DATASET = 24
     PENDING_OPERATIONAL_DATASET = 25
     THREAD_DISCOVERY = 26
+    CSL_CHANNEL = 80
     CSL_SYNCHRONIZED_TIMEOUT = 85
+    LINK_METRICS_QUERY = 87
+    LINK_METRICS_REPORT = 89
     TIME_REQUEST = 252
     TIME_PARAMETER = 253
 
@@ -1048,6 +1051,20 @@ class ThreadDiscoveryFactory:
         return ThreadDiscovery(tlvs)
 
 
+class CslChannel:
+    # TODO: Not implemented yet
+
+    def __init__(self):
+        print("CslChannel is not implemented yet.")
+
+
+class CslChannelFactory:
+    # TODO: Not implemented yet
+
+    def parse(self, data, message_info):
+        return CslChannel()
+
+
 class CslSynchronizedTimeout:
     # TODO: Not implemented yet
 
@@ -1085,6 +1102,32 @@ class TimeParameterFactory:
 
     def parse(self, data, message_info):
         return TimeParameter()
+
+
+class LinkMetricsQuery:
+    # TODO: Not implemented yet
+
+    def __init__(self):
+        print("LinkMetricsQuery is not implemented yet.")
+
+
+class LinkMetricsQueryFactory:
+
+    def parse(self, data, message_info):
+        return LinkMetricsQuery()
+
+
+class LinkMetricsReport:
+    # TODO: Not implemented yet
+
+    def __init__(self):
+        print("LinkMetricsReport is not implemented yet.")
+
+
+class LinkMetricsReportFactory:
+
+    def parse(self, data, message_info):
+        return LinkMetricsReport()
 
 
 class MleCommand(object):

@@ -47,15 +47,15 @@
 #include "meshcop/meshcop_tlvs.hpp"
 #include "thread/thread_netif.hpp"
 #include "thread/thread_tlvs.hpp"
-#include "thread/thread_uri_paths.hpp"
+#include "thread/uri_paths.hpp"
 
 namespace ot {
 namespace MeshCoP {
 
 Leader::Leader(Instance &aInstance)
     : InstanceLocator(aInstance)
-    , mPetition(OT_URI_PATH_LEADER_PETITION, Leader::HandlePetition, this)
-    , mKeepAlive(OT_URI_PATH_LEADER_KEEP_ALIVE, Leader::HandleKeepAlive, this)
+    , mPetition(UriPath::kLeaderPetition, Leader::HandlePetition, this)
+    , mKeepAlive(UriPath::kLeaderKeepAlive, Leader::HandleKeepAlive, this)
     , mTimer(aInstance, HandleTimer, this)
     , mDelayTimerMinimal(DelayTimerTlv::kDelayTimerMinimal)
     , mSessionId(Random::NonCrypto::GetUint16())
@@ -149,16 +149,8 @@ void Leader::SendPetitionResponse(const Coap::Message &   aRequest,
     otLogInfoMeshCoP("sent petition response");
 
 exit:
-
-    if (error != OT_ERROR_NONE)
-    {
-        otLogInfoMeshCoP("Failed to send petition response: %s", otThreadErrorToString(error));
-
-        if (message != nullptr)
-        {
-            message->Free();
-        }
-    }
+    FreeMessageOnError(message, error);
+    LogError("send petition response", error);
 }
 
 void Leader::HandleKeepAlive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
@@ -231,16 +223,8 @@ void Leader::SendKeepAliveResponse(const Coap::Message &   aRequest,
     otLogInfoMeshCoP("sent keep alive response");
 
 exit:
-
-    if (error != OT_ERROR_NONE)
-    {
-        otLogWarnMeshCoP("Failed to send keep alive response: %s", otThreadErrorToString(error));
-
-        if (message != nullptr)
-        {
-            message->Free();
-        }
-    }
+    FreeMessageOnError(message, error);
+    LogError("send keep alive response", error);
 }
 
 void Leader::SendDatasetChanged(const Ip6::Address &aAddress)
@@ -251,7 +235,7 @@ void Leader::SendDatasetChanged(const Ip6::Address &aAddress)
 
     VerifyOrExit((message = NewMeshCoPMessage(Get<Tmf::TmfAgent>())) != nullptr, error = OT_ERROR_NO_BUFS);
 
-    SuccessOrExit(error = message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST, OT_URI_PATH_DATASET_CHANGED));
+    SuccessOrExit(error = message->InitAsConfirmablePost(UriPath::kDatasetChanged));
 
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     messageInfo.SetPeerAddr(aAddress);
@@ -261,16 +245,8 @@ void Leader::SendDatasetChanged(const Ip6::Address &aAddress)
     otLogInfoMeshCoP("sent dataset changed");
 
 exit:
-
-    if (error != OT_ERROR_NONE)
-    {
-        otLogWarnMeshCoP("Failed to send dataset changed: %s", otThreadErrorToString(error));
-
-        if (message != nullptr)
-        {
-            message->Free();
-        }
-    }
+    FreeMessageOnError(message, error);
+    LogError("send dataset changed", error);
 }
 
 otError Leader::SetDelayTimerMinimal(uint32_t aDelayTimerMinimal)

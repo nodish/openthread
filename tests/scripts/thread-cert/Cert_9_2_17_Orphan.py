@@ -56,9 +56,9 @@ class Cert_9_2_17_Orphan(thread_cert.TestCase):
                 'channel': CHANNEL1,
                 'channel_mask': CHANNEL_MASK
             },
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'router_selection_jitter': 1,
-            'whitelist': [ED1]
+            'allowlist': [ED1]
         },
         LEADER2: {
             'name': 'LEADER_2',
@@ -68,17 +68,17 @@ class Cert_9_2_17_Orphan(thread_cert.TestCase):
                 'channel': CHANNEL2,
                 'channel_mask': CHANNEL_MASK
             },
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'router_selection_jitter': 1
         },
         ED1: {
             'name': 'ED',
             'channel': CHANNEL1,
             'is_mtd': True,
-            'mode': 'rsn',
+            'mode': 'rn',
             'panid': PANID_INIT,
             'timeout': config.DEFAULT_CHILD_TIMEOUT,
-            'whitelist': [LEADER1]
+            'allowlist': [LEADER1]
         },
     }
 
@@ -96,8 +96,8 @@ class Cert_9_2_17_Orphan(thread_cert.TestCase):
         self.assertEqual(self.nodes[ED1].get_state(), 'child')
 
         self.nodes[LEADER1].stop()
-        self.nodes[LEADER2].add_whitelist(self.nodes[ED1].get_addr64())
-        self.nodes[ED1].add_whitelist(self.nodes[LEADER2].get_addr64())
+        self.nodes[LEADER2].add_allowlist(self.nodes[ED1].get_addr64())
+        self.nodes[ED1].add_allowlist(self.nodes[LEADER2].get_addr64())
         self.simulator.go(20)
 
         self.assertEqual(self.nodes[ED1].get_state(), 'child')

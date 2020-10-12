@@ -44,34 +44,34 @@ MED1_TIMEOUT = 3
 class Cert_5_3_3_AddressQuery(thread_cert.TestCase):
     TOPOLOGY = {
         LEADER: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
-            'whitelist': [ROUTER1, DUT_ROUTER2, ROUTER3]
+            'allowlist': [ROUTER1, DUT_ROUTER2, ROUTER3]
         },
         ROUTER1: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
             'router_selection_jitter': 1,
-            'whitelist': [LEADER]
+            'allowlist': [LEADER]
         },
         DUT_ROUTER2: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
             'router_selection_jitter': 1,
-            'whitelist': [LEADER, ROUTER3, MED1]
+            'allowlist': [LEADER, ROUTER3, MED1]
         },
         ROUTER3: {
-            'mode': 'rsdn',
+            'mode': 'rdn',
             'panid': 0xface,
             'router_selection_jitter': 1,
-            'whitelist': [LEADER, DUT_ROUTER2]
+            'allowlist': [LEADER, DUT_ROUTER2]
         },
         MED1: {
             'is_mtd': True,
-            'mode': 'rsn',
+            'mode': 'rn',
             'panid': 0xface,
             'timeout': 3,
-            'whitelist': [DUT_ROUTER2]
+            'allowlist': [DUT_ROUTER2]
         },
     }
 
