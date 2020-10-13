@@ -341,6 +341,7 @@ do_expect()
                 continue
             else
                 echo -e "\n${COLOR_FAIL}FAIL${COLOR_NONE} ${script}"
+                cat "${log_file}" >&2
                 exit "${EXIT_CODE}"
             fi
         }
