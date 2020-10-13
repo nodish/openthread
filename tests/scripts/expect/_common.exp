@@ -55,6 +55,23 @@ proc wait_for {command success {failure {[\r\n]FAILURE_NOT_EXPECTED[\r\n]}}} {
     }
 }
 
+proc spawn_node_mtd {id} {
+    global spawn_id
+    global spawn_ids
+
+    send_user "\n# ${id}\n"
+
+    spawn $::env(MTD_COMMAND) $id
+
+    expect_after {
+        timeout { exit 1 }
+    }
+
+    set spawn_ids($id) $spawn_id
+
+    return $spawn_id
+}
+
 proc spawn_node {id} {
     global spawn_id
     global spawn_ids
