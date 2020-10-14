@@ -39,14 +39,14 @@ proc wait_for {command success {failure {[\r\n]FAILURE_NOT_EXPECTED[\r\n]}}} {
                 return 0
             }
             -re $failure {
-                exit 1
+                fail 1
             }
             timeout {
                 # Do nothing
             }
         }
     }
-    exit 1
+    fail 1
 }
 
 proc spawn_node_mtd {id} {
@@ -58,7 +58,7 @@ proc spawn_node_mtd {id} {
     spawn -nottycopy $::env(MTD_COMMAND) $id
 
     expect_after {
-        timeout { exit 1 }
+        timeout { fail 1 }
     }
 
     set spawn_ids($id) $spawn_id
@@ -78,7 +78,7 @@ proc spawn_node {id} {
         spawn -nottycopy $::env(OT_COMMAND) $id
     }
     expect_after {
-        timeout { exit 1 }
+        timeout { fail 1 }
     }
 
     set spawn_ids($id) $spawn_id
@@ -119,6 +119,11 @@ proc dispose_all {} {
     for {set i 1} {$i <= $max_node} {incr i} {
         dispose_node $i
     }
+}
+
+proc fail {exit_code} {
+    dispose_all
+    exit $exit_code
 }
 
 set timeout 10
