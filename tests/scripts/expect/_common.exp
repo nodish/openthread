@@ -28,7 +28,6 @@
 #
 
 proc wait_for {command success {failure {[\r\n]FAILURE_NOT_EXPECTED[\r\n]}}} {
-    set result 0
     set timeout 1
     for {set i 0} {$i < 20} {incr i} {
         if {$command != ""} {
@@ -37,7 +36,7 @@ proc wait_for {command success {failure {[\r\n]FAILURE_NOT_EXPECTED[\r\n]}}} {
 
         expect {
             -re $success {
-                set result 1
+                return 0
             }
             -re $failure {
                 exit 1
@@ -46,13 +45,8 @@ proc wait_for {command success {failure {[\r\n]FAILURE_NOT_EXPECTED[\r\n]}}} {
                 # Do nothing
             }
         }
-        if {$result == 1} {
-            break
-        }
     }
-    if {$result == 0} {
-        exit 1
-    }
+    exit 1
 }
 
 proc spawn_node_mtd {id} {
@@ -61,7 +55,7 @@ proc spawn_node_mtd {id} {
 
     send_user "\n# ${id}\n"
 
-    spawn $::env(MTD_COMMAND) $id
+    spawn -nottycopy $::env(MTD_COMMAND) $id
 
     expect_after {
         timeout { exit 1 }
@@ -79,9 +73,9 @@ proc spawn_node {id} {
     send_user "\n# ${id}\n"
 
     if {[info exists ::env(RCP_COMMAND)] && $::env(RCP_COMMAND) != ""} {
-        spawn $::env(OT_COMMAND) "spinel+hdlc+uart://$::env(RCP_COMMAND)?forkpty-arg=$id"
+        spawn -nottycopy $::env(OT_COMMAND) "spinel+hdlc+uart://$::env(RCP_COMMAND)?forkpty-arg=$id"
     } else {
-        spawn $::env(OT_COMMAND) $id
+        spawn -nottycopy $::env(OT_COMMAND) $id
     }
     expect_after {
         timeout { exit 1 }
@@ -116,8 +110,10 @@ proc setup_leader {} {
 proc dispose_node {id} {
     global spawn_ids
 
+    send_user "#$id closing\n"
     close -i $spawn_ids($id)
-    wait
+    wait -i $spawn_ids($id)
+    send_user "#$id closed\n"
 }
 
 proc dispose_all {} {
