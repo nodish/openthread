@@ -170,6 +170,10 @@ exit:
     return error;
 }
 
+#if OPENTHREAD_POSIX_CONFIG_RCP_PTY_ENABLE
+int sPid = 0;
+#endif
+
 HdlcInterface::~HdlcInterface(void)
 {
     Deinit();
@@ -177,7 +181,27 @@ HdlcInterface::~HdlcInterface(void)
 
 void HdlcInterface::Deinit(void)
 {
+#if OPENTHREAD_POSIX_CONFIG_RCP_PTY_ENABLE
+    int status;
+#endif // OPENTHREAD_POSIX_CONFIG_RCP_PTY_ENABLE
+
     VerifyOrExit(mSockFd != -1, OT_NOOP);
+
+#if OPENTHREAD_POSIX_CONFIG_RCP_PTY_ENABLE
+    if (sPid != 0)
+    {
+        VerifyOrExit(-1 != waitpid(sPid, &status, WNOHANG) || errno == ECHILD, perror("wait RCP"));
+
+        if (WIFEXITED(status))
+        {
+            fprintf(stderr, "rcp#%d exited: %d\r\n", sPid, WEXITSTATUS(status));
+        }
+        else if (WTERMSIG(status))
+        {
+            fprintf(stderr, "rcp#%d signal: %d\r\n", sPid, WTERMSIG(status));
+        }
+    }
+#endif
 
     VerifyOrExit(0 == close(mSockFd), perror("close RCP"));
     VerifyOrExit(-1 != wait(nullptr) || errno == ECHILD, perror("wait RCP"));
@@ -625,6 +649,7 @@ int HdlcInterface::ForkPty(const char *aCommand, const char *aRadioUrl)
     }
     else
     {
+        sPid = pid;
         VerifyOrExit((rval = fcntl(fd, F_GETFL)) != -1, perror("fcntl(F_GETFL)"));
         VerifyOrExit((rval = fcntl(fd, F_SETFL, rval | O_NONBLOCK | O_CLOEXEC)) != -1, perror("fcntl(F_SETFL)"));
     }
