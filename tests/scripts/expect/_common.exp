@@ -108,12 +108,9 @@ proc setup_leader {} {
 }
 
 proc dispose_node {id} {
-    global spawn_ids
-
-    send_user "#$id closing\n"
-    close -i $spawn_ids($id)
-    wait -i $spawn_ids($id)
-    send_user "#$id closed\n"
+    switch_node $id
+    send "\x04"
+    expect eof
 }
 
 proc dispose_all {} {
