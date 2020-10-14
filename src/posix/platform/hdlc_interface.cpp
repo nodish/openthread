@@ -622,6 +622,8 @@ int HdlcInterface::ForkPty(const char *aCommand, const char *aRadioUrl)
         memset(&tios, 0, sizeof(tios));
         cfmakeraw(&tios);
         tios.c_cflag = CS8 | HUPCL | CREAD | CLOCAL;
+        cfsetispeed(&tios, B115200);
+        cfsetospeed(&tios, B115200);
 
         VerifyOrExit((pid = forkpty(&fd, nullptr, &tios, nullptr)) != -1, perror("forkpty()"));
     }
