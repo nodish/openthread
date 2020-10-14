@@ -100,12 +100,6 @@ proc switch_node {id} {
     set spawn_id $spawn_ids($id)
 }
 
-proc dispose_node {id} {
-    switch_node $id
-    send "\x04"
-    expect eof
-}
-
 proc setup_leader {} {
     send "dataset init new\n"
     expect "Done"
@@ -117,6 +111,13 @@ proc setup_leader {} {
     expect "Done"
     wait_for "state" "leader"
     expect "Done"
+}
+
+proc dispose_node {id} {
+    global spawn_ids
+
+    close -i $spawn_ids($id)
+    wait
 }
 
 proc dispose_all {} {
