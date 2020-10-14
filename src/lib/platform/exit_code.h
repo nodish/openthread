@@ -101,14 +101,15 @@ const char *otExitCodeToString(uint8_t aExitCode);
  * @param[in]   aExitCode   The exit code.
  *
  */
-#define VerifyOrDie(aCondition, aExitCode)                                                                   \
-    do                                                                                                       \
-    {                                                                                                        \
-        if (!(aCondition))                                                                                   \
-        {                                                                                                    \
-            otLogCritPlat("%s() at %s:%d: %s", __func__, __FILE__, __LINE__, otExitCodeToString(aExitCode)); \
-            exit(aExitCode);                                                                                 \
-        }                                                                                                    \
+#define VerifyOrDie(aCondition, aExitCode)                                                                       \
+    do                                                                                                           \
+    {                                                                                                            \
+        if (!(aCondition))                                                                                       \
+        {                                                                                                        \
+            otLogCritPlat("%s() at %s:%d: %s", __func__, __FILE__, __LINE__, otExitCodeToString(aExitCode));     \
+            fprintf(stderr, "%s() at %s:%d: %s\n", __func__, __FILE__, __LINE__, otExitCodeToString(aExitCode)); \
+            exit(aExitCode);                                                                                     \
+        }                                                                                                        \
     } while (false)
 
 /**
@@ -137,12 +138,14 @@ const char *otExitCodeToString(uint8_t aExitCode);
  * @param[in]   aExitCode   The exit code.
  *
  */
-#define DieNowWithMessage(aMessage, aExitCode)                                                 \
-    do                                                                                         \
-    {                                                                                          \
-        otLogCritPlat("exit(%d): %s line %d, %s, %s", aExitCode, __func__, __LINE__, aMessage, \
-                      otExitCodeToString(aExitCode));                                          \
-        exit(aExitCode);                                                                       \
+#define DieNowWithMessage(aMessage, aExitCode)                                                     \
+    do                                                                                             \
+    {                                                                                              \
+        otLogCritPlat("exit(%d): %s line %d, %s, %s", aExitCode, __func__, __LINE__, aMessage,     \
+                      otExitCodeToString(aExitCode));                                              \
+        fprintf(stderr, "exit(%d): %s line %d, %s, %s\n", aExitCode, __func__, __LINE__, aMessage, \
+                otExitCodeToString(aExitCode));                                                    \
+        exit(aExitCode);                                                                           \
     } while (false)
 
 #ifdef __cplusplus

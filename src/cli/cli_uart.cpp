@@ -159,6 +159,7 @@ void Uart::ReceiveTask(const uint8_t *aBuf, uint16_t aBufLength)
             break;
 
         case 0x04: // ASCII for Ctrl-D
+            fprintf(stderr, "exit because ctrl-d\n");
             exit(EXIT_SUCCESS);
             break;
 #endif

@@ -2889,7 +2889,6 @@ void MleRouter::HandleDiscoveryRequest(const Message &aMessage, const Ip6::Messa
     error = SendDiscoveryResponse(aMessageInfo.GetPeerAddr(), aMessage.GetPanId());
 
 exit:
-fprintf(stderr, "error is %s", otThreadErrorToString(error));
     LogProcessError(kTypeDiscoveryRequest, error);
 }
 

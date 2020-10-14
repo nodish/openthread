@@ -62,7 +62,7 @@ proc setup_two_nodes {{childmode {r}}} {
     expect "Done"
     send "joiner start $psk\n"
     expect "Done"
-    wait_for "" "Join success"
+    wait_for "" "Join success" "Join failed"
     send "thread start\n"
     expect "Done"
     wait_for "state" "child"

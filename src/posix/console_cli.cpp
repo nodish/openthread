@@ -79,6 +79,7 @@ static void InputCallback(char *aLine)
     }
     else
     {
+        fprintf(stderr, "aLine is nullptr\n");
         exit(OT_EXIT_SUCCESS);
     }
 }
