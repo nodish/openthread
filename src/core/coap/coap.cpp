@@ -699,20 +699,16 @@ void CoapBase::ProcessReceivedRequest(Message &aMessage, const Ip6::MessageInfo 
     {
         uint16_t optionLength = iterator.GetOption()->GetLength();
 
-        if (curUriPath != uriPath)
-        {
-            *curUriPath++ = '/';
-        }
-
         VerifyOrExit(curUriPath + optionLength < OT_ARRAY_END(uriPath), error = OT_ERROR_PARSE);
 
         IgnoreError(iterator.ReadOptionValue(curUriPath));
-        curUriPath += optionLength;
-
         SuccessOrExit(error = iterator.Advance(kOptionUriPath));
+
+        curUriPath += optionLength;
+        *curUriPath++ = '/';
     }
 
-    *curUriPath = '\0';
+    curUriPath[-1] = '\0';
 
     for (const Resource *resource = mResources.GetHead(); resource; resource = resource->GetNext())
     {
