@@ -348,9 +348,9 @@ void Client::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessag
     Message *     message  = nullptr;
     uint64_t      unixTime = 0;
 
-    SuccessOrExit(aMessage.Read(aMessage.GetOffset(), responseHeader));
+    VerifyOrExit(aMessage.Read(aMessage.GetOffset(), responseHeader) == sizeof(responseHeader), error = OT_ERROR_PARSE);
 
-    VerifyOrExit((message = FindRelatedQuery(responseHeader, queryMetadata)) != nullptr);
+    VerifyOrExit((message = FindRelatedQuery(responseHeader, queryMetadata)) != nullptr, error = OT_ERROR_NOT_FOUND);
 
     // Check if response came from the server.
     VerifyOrExit(responseHeader.GetMode() == Header::kModeServer, error = OT_ERROR_FAILED);

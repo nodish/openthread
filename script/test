@@ -37,6 +37,7 @@ readonly OT_SRCDIR="${PWD}"
 
 readonly COLOR_PASS='\033[0;32m'
 readonly COLOR_FAIL='\033[0;31m'
+readonly COLOR_SKIP='\033[0;33m'
 readonly COLOR_NONE='\033[0m'
 
 readonly OT_NODE_TYPE="${OT_NODE_TYPE:-cli}"
@@ -308,6 +309,10 @@ do_expect()
 
     local log_file="tmp/log_expect"
     while read -r script; do
+        killall ot-rcp || true
+        killall ot-cli || true
+        killall ot-cli-ftd || true
+        killall ot-cli-mtd || true
         sudo rm -rf tmp
         mkdir tmp
         {
@@ -317,20 +322,27 @@ do_expect()
                 expect -df "${script}" 2>"${log_file}"
             fi
         } || {
-            local exit_code=$?
-            cat "${log_file}" >&2
-            echo -e "${COLOR_FAIL}FAIL${COLOR_NONE} ${script}"
-            exit "${exit_code}"
+            local -r EXIT_CODE=$?
+
+            # The exit status 77 for skipping is inherited from automake's test driver for script-based testsuites
+            if [[ ${EXIT_CODE} == 77 ]]; then
+                echo -e "\n${COLOR_SKIP}SKIP${COLOR_NONE} ${script}"
+                continue
+            else
+                echo -e "\n${COLOR_FAIL}FAIL${COLOR_NONE} ${script}"
+                cat "${log_file}" >&2
+                exit "${EXIT_CODE}"
+            fi
         }
+        echo -e "\n${COLOR_PASS}PASS${COLOR_NONE} ${script}"
         if [[ ${VERBOSE} == 1 ]]; then
             cat "${log_file}" >&2
         fi
-        echo -e "${COLOR_PASS}PASS${COLOR_NONE} ${script}"
     done < <(
         if [[ $# != 0 ]]; then
             for script in "$@"; do echo ${script}; done
         else
-            find tests/scripts/expect -type f -executable \( "${test_patterns[@]}" \)
+            find tests/scripts/expect -type f -perm "$([[ $OSTYPE = darwin* ]] && echo '+' || echo '/')"111 \( "${test_patterns[@]}" \)
         fi
     )
 
@@ -348,7 +360,8 @@ ENVIRONMENTS:
                     The default is 'cli'.
     OT_NATIVE_IP    1 to enable platform UDP and netif on POSIX platform. The default is 0.
     VERBOSE         1 to build or test verbosely. The default is 0.
-    VIRTUAL_TIME    1 for virtual time, otherwise real time. The default is 1.
+    VIRTUAL_TIME    1 for virtual time, otherwise real time. The default value is 0 when running expect tests,
+                    otherwise default value is 1.
     THREAD_VERSION  1.1 for Thread 1.1 stack, 1.2 for Thread 1.2 stack. The default is 1.1.
     INTER_OP        1 to build 1.1 together. Only works when THREAD_VERSION is 1.2. The default is 0.
     INTER_OP_BBR    1 to build bbr version together. Only works when THREAD_VERSION is 1.2. The default is 1.
