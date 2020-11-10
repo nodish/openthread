@@ -4389,7 +4389,7 @@ void Interpreter::ProcessLine(char *aBuf, uint16_t aBufLength)
     {
         if (strcmp(cmdName, mUserCommands[i].mName) == 0)
         {
-            mUserCommands[i].mCommand(mUserCommandsContext, aArgsLength - 1, &aArgs[1]);
+            OutputResult(mUserCommands[i].mCommand(mUserCommandsContext, aArgsLength - 1, &aArgs[1]));
             ExitNow();
         }
     }

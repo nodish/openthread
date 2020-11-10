@@ -252,13 +252,15 @@ static void ParseArg(int aArgCount, char *aArgVector[], PosixConfig *aConfig)
 }
 
 #if OPENTHREAD_POSIX_APP_TYPE == OT_POSIX_APP_TYPE_CLI
-static void PrintRadioUrl(void *aContext, uint8_t aArgsLength, char *aArgs[])
+static otError PrintRadioUrl(void *aContext, uint8_t aArgsLength, char *aArgs[])
 {
-    (void)aArgsLength;
-    (void)aArgs;
+    OT_UNUSED_VARIABLE(aArgsLength);
+    OT_UNUSED_VARIABLE(aArgs);
 
     otPlatformConfig *config = (otPlatformConfig *)aContext;
-    otCliOutputFormat("%s\r\nDone\r\n", config->mRadioUrl);
+    otCliOutputFormat("%s\r\n", config->mRadioUrl);
+
+    return OT_ERROR_NONE;
 }
 #endif // OPENTHREAD_POSIX_APP_TYPE == OT_POSIX_APP_TYPE_CLI
 
@@ -313,7 +315,7 @@ int main(int argc, char *argv[])
     int         rval = 0;
     PosixConfig config;
 #if OPENTHREAD_POSIX_APP_TYPE == OT_POSIX_APP_TYPE_CLI
-    otCliCommand radioUrlCommand = {"radiourl", PrintRadioUrl};
+    static const otCliCommand kRadioUrlCommand = {"radiourl", PrintRadioUrl};
 #endif
 
 #ifdef __linux__
@@ -344,7 +346,7 @@ int main(int argc, char *argv[])
 #else
     otCliUartInit(instance);
 #endif
-    otCliSetUserCommands(&radioUrlCommand, 1, &config.mPlatformConfig);
+    otCliSetUserCommands(&kRadioUrlCommand, 1, &config.mPlatformConfig);
 #endif
 
     while (true)

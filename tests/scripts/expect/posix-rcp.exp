@@ -36,4 +36,7 @@ expect "Done"
 send "rcp something_invalid\n"
 expect "Error 7: InvalidArgs"
 
+send "radiourl\n"
+expect "Done"
+
 dispose_all
