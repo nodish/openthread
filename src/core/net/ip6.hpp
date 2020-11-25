@@ -334,8 +334,7 @@ private:
     otError ProcessReceiveCallback(Message &          aMessage,
                                    const MessageInfo &aMessageInfo,
                                    uint8_t            aIpProto,
-                                   bool               aFromNcpHost,
-                                   Message::Ownership aMessageOwnership);
+                                   bool               aFromNcpHost);
     otError HandleExtensionHeaders(Message &    aMessage,
                                    Netif *      aNetif,
                                    MessageInfo &aMessageInfo,
@@ -357,10 +356,7 @@ private:
     otError InsertMplOption(Message &aMessage, Header &aHeader, MessageInfo &aMessageInfo);
     otError RemoveMplOption(Message &aMessage);
     otError HandleOptions(Message &aMessage, Header &aHeader, bool &aForward, bool &aReceive);
-    otError HandlePayload(Message &          aMessage,
-                          MessageInfo &      aMessageInfo,
-                          uint8_t            aIpProto,
-                          Message::Ownership aMessageOwnership);
+    otError HandlePayload(Message &aMessage, MessageInfo &aMessageInfo, uint8_t aIpProto);
     bool    ShouldForwardToThread(const MessageInfo &aMessageInfo, bool aFromNcpHost) const;
     bool    IsOnLink(const Address &aAddress) const;
 

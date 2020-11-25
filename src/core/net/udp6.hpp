@@ -560,7 +560,7 @@ public:
      * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
      *
      */
-    void HandlePayload(Message &aMessage, MessageInfo &aMessageInfo);
+    otError HandlePayload(Message &aMessage, MessageInfo &aMessageInfo);
 
     /**
      * This method returns the head of UDP Sockets list.

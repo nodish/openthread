@@ -325,7 +325,7 @@ public:
     bool ShouldHandleEchoRequest(const MessageInfo &aMessageInfo);
 
 private:
-    otError HandleEchoRequest(Message &aRequestMessage, const MessageInfo &aMessageInfo);
+    otError HandleEchoRequest(const Message &aRequestMessage, const MessageInfo &aMessageInfo);
 
     LinkedList<Handler> mHandlers;
 

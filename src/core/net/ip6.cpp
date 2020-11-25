@@ -909,8 +909,10 @@ otError Ip6::HandleExtensionHeaders(Message &    aMessage,
 
         case kProtoFragment:
             // Always forward IPv6 fragments to the Host.
-            IgnoreError(ProcessReceiveCallback(aMessage, aMessageInfo, aNextHeader, aFromNcpHost, Message::kCopyToUse));
+            aMessage.SetCopyOnWrite(true);
+            IgnoreError(ProcessReceiveCallback(aMessage, aMessageInfo, aNextHeader, aFromNcpHost));
 
+            aMessage.SetCopyOnWrite(false);
             SuccessOrExit(error = HandleFragment(aMessage, aNetif, aMessageInfo, aFromNcpHost));
             break;
 
@@ -936,31 +938,16 @@ exit:
     return error;
 }
 
-otError Ip6::HandlePayload(Message &          aMessage,
-                           MessageInfo &      aMessageInfo,
-                           uint8_t            aIpProto,
-                           Message::Ownership aMessageOwnership)
+otError Ip6::HandlePayload(Message &aMessage, MessageInfo &aMessageInfo, uint8_t aIpProto)
 {
-    otError  error   = OT_ERROR_NONE;
-    Message *message = nullptr;
+    otError error = OT_ERROR_NONE;
 
     VerifyOrExit(aIpProto == kProtoUdp || aIpProto == kProtoIcmp6);
-
-    switch (aMessageOwnership)
-    {
-    case Message::kTakeCustody:
-        message = &aMessage;
-        break;
-
-    case Message::kCopyToUse:
-        VerifyOrExit((message = aMessage.Clone()) != nullptr, error = OT_ERROR_NO_BUFS);
-        break;
-    }
 
     switch (aIpProto)
     {
     case kProtoUdp:
-        error = mUdp.HandleMessage(*message, aMessageInfo);
+        error = mUdp.HandleMessage(aMessage, aMessageInfo);
         if (error == OT_ERROR_DROP)
         {
             otLogNoteIp6("Error UDP Checksum");
@@ -968,7 +955,7 @@ otError Ip6::HandlePayload(Message &          aMessage,
         break;
 
     case kProtoIcmp6:
-        error = mIcmp.HandleMessage(*message, aMessageInfo);
+        error = mIcmp.HandleMessage(aMessage, aMessageInfo);
         break;
 
     default:
@@ -980,8 +967,10 @@ exit:
     {
         otLogNoteIp6("Failed to handle payload: %s", otThreadErrorToString(error));
     }
-
-    FreeMessage(message);
+    else if (!aMessage.IsCopyOnWrite())
+    {
+        aMessage.Free();
+    }
 
     return error;
 }
@@ -989,8 +978,7 @@ exit:
 otError Ip6::ProcessReceiveCallback(Message &          aMessage,
                                     const MessageInfo &aMessageInfo,
                                     uint8_t            aIpProto,
-                                    bool               aFromNcpHost,
-                                    Message::Ownership aMessageOwnership)
+                                    bool               aFromNcpHost)
 {
     otError  error   = OT_ERROR_NONE;
     Message *message = &aMessage;
@@ -1063,12 +1051,8 @@ otError Ip6::ProcessReceiveCallback(Message &          aMessage,
         }
     }
 
-    switch (aMessageOwnership)
+    if (aMessage.IsCopyOnWrite())
     {
-    case Message::kTakeCustody:
-        break;
-
-    case Message::kCopyToUse:
         message = aMessage.Clone();
 
         if (message == nullptr)
@@ -1076,20 +1060,12 @@ otError Ip6::ProcessReceiveCallback(Message &          aMessage,
             otLogWarnIp6("No buff to clone msg (len: %d) to pass to host", aMessage.GetLength());
             ExitNow(error = OT_ERROR_NO_BUFS);
         }
-
-        break;
     }
 
     IgnoreError(RemoveMplOption(*message));
     mReceiveIp6DatagramCallback(message, mReceiveIp6DatagramCallbackContext);
 
 exit:
-
-    if ((error != OT_ERROR_NONE) && (aMessageOwnership == Message::kTakeCustody))
-    {
-        aMessage.Free();
-    }
-
     return error;
 }
 
@@ -1133,15 +1109,13 @@ otError Ip6::HandleDatagram(Message &aMessage, Netif *aNetif, const void *aLinkM
     bool        receive;
     bool        forward;
     bool        multicastPromiscuous;
-    bool        shouldFreeMessage;
-    bool        shouldForwardToHost;
+    bool        shouldForwardToHost = false;
     uint8_t     nextHeader;
 
 start:
     receive              = false;
     forward              = false;
     multicastPromiscuous = false;
-    shouldFreeMessage    = true;
 
     SuccessOrExit(error = header.Init(aMessage));
 
@@ -1207,8 +1181,6 @@ start:
     SuccessOrExit(error = HandleExtensionHeaders(aMessage, aNetif, messageInfo, header, nextHeader, forward,
                                                  aFromNcpHost, receive));
 
-    shouldForwardToHost = forward && !ShouldForwardToThread(messageInfo, aFromNcpHost);
-
     // process IPv6 Payload
     if (receive)
     {
@@ -1234,33 +1206,44 @@ start:
             }
         }
 #endif
+        aMessage.SetCopyOnWrite(forward);
+        uint16_t offset = aMessage.GetOffset();
 
-        error = ProcessReceiveCallback(aMessage, messageInfo, nextHeader, aFromNcpHost, Message::kCopyToUse);
+        error = HandlePayload(aMessage, messageInfo, nextHeader);
 
-        if ((error == OT_ERROR_NONE || error == OT_ERROR_NO_ROUTE) && shouldForwardToHost)
+        if (error == OT_ERROR_NO_ROUTE)
         {
-            forward = false;
+            aMessage.SetOffset(offset);
+            shouldForwardToHost = true;
         }
-
-        error =
-            HandlePayload(aMessage, messageInfo, nextHeader, (forward ? Message::kCopyToUse : Message::kTakeCustody));
-        shouldFreeMessage = forward;
     }
     else if (multicastPromiscuous)
     {
-        IgnoreError(ProcessReceiveCallback(aMessage, messageInfo, nextHeader, aFromNcpHost, Message::kCopyToUse));
+        shouldForwardToHost = true;
+    }
+
+    if (forward && !ShouldForwardToThread(messageInfo, aFromNcpHost))
+    {
+        shouldForwardToHost = true;
+        forward             = false;
+    }
+
+    // forward to host
+    if (shouldForwardToHost)
+    {
+        uint16_t offset = aMessage.GetOffset();
+
+        aMessage.SetCopyOnWrite(forward);
+        error = ProcessReceiveCallback(aMessage, messageInfo, nextHeader, aFromNcpHost);
+        if (forward)
+        {
+            aMessage.SetOffset(offset);
+        }
     }
 
     if (forward)
     {
         uint8_t hopLimit;
-
-        if (shouldForwardToHost)
-        {
-            // try passing to host
-            error = ProcessReceiveCallback(aMessage, messageInfo, nextHeader, aFromNcpHost, Message::kTakeCustody);
-            ExitNow(shouldFreeMessage = false);
-        }
 
         if (aNetif != nullptr)
         {
@@ -1270,6 +1253,7 @@ start:
 
         VerifyOrExit(header.GetHopLimit() > 0, error = OT_ERROR_DROP);
 
+        aMessage.SetCopyOnWrite(false);
         hopLimit = header.GetHopLimit();
         aMessage.Write(Header::kHopLimitFieldOffset, hopLimit);
 
@@ -1292,12 +1276,11 @@ start:
 
         // `SendMessage()` takes custody of message in the success case
         SuccessOrExit(error = Get<ThreadNetif>().SendMessage(aMessage));
-        shouldFreeMessage = false;
     }
 
 exit:
 
-    if (shouldFreeMessage)
+    if (error != OT_ERROR_NONE)
     {
         aMessage.Free();
     }

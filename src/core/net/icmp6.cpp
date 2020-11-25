@@ -174,7 +174,7 @@ bool Icmp::ShouldHandleEchoRequest(const MessageInfo &aMessageInfo)
     return rval;
 }
 
-otError Icmp::HandleEchoRequest(Message &aRequestMessage, const MessageInfo &aMessageInfo)
+otError Icmp::HandleEchoRequest(const Message &aRequestMessage, const MessageInfo &aMessageInfo)
 {
     otError     error = OT_ERROR_NONE;
     Header      icmp6Header;

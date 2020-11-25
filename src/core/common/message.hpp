@@ -174,6 +174,7 @@ struct MessageMetadata
     bool    mTxSuccess : 1;     ///< Indicates whether the direct tx of the message was successful.
     bool    mDoNotEvict : 1;    ///< Indicates whether or not this message may be evicted.
     bool    mMulticastLoop : 1; ///< Indicates whether or not this multicast message may be looped back.
+    bool    mCopyOnWrite : 1;   ///< Indicates whether or not this message data cannot be modified.
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
     bool    mTimeSync : 1;      ///< Indicates whether the message is also used for time sync purpose.
     uint8_t mTimeSyncSeq;       ///< The time sync sequence.
@@ -546,6 +547,9 @@ public:
      *
      */
     void SetMulticastLoop(bool aMulticastLoop) { GetMetadata().mMulticastLoop = aMulticastLoop; }
+
+    void SetCopyOnWrite(bool aCopyOnWrite) { GetMetadata().mCopyOnWrite = aCopyOnWrite; }
+    bool IsCopyOnWrite(void) const { return GetMetadata().mCopyOnWrite; }
 
     /**
      * This method returns the message priority level.
