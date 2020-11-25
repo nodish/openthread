@@ -1032,8 +1032,23 @@ exit:
 
 void Coap::HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
 {
-    static_cast<Coap *>(aContext)->Receive(*static_cast<Message *>(aMessage),
-                                           *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
+    ot::Message *message = static_cast<ot::Message *>(aMessage);
+
+    if (message->IsReadOnly())
+    {
+        VerifyOrExit((message = message->Clone()) != nullptr,
+                     otLogWarnCoap("Failed to handle message: %s", otThreadErrorToString(OT_ERROR_NO_BUFS)));
+    }
+
+    message->RemoveHeader(message->GetOffset());
+    OT_ASSERT(message->GetOffset() == 0);
+    static_cast<Coap *>(aContext)->Receive(*message, *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
+
+exit:
+    if (message != nullptr && message != aMessage)
+    {
+        message->Free();
+    }
 }
 
 otError Coap::Send(CoapBase &aCoapBase, ot::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)

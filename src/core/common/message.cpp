@@ -201,6 +201,8 @@ otError Message::ResizeMessage(uint16_t aLength)
 {
     otError error = OT_ERROR_NONE;
 
+    OT_ASSERT(!IsReadOnly());
+
     // add buffers
     Buffer * curBuffer = this;
     Buffer * lastBuffer;
@@ -266,7 +268,7 @@ otError Message::SetLength(uint16_t aLength)
     VerifyOrExit(totalLengthRequest >= GetReserved(), error = OT_ERROR_INVALID_ARGS);
 
     SuccessOrExit(error = ResizeMessage(totalLengthRequest));
-    GetMetadata().mLength = aLength;
+    GetMetadata().mNoCopy.mLength = aLength;
 
     // Correct offset in case shorter length is set.
     if (GetOffset() > aLength)
@@ -340,7 +342,7 @@ otError Message::SetPriority(Priority aPriority)
 
     if (GetMetadata().mInPriorityQ)
     {
-        priorityQueue = GetMetadata().mQueue.mPriority;
+        priorityQueue = GetMetadata().mNoCopy.mQueue.mPriority;
         priorityQueue->Dequeue(*this);
     }
 
@@ -360,6 +362,8 @@ otError Message::AppendBytes(const void *aBuf, uint16_t aLength)
     otError  error     = OT_ERROR_NONE;
     uint16_t oldLength = GetLength();
 
+    OT_ASSERT(!IsReadOnly());
+
     SuccessOrExit(error = SetLength(GetLength() + aLength));
     WriteBytes(oldLength, aBuf, aLength);
 
@@ -371,6 +375,8 @@ otError Message::PrependBytes(const void *aBuf, uint16_t aLength)
 {
     otError error     = OT_ERROR_NONE;
     Buffer *newBuffer = nullptr;
+
+    OT_ASSERT(!IsReadOnly());
 
     while (aLength > GetReserved())
     {
@@ -390,7 +396,7 @@ otError Message::PrependBytes(const void *aBuf, uint16_t aLength)
     }
 
     SetReserved(GetReserved() - aLength);
-    GetMetadata().mLength += aLength;
+    GetMetadata().mNoCopy.mLength += aLength;
     SetOffset(GetOffset() + aLength);
 
     if (aBuf != nullptr)
@@ -404,10 +410,11 @@ exit:
 
 void Message::RemoveHeader(uint16_t aLength)
 {
-    OT_ASSERT(aLength <= GetMetadata().mLength);
+    OT_ASSERT(!IsReadOnly());
+    OT_ASSERT(aLength <= GetMetadata().mNoCopy.mLength);
 
-    GetMetadata().mReserved += aLength;
-    GetMetadata().mLength -= aLength;
+    GetMetadata().mNoCopy.mReserved += aLength;
+    GetMetadata().mNoCopy.mLength -= aLength;
 
     if (GetMetadata().mOffset > aLength)
     {
@@ -530,6 +537,7 @@ void Message::WriteBytes(uint16_t aOffset, const void *aBuf, uint16_t aLength)
     const uint8_t *bufPtr = reinterpret_cast<const uint8_t *>(aBuf);
     WritableChunk  chunk;
 
+    OT_ASSERT(!IsReadOnly());
     OT_ASSERT(aOffset + aLength <= GetLength());
 
     GetFirstChunk(aOffset, aLength, chunk);
@@ -575,18 +583,18 @@ Message *Message::Clone(uint16_t aLength) const
 
     VerifyOrExit((messageCopy = GetMessagePool()->New(GetType(), GetReserved(), GetPriority())) != nullptr,
                  error = OT_ERROR_NO_BUFS);
+
+    memcpy(reinterpret_cast<char *>(&messageCopy->GetMetadata()) + sizeof(messageCopy->GetMetadata().mNoCopy),
+           reinterpret_cast<const char *>(&GetMetadata()) + sizeof(GetMetadata().mNoCopy),
+           sizeof(GetMetadata()) - sizeof(GetMetadata().mNoCopy));
+    messageCopy->SetReadOnly(false);
+
     SuccessOrExit(error = messageCopy->SetLength(aLength));
     CopyTo(0, 0, aLength, *messageCopy);
 
     // Copy selected message information.
     offset = GetOffset() < aLength ? GetOffset() : aLength;
     messageCopy->SetOffset(offset);
-
-    messageCopy->SetSubType(GetSubType());
-    messageCopy->SetLinkSecurityEnabled(IsLinkSecurityEnabled());
-#if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
-    messageCopy->SetTimeSync(IsTimeSync());
-#endif
 
 exit:
     FreeAndNullMessageOnError(messageCopy, error);
@@ -641,14 +649,26 @@ bool Message::IsTimeSync(void) const
 
 void Message::SetMessageQueue(MessageQueue *aMessageQueue)
 {
-    GetMetadata().mQueue.mMessage = aMessageQueue;
-    GetMetadata().mInPriorityQ    = false;
+    if (aMessageQueue != nullptr)
+    {
+        // do not allow enqueue if read only to prevent later modifications
+        OT_ASSERT(!IsReadOnly());
+    }
+
+    GetMetadata().mNoCopy.mQueue.mMessage = aMessageQueue;
+    GetMetadata().mInPriorityQ            = false;
 }
 
 void Message::SetPriorityQueue(PriorityQueue *aPriorityQueue)
 {
-    GetMetadata().mQueue.mPriority = aPriorityQueue;
-    GetMetadata().mInPriorityQ     = true;
+    if (aPriorityQueue != nullptr)
+    {
+        // do not allow enqueue if read only to prevent later modifications
+        OT_ASSERT(!IsReadOnly());
+    }
+
+    GetMetadata().mNoCopy.mQueue.mPriority = aPriorityQueue;
+    GetMetadata().mInPriorityQ             = true;
 }
 
 MessageQueue::MessageQueue(void)

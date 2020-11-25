@@ -144,19 +144,23 @@ class ThreadLinkInfo;
  */
 struct MessageMetadata
 {
-    Message *    mNext;        ///< A pointer to the next Message in a doubly linked list.
-    Message *    mPrev;        ///< A pointer to the previous Message in a doubly linked list.
-    MessagePool *mMessagePool; ///< Identifies the message pool for this message.
-    union
+    struct
     {
-        MessageQueue * mMessage;  ///< Identifies the message queue (if any) where this message is queued.
-        PriorityQueue *mPriority; ///< Identifies the priority queue (if any) where this message is queued.
-    } mQueue;                     ///< Identifies the queue (if any) where this message is queued.
+        Message *    mNext;        ///< A pointer to the next Message in a doubly linked list.
+        Message *    mPrev;        ///< A pointer to the previous Message in a doubly linked list.
+        MessagePool *mMessagePool; ///< Identifies the message pool for this message.
+        union
+        {
+            MessageQueue * mMessage;  ///< Identifies the message queue (if any) where this message is queued.
+            PriorityQueue *mPriority; ///< Identifies the priority queue (if any) where this message is queued.
+        } mQueue;                     ///< Identifies the queue (if any) where this message is queued.
+
+        uint16_t mReserved; ///< Number of header bytes reserved for the message.
+        uint16_t mLength;   ///< Number of bytes within the message.
+    } mNoCopy;              ///< Pointers must not be copied when cloning.
 
     uint32_t mDatagramTag;    ///< The datagram tag used for 6LoWPAN fragmentation or identification used for IPv6
                               ///< fragmentation.
-    uint16_t    mReserved;    ///< Number of header bytes reserved for the message.
-    uint16_t    mLength;      ///< Number of bytes within the message.
     uint16_t    mOffset;      ///< A byte offset within the message.
     RssAverager mRssAverager; ///< The averager maintaining the received signal strength (RSS) average.
 #if OPENTHREAD_CONFIG_MLE_LINK_METRICS_ENABLE
@@ -165,22 +169,26 @@ struct MessageMetadata
 
     ChildMask mChildMask; ///< A ChildMask to indicate which sleepy children need to receive this.
     uint16_t  mMeshDest;  ///< Used for unicast non-link-local messages.
-    uint8_t   mTimeout;   ///< Seconds remaining before dropping the message.
+
+    uint8_t mTimeout;      ///< Seconds remaining before dropping the message.
+    uint8_t mType : 3;     ///< Identifies the type of message.
+    bool    mDirectTx : 1; ///< Used to indicate whether a direct transmission is required.
+    uint8_t mSubType : 4;  ///< Identifies the message sub type.
+
     union
     {
         uint16_t mPanId;   ///< Used for MLE Discover Request and Response messages.
         uint8_t  mChannel; ///< Used for MLE Announce.
     } mPanIdChannel;       ///< Used for MLE Discover Request, Response, and Announce messages.
 
-    uint8_t mType : 3;          ///< Identifies the type of message.
-    uint8_t mSubType : 4;       ///< Identifies the message sub type.
-    bool    mDirectTx : 1;      ///< Used to indicate whether a direct transmission is required.
     bool    mLinkSecurity : 1;  ///< Indicates whether or not link security is enabled.
     uint8_t mPriority : 2;      ///< Identifies the message priority level (higher value is higher priority).
     bool    mInPriorityQ : 1;   ///< Indicates whether the message is queued in normal or priority queue.
     bool    mTxSuccess : 1;     ///< Indicates whether the direct tx of the message was successful.
     bool    mDoNotEvict : 1;    ///< Indicates whether or not this message may be evicted.
     bool    mMulticastLoop : 1; ///< Indicates whether or not this multicast message may be looped back.
+    bool    mReadOnly : 1;      ///< Indicates whether or not this message data is read-only.
+
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
     bool    mTimeSync : 1;      ///< Indicates whether the message is also used for time sync purpose.
     int64_t mNetworkTimeOffset; ///< The time offset to the Thread network time, in microseconds.
@@ -364,28 +372,6 @@ public:
     };
 
     /**
-     * This enumeration represents the message ownership model when a `Message` instance is passed to a method/function.
-     *
-     */
-    enum Ownership : uint8_t
-    {
-        /**
-         * This value indicates that the method/function receiving a `Message` instance should take custody of the
-         * message (e.g., the method should `Free()` the message if no longer needed).
-         *
-         */
-        kTakeCustody,
-
-        /**
-         * This value indicates that the method/function receiving a `Message` instance does not own the message (e.g.,
-         * it should not `Free()` or `Enqueue()` it in a queue). The receiving method/function should create a
-         * copy/clone of the message to keep (if/when needed).
-         *
-         */
-        kCopyToUse,
-    };
-
-    /**
      * This class represents settings used for creating a new message.
      *
      */
@@ -461,7 +447,7 @@ public:
      * @returns The number of bytes in the message.
      *
      */
-    uint16_t GetLength(void) const { return GetMetadata().mLength; }
+    uint16_t GetLength(void) const { return GetMetadata().mNoCopy.mLength; }
 
     /**
      * This method sets the number of bytes in the message.
@@ -561,6 +547,22 @@ public:
      *
      */
     void SetMulticastLoop(bool aMulticastLoop) { GetMetadata().mMulticastLoop = aMulticastLoop; }
+
+    /**
+     * This method changes whether the message is read-only or not.
+     *
+     * @param[in]   aReadOnly    Whether or not read-only.
+     *
+     */
+    void SetReadOnly(bool aReadOnly) { GetMetadata().mReadOnly = aReadOnly; }
+
+    /**
+     * This method tells whether the message data is read-only.
+     *
+     * @returns The message data is read-only or not.
+     *
+     */
+    bool IsReadOnly(void) const { return GetMetadata().mReadOnly; }
 
     /**
      * This method returns the message priority level.
@@ -1064,7 +1066,7 @@ public:
      */
     MessageQueue *GetMessageQueue(void) const
     {
-        return (!GetMetadata().mInPriorityQ) ? GetMetadata().mQueue.mMessage : nullptr;
+        return (!GetMetadata().mInPriorityQ) ? GetMetadata().mNoCopy.mQueue.mMessage : nullptr;
     }
 
     /**
@@ -1075,7 +1077,7 @@ public:
      */
     PriorityQueue *GetPriorityQueue(void) const
     {
-        return (GetMetadata().mInPriorityQ) ? GetMetadata().mQueue.mPriority : nullptr;
+        return (GetMetadata().mInPriorityQ) ? GetMetadata().mNoCopy.mQueue.mPriority : nullptr;
     }
 
     /**
@@ -1180,7 +1182,7 @@ private:
      * @returns A pointer to the message pool.
      *
      */
-    MessagePool *GetMessagePool(void) const { return GetMetadata().mMessagePool; }
+    MessagePool *GetMessagePool(void) const { return GetMetadata().mNoCopy.mMessagePool; }
 
     /**
      * This method sets the message pool this message to which this message belongs.
@@ -1188,7 +1190,7 @@ private:
      * @param[in] aMessagePool  A pointer to the message pool
      *
      */
-    void SetMessagePool(MessagePool *aMessagePool) { GetMetadata().mMessagePool = aMessagePool; }
+    void SetMessagePool(MessagePool *aMessagePool) { GetMetadata().mNoCopy.mMessagePool = aMessagePool; }
 
     /**
      * This method returns `true` if the message is enqueued in any queue (`MessageQueue` or `PriorityQueue`).
@@ -1196,7 +1198,7 @@ private:
      * @returns `true` if the message is in any queue, `false` otherwise.
      *
      */
-    bool IsInAQueue(void) const { return (GetMetadata().mQueue.mMessage != nullptr); }
+    bool IsInAQueue(void) const { return (GetMetadata().mNoCopy.mQueue.mMessage != nullptr); }
 
     /**
      * This method sets the message queue information for the message.
@@ -1220,7 +1222,7 @@ private:
      * @returns A reference to the mNext pointer.
      *
      */
-    Message *&Next(void) { return GetMetadata().mNext; }
+    Message *&Next(void) { return GetMetadata().mNoCopy.mNext; }
 
     /**
      * This method returns a reference to the `mNext` pointer (const pointer).
@@ -1229,7 +1231,7 @@ private:
      * @returns A reference to the mNext pointer.
      *
      */
-    Message *const &Next(void) const { return GetMetadata().mNext; }
+    Message *const &Next(void) const { return GetMetadata().mNoCopy.mNext; }
 
     /**
      * This method returns a reference to the `mPrev` pointer.
@@ -1237,7 +1239,7 @@ private:
      * @returns A reference to the mPrev pointer.
      *
      */
-    Message *&Prev(void) { return GetMetadata().mPrev; }
+    Message *&Prev(void) { return GetMetadata().mNoCopy.mPrev; }
 
     /**
      * This method returns the number of reserved header bytes.
@@ -1245,7 +1247,7 @@ private:
      * @returns The number of reserved header bytes.
      *
      */
-    uint16_t GetReserved(void) const { return GetMetadata().mReserved; }
+    uint16_t GetReserved(void) const { return GetMetadata().mNoCopy.mReserved; }
 
     /**
      * This method sets the number of reserved header bytes.
@@ -1253,7 +1255,7 @@ private:
      * @param[in] aReservedHeader  The number of header bytes to reserve.
      *
      */
-    void SetReserved(uint16_t aReservedHeader) { GetMetadata().mReserved = aReservedHeader; }
+    void SetReserved(uint16_t aReservedHeader) { GetMetadata().mNoCopy.mReserved = aReservedHeader; }
 
     /**
      * This method adds or frees message buffers to meet the requested length.

@@ -331,11 +331,7 @@ private:
     static otError GetDatagramPriority(const uint8_t *aData, uint16_t aDataLen, Message::Priority &aPriority);
 
     void    EnqueueDatagram(Message &aMessage);
-    otError ProcessReceiveCallback(Message &          aMessage,
-                                   const MessageInfo &aMessageInfo,
-                                   uint8_t            aIpProto,
-                                   bool               aFromNcpHost,
-                                   Message::Ownership aMessageOwnership);
+    otError ProcessReceiveCallback(Message &aMessage);
     otError HandleExtensionHeaders(Message &    aMessage,
                                    Netif *      aNetif,
                                    MessageInfo &aMessageInfo,
@@ -357,11 +353,7 @@ private:
     otError InsertMplOption(Message &aMessage, Header &aHeader, MessageInfo &aMessageInfo);
     otError RemoveMplOption(Message &aMessage);
     otError HandleOptions(Message &aMessage, Header &aHeader, bool aIsOutbound, bool &aReceive);
-    otError HandlePayload(Message &          aMessage,
-                          MessageInfo &      aMessageInfo,
-                          uint8_t            aIpProto,
-                          Message::Ownership aMessageOwnership);
-    bool    ShouldForwardToThread(const MessageInfo &aMessageInfo, bool aFromNcpHost) const;
+    otError HandlePayload(Message &aMessage, MessageInfo &aMessageInfo, uint8_t aIpProto);
     bool    IsOnLink(const Address &aAddress) const;
 
     bool                 mForwardingEnabled;

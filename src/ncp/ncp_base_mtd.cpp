@@ -1820,6 +1820,7 @@ exit:
     return error;
 }
 
+#if !OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_RLOC16_DEBUG_PASSTHRU>(void)
 {
     // Note reverse logic: passthru enabled = filter disabled
@@ -1839,6 +1840,7 @@ template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_RLOC16_DEBUG_P
 exit:
     return error;
 }
+#endif // !OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE
 
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_OFF_MESH_ROUTES>(void)
 {

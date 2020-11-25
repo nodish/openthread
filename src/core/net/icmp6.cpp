@@ -174,7 +174,7 @@ bool Icmp::ShouldHandleEchoRequest(const MessageInfo &aMessageInfo)
     return rval;
 }
 
-otError Icmp::HandleEchoRequest(Message &aRequestMessage, const MessageInfo &aMessageInfo)
+otError Icmp::HandleEchoRequest(const Message &aRequestMessage, const MessageInfo &aMessageInfo)
 {
     otError     error = OT_ERROR_NONE;
     Header      icmp6Header;
@@ -183,7 +183,8 @@ otError Icmp::HandleEchoRequest(Message &aRequestMessage, const MessageInfo &aMe
     uint16_t    payloadLength;
 
     // always handle Echo Request destined for RLOC or ALOC
-    VerifyOrExit(ShouldHandleEchoRequest(aMessageInfo) || aMessageInfo.GetSockAddr().GetIid().IsLocator());
+    VerifyOrExit(ShouldHandleEchoRequest(aMessageInfo) || aMessageInfo.GetSockAddr().GetIid().IsLocator(),
+                 error = OT_ERROR_NO_ROUTE);
 
     otLogInfoIcmp("Received Echo Request");
 

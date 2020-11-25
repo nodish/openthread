@@ -297,7 +297,7 @@ otError Message::ParseHeader(void)
     otError          error = OT_ERROR_NONE;
     Option::Iterator iterator;
 
-    OT_ASSERT(mBuffer.mHead.mMetadata.mReserved >=
+    OT_ASSERT(mBuffer.mHead.mMetadata.mNoCopy.mReserved >=
               sizeof(GetHelpData()) +
                   static_cast<size_t>((reinterpret_cast<uint8_t *>(&GetHelpData()) - mBuffer.mHead.mData)));
 

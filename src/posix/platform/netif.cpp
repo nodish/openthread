@@ -1465,7 +1465,9 @@ void platformNetifInit(otInstance *aInstance, const char *aInterfaceName)
     mldListenerInit();
 #endif
 
+#if !OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE
     otIp6SetReceiveFilterEnabled(aInstance, true);
+#endif
     otIcmp6SetEchoMode(aInstance, OT_ICMP6_ECHO_HANDLER_DISABLED);
     otIp6SetReceiveCallback(aInstance, processReceive, aInstance);
     otIp6SetAddressCallback(aInstance, processAddressChange, aInstance);

@@ -2601,29 +2601,30 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     uint8_t         tag[kMleSecurityTagSize];
     uint8_t         command;
     Neighbor *      neighbor;
+    Message *       message = &aMessage;
 
     otLogDebgMle("Receive UDP message");
 
     VerifyOrExit(aMessageInfo.GetLinkInfo() != nullptr);
     VerifyOrExit(aMessageInfo.GetHopLimit() == kMleHopLimit, error = OT_ERROR_PARSE);
 
-    length = aMessage.ReadBytes(aMessage.GetOffset(), &header, sizeof(header));
+    length = message->ReadBytes(message->GetOffset(), &header, sizeof(header));
     VerifyOrExit(header.IsValid() && header.GetLength() <= length, error = OT_ERROR_PARSE);
 
     if (header.GetSecuritySuite() == Header::kNoSecurity)
     {
-        aMessage.MoveOffset(header.GetLength());
+        message->MoveOffset(header.GetLength());
 
         switch (header.GetCommand())
         {
 #if OPENTHREAD_FTD
         case kCommandDiscoveryRequest:
-            Get<MleRouter>().HandleDiscoveryRequest(aMessage, aMessageInfo);
+            Get<MleRouter>().HandleDiscoveryRequest(*message, aMessageInfo);
             break;
 #endif
 
         case kCommandDiscoveryResponse:
-            Get<DiscoverScanner>().HandleDiscoveryResponse(aMessage, aMessageInfo);
+            Get<DiscoverScanner>().HandleDiscoveryResponse(*message, aMessageInfo);
             break;
 
         default:
@@ -2647,12 +2648,22 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
         mleKey = &Get<KeyManager>().GetTemporaryMleKey(keySequence);
     }
 
-    VerifyOrExit(aMessage.GetOffset() + header.GetLength() + sizeof(messageTag) <= aMessage.GetLength(),
+    VerifyOrExit(message->GetOffset() + header.GetLength() + sizeof(messageTag) <= message->GetLength(),
                  error = OT_ERROR_PARSE);
-    aMessage.MoveOffset(header.GetLength() - 1);
+    message->MoveOffset(header.GetLength() - 1);
 
-    IgnoreError(aMessage.Read(aMessage.GetLength() - sizeof(messageTag), messageTag));
-    SuccessOrExit(error = aMessage.SetLength(aMessage.GetLength() - sizeof(messageTag)));
+    IgnoreError(message->Read(message->GetLength() - sizeof(messageTag), messageTag));
+#if !OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE
+    if (message->IsReadOnly())
+    {
+        VerifyOrExit((message = message->Clone(message->GetLength() - sizeof(messageTag))) != nullptr,
+                     error = OT_ERROR_NO_BUFS);
+    }
+    else
+#endif // !OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE
+    {
+        SuccessOrExit(error = message->SetLength(message->GetLength() - sizeof(messageTag)));
+    }
 
     aMessageInfo.GetPeerAddr().GetIid().ConvertToExtAddress(extAddr);
 
@@ -2661,22 +2672,22 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
 
     aesCcm.SetKey(*mleKey);
     aesCcm.Init(sizeof(aMessageInfo.GetPeerAddr()) + sizeof(aMessageInfo.GetSockAddr()) + header.GetHeaderLength(),
-                aMessage.GetLength() - aMessage.GetOffset(), sizeof(messageTag), nonce, sizeof(nonce));
+                message->GetLength() - message->GetOffset(), sizeof(messageTag), nonce, sizeof(nonce));
 
     aesCcm.Header(&aMessageInfo.GetPeerAddr(), sizeof(aMessageInfo.GetPeerAddr()));
     aesCcm.Header(&aMessageInfo.GetSockAddr(), sizeof(aMessageInfo.GetSockAddr()));
     aesCcm.Header(header.GetBytes() + 1, header.GetHeaderLength());
 
-    mleOffset = aMessage.GetOffset();
+    mleOffset = message->GetOffset();
 
-    while (aMessage.GetOffset() < aMessage.GetLength())
+    while (message->GetOffset() < message->GetLength())
     {
-        length = aMessage.ReadBytes(aMessage.GetOffset(), buf, sizeof(buf));
+        length = message->ReadBytes(message->GetOffset(), buf, sizeof(buf));
         aesCcm.Payload(buf, buf, length, Crypto::AesCcm::kDecrypt);
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-        aMessage.WriteBytes(aMessage.GetOffset(), buf, length);
+        message->WriteBytes(message->GetOffset(), buf, length);
 #endif
-        aMessage.MoveOffset(length);
+        message->MoveOffset(length);
     }
 
     aesCcm.Finalize(tag);
@@ -2689,10 +2700,10 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
         Get<KeyManager>().SetCurrentKeySequence(keySequence);
     }
 
-    aMessage.SetOffset(mleOffset);
+    message->SetOffset(mleOffset);
 
-    IgnoreError(aMessage.Read(aMessage.GetOffset(), command));
-    aMessage.MoveOffset(sizeof(command));
+    IgnoreError(message->Read(message->GetOffset(), command));
+    message->MoveOffset(sizeof(command));
 
     neighbor = (command == kCommandChildIdResponse) ? mNeighborTable.FindParent(extAddr)
                                                     : mNeighborTable.FindNeighbor(extAddr);
@@ -2747,35 +2758,35 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     switch (command)
     {
     case kCommandAdvertisement:
-        HandleAdvertisement(aMessage, aMessageInfo, neighbor);
+        HandleAdvertisement(*message, aMessageInfo, neighbor);
         break;
 
     case kCommandDataResponse:
-        HandleDataResponse(aMessage, aMessageInfo, neighbor);
+        HandleDataResponse(*message, aMessageInfo, neighbor);
         break;
 
     case kCommandParentResponse:
-        HandleParentResponse(aMessage, aMessageInfo, keySequence);
+        HandleParentResponse(*message, aMessageInfo, keySequence);
         break;
 
     case kCommandChildIdResponse:
-        HandleChildIdResponse(aMessage, aMessageInfo, neighbor);
+        HandleChildIdResponse(*message, aMessageInfo, neighbor);
         break;
 
     case kCommandAnnounce:
-        HandleAnnounce(aMessage, aMessageInfo);
+        HandleAnnounce(*message, aMessageInfo);
         break;
 
     case kCommandChildUpdateRequest:
 #if OPENTHREAD_FTD
         if (IsRouterOrLeader())
         {
-            Get<MleRouter>().HandleChildUpdateRequest(aMessage, aMessageInfo, keySequence);
+            Get<MleRouter>().HandleChildUpdateRequest(*message, aMessageInfo, keySequence);
         }
         else
 #endif
         {
-            HandleChildUpdateRequest(aMessage, aMessageInfo, neighbor);
+            HandleChildUpdateRequest(*message, aMessageInfo, neighbor);
         }
 
         break;
@@ -2784,59 +2795,59 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
 #if OPENTHREAD_FTD
         if (IsRouterOrLeader())
         {
-            Get<MleRouter>().HandleChildUpdateResponse(aMessage, aMessageInfo, keySequence, neighbor);
+            Get<MleRouter>().HandleChildUpdateResponse(*message, aMessageInfo, keySequence, neighbor);
         }
         else
 #endif
         {
-            HandleChildUpdateResponse(aMessage, aMessageInfo, neighbor);
+            HandleChildUpdateResponse(*message, aMessageInfo, neighbor);
         }
 
         break;
 
 #if OPENTHREAD_FTD
     case kCommandLinkRequest:
-        Get<MleRouter>().HandleLinkRequest(aMessage, aMessageInfo, neighbor);
+        Get<MleRouter>().HandleLinkRequest(*message, aMessageInfo, neighbor);
         break;
 
     case kCommandLinkAccept:
-        Get<MleRouter>().HandleLinkAccept(aMessage, aMessageInfo, keySequence, neighbor);
+        Get<MleRouter>().HandleLinkAccept(*message, aMessageInfo, keySequence, neighbor);
         break;
 
     case kCommandLinkAcceptAndRequest:
-        Get<MleRouter>().HandleLinkAcceptAndRequest(aMessage, aMessageInfo, keySequence, neighbor);
+        Get<MleRouter>().HandleLinkAcceptAndRequest(*message, aMessageInfo, keySequence, neighbor);
         break;
 
     case kCommandDataRequest:
-        Get<MleRouter>().HandleDataRequest(aMessage, aMessageInfo, neighbor);
+        Get<MleRouter>().HandleDataRequest(*message, aMessageInfo, neighbor);
         break;
 
     case kCommandParentRequest:
-        Get<MleRouter>().HandleParentRequest(aMessage, aMessageInfo);
+        Get<MleRouter>().HandleParentRequest(*message, aMessageInfo);
         break;
 
     case kCommandChildIdRequest:
-        Get<MleRouter>().HandleChildIdRequest(aMessage, aMessageInfo, keySequence);
+        Get<MleRouter>().HandleChildIdRequest(*message, aMessageInfo, keySequence);
         break;
 
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
     case kCommandTimeSync:
-        Get<MleRouter>().HandleTimeSync(aMessage, aMessageInfo, neighbor);
+        Get<MleRouter>().HandleTimeSync(*message, aMessageInfo, neighbor);
         break;
 #endif
 #endif // OPENTHREAD_FTD
 
 #if OPENTHREAD_CONFIG_MLE_LINK_METRICS_ENABLE
     case kCommandLinkMetricsManagementRequest:
-        HandleLinkMetricsManagementRequest(aMessage, aMessageInfo, neighbor);
+        HandleLinkMetricsManagementRequest(*message, aMessageInfo, neighbor);
         break;
 
     case kCommandLinkMetricsManagementResponse:
-        HandleLinkMetricsManagementResponse(aMessage, aMessageInfo, neighbor);
+        HandleLinkMetricsManagementResponse(*message, aMessageInfo, neighbor);
         break;
 
     case kCommandLinkProbe:
-        HandleLinkProbe(aMessage, aMessageInfo, neighbor);
+        HandleLinkProbe(*message, aMessageInfo, neighbor);
         break;
 #endif
 
@@ -2867,6 +2878,13 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
 
 exit:
     LogProcessError(kTypeGenericUdp, error);
+
+#if !OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE
+    if (message != &aMessage)
+    {
+        FreeMessage(message);
+    }
+#endif
 }
 
 void Mle::HandleAdvertisement(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo, Neighbor *aNeighbor)

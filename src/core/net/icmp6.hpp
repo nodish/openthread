@@ -295,6 +295,7 @@ public:
      * @retval OT_ERROR_NONE     Successfully processed the ICMPv6 message.
      * @retval OT_ERROR_NO_BUFS  Insufficient buffers available to generate the reply.
      * @retval OT_ERROR_DROP     The ICMPv6 message was invalid and dropped.
+     * @retval OT_ERROR_NO_ROUTE The ICMPv6 message should not be handled by OpenThread stack.
      *
      */
     otError HandleMessage(Message &aMessage, MessageInfo &aMessageInfo);
@@ -326,7 +327,7 @@ public:
     bool ShouldHandleEchoRequest(const MessageInfo &aMessageInfo);
 
 private:
-    otError HandleEchoRequest(Message &aRequestMessage, const MessageInfo &aMessageInfo);
+    otError HandleEchoRequest(const Message &aRequestMessage, const MessageInfo &aMessageInfo);
 
     LinkedList<Handler> mHandlers;
 

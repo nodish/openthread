@@ -455,6 +455,8 @@ void otIp6SetAddressCallback(otInstance *aInstance, otIp6AddressCallback aCallba
  * This function indicates whether or not Thread control traffic is filtered out when delivering IPv6 datagrams
  * via the callback specified in otIp6SetReceiveCallback().
  *
+ * @note Only available with `OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE` off.
+ *
  * @param[in]  aInstance A pointer to an OpenThread instance.
  *
  * @returns  TRUE if Thread control traffic is filtered out, FALSE otherwise.
@@ -468,6 +470,8 @@ bool otIp6IsReceiveFilterEnabled(otInstance *aInstance);
 /**
  * This function sets whether or not Thread control traffic is filtered out when delivering IPv6 datagrams
  * via the callback specified in otIp6SetReceiveCallback().
+ *
+ * @note Only available with `OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE` off.
  *
  * @param[in]  aInstance A pointer to an OpenThread instance.
  * @param[in]  aEnabled  TRUE if Thread control traffic is filtered out, FALSE otherwise.

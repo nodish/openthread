@@ -489,7 +489,7 @@ otError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo)
     aMessageInfo.mSockPort = udpHeader.GetDestinationPort();
 
 #if OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE
-    VerifyOrExit(!ShouldUsePlatformUdp(aMessageInfo.mSockPort));
+    VerifyOrExit(!ShouldUsePlatformUdp(aMessageInfo.mSockPort), error = OT_ERROR_NO_ROUTE);
 #endif
 
     for (Receiver *receiver = mReceivers.GetHead(); receiver; receiver = receiver->GetNext())
@@ -497,16 +497,17 @@ otError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo)
         VerifyOrExit(!receiver->HandleMessage(aMessage, aMessageInfo));
     }
 
-    HandlePayload(aMessage, aMessageInfo);
+    error = HandlePayload(aMessage, aMessageInfo);
 
 exit:
     return error;
 }
 
-void Udp::HandlePayload(Message &aMessage, MessageInfo &aMessageInfo)
+otError Udp::HandlePayload(Message &aMessage, MessageInfo &aMessageInfo)
 {
     SocketHandle *socket;
     SocketHandle *prev;
+    otError       error = OT_ERROR_NONE;
 
 #if OPENTHREAD_FTD && OPENTHREAD_CONFIG_BACKBONE_ROUTER_ENABLE
     {
@@ -529,14 +530,12 @@ void Udp::HandlePayload(Message &aMessage, MessageInfo &aMessageInfo)
     socket = mSockets.FindMatching(aMessageInfo, prev);
 #endif
 
-    VerifyOrExit(socket != nullptr);
+    VerifyOrExit(socket != nullptr, error = OT_ERROR_NO_ROUTE);
 
-    aMessage.RemoveHeader(aMessage.GetOffset());
-    OT_ASSERT(aMessage.GetOffset() == 0);
     socket->HandleUdpReceive(aMessage, aMessageInfo);
 
 exit:
-    return;
+    return error;
 }
 
 bool Udp::ShouldUsePlatformUdp(uint16_t aPort) const

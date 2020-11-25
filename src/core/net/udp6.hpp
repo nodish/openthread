@@ -548,8 +548,10 @@ public:
      * @param[in]  aMessage      A reference to the UDP message to process.
      * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
      *
-     * @retval OT_ERROR_NONE  Successfully processed the UDP message.
-     * @retval OT_ERROR_DROP  Could not fully process the UDP message.
+     * @retval OT_ERROR_NONE        Successfully processed the UDP message.
+     * @retval OT_ERROR_DROP        Could not fully process the UDP message.
+     * @retval OT_ERROR_NO_BUFS     Failed to clone the read-only message for no buffers.
+     * @retval OT_ERROR_NO_ROUTE    Failed to find a handler for this message.
      *
      */
     otError HandleMessage(Message &aMessage, MessageInfo &aMessageInfo);
@@ -560,8 +562,12 @@ public:
      * @param[in]  aMessage      A reference to the UDP message to process.
      * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
      *
+     * @retval OT_ERROR_NONE        The message is successfully delivered to a socket handler.
+     * @retval OT_ERROR_NO_BUFS     Failed to clone the read-only message for no buffers.
+     * @retval OT_ERROR_NO_ROUTE    Failed to find a handler for this message.
+     *
      */
-    void HandlePayload(Message &aMessage, MessageInfo &aMessageInfo);
+    otError HandlePayload(Message &aMessage, MessageInfo &aMessageInfo);
 
     /**
      * This method returns the head of UDP Sockets list.

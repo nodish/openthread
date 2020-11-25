@@ -266,7 +266,9 @@ NcpBase::NcpBase(Instance *aInstance)
     otMessageQueueInit(&mMessageQueue);
     IgnoreError(otSetStateChangedCallback(mInstance, &NcpBase::HandleStateChanged, this));
     otIp6SetReceiveCallback(mInstance, &NcpBase::HandleDatagramFromStack, this);
+#if !OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE
     otIp6SetReceiveFilterEnabled(mInstance, true);
+#endif
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
     otNetworkTimeSyncSetCallback(mInstance, &NcpBase::HandleTimeSyncUpdate, this);
 #endif // OPENTHREAD_CONFIG_TIME_SYNC_ENABLE

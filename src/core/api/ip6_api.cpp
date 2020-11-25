@@ -146,6 +146,7 @@ void otIp6SetAddressCallback(otInstance *aInstance, otIp6AddressCallback aCallba
     instance.Get<ThreadNetif>().SetAddressCallback(aCallback, aCallbackContext);
 }
 
+#if !OPENTHREAD_CONFIG_PLATFORM_UDP_ENABLE
 bool otIp6IsReceiveFilterEnabled(otInstance *aInstance)
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
@@ -159,6 +160,7 @@ void otIp6SetReceiveFilterEnabled(otInstance *aInstance, bool aEnabled)
 
     instance.Get<Ip6::Ip6>().SetReceiveIp6FilterEnabled(aEnabled);
 }
+#endif
 
 otError otIp6Send(otInstance *aInstance, otMessage *aMessage)
 {
