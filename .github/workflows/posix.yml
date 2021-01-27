@@ -43,8 +43,8 @@ jobs:
   macOS:
     runs-on: macos-10.15
     env:
-      CFLAGS: -DCLI_COAP_SECURE_USE_COAP_DEFAULT_HANDLER=1 -DOPENTHREAD_CONFIG_MLE_MAX_CHILDREN=15
-      CXXFLAGS: -DCLI_COAP_SECURE_USE_COAP_DEFAULT_HANDLER=1 -DOPENTHREAD_CONFIG_MLE_MAX_CHILDREN=15
+      CFLAGS: -DCLI_COAP_SECURE_USE_COAP_DEFAULT_HANDLER=1 -DOPENTHREAD_CONFIG_MLE_MAX_CHILDREN=15 -DOPENTHREAD_CONFIG_MAC_SCAN_DURATION=500
+      CXXFLAGS: -DCLI_COAP_SECURE_USE_COAP_DEFAULT_HANDLER=1 -DOPENTHREAD_CONFIG_MLE_MAX_CHILDREN=15 -DOPENTHREAD_CONFIG_MAC_SCAN_DURATION=500
       CC: clang
       CXX: clang++
     steps:
@@ -56,8 +56,6 @@ jobs:
         brew install ninja
     - name: Codecov
       uses: codecov/codecov-action@v1
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
     - name: Run RCP Mode
       run: |
         OT_OPTIONS='-DOT_READLINE=OFF -DOT_FULL_LOGS=ON -DOT_LOG_OUTPUT=PLATFORM_DEFINED' VIRTUAL_TIME=0 OT_NODE_TYPE=rcp-cli ./script/test build expect
