@@ -53,7 +53,7 @@ jobs:
         submodules: true
     - name: Bootstrap
       run: |
-        brew install ninja
+        brew install ninja lcov
     - name: Codecov
       uses: codecov/codecov-action@v1
     - name: Run RCP Mode
