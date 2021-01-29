@@ -27,6 +27,14 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
+proc skip_on_macos {} {
+    set OSTYPE [lindex $::tcl_platform(os) 0]
+
+    if { $OSTYPE == "Darwin" } {
+        exit 77
+    }
+}
+
 proc wait_for {command success {failure {[\r\n]FAILURE_NOT_EXPECTED[\r\n]}}} {
     set timeout 1
     for {set i 0} {$i < 20} {incr i} {

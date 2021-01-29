@@ -309,10 +309,10 @@ do_expect()
 
     local log_file="tmp/log_expect"
     while read -r script; do
-        killall ot-rcp || true
-        killall ot-cli || true
-        killall ot-cli-ftd || true
-        killall ot-cli-mtd || true
+        sudo killall ot-rcp || true
+        sudo killall ot-cli || true
+        sudo killall ot-cli-ftd || true
+        sudo killall ot-cli-mtd || true
         sudo rm -rf tmp
         mkdir tmp
         {
@@ -322,7 +322,7 @@ do_expect()
                 expect -df "${script}" 2>"${log_file}"
             fi
         } || {
-            local -r EXIT_CODE=$?
+            local EXIT_CODE=$?
 
             # The exit status 77 for skipping is inherited from automake's test driver for script-based testsuites
             if [[ ${EXIT_CODE} == 77 ]]; then
