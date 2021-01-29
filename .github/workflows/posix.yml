@@ -54,8 +54,8 @@ jobs:
     - name: Bootstrap
       run: |
         brew install ninja
-    - name: Codecov
-      uses: codecov/codecov-action@v1
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
     - name: Run RCP Mode
       run: |
         OT_OPTIONS='-DOT_READLINE=OFF -DOT_FULL_LOGS=ON -DOT_LOG_OUTPUT=PLATFORM_DEFINED' VIRTUAL_TIME=0 OT_NODE_TYPE=rcp-cli ./script/test build expect
