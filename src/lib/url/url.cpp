@@ -98,7 +98,7 @@ const char *Url::GetValue(const char *aName, const char *aLastValue) const
             }
             else if (start[len] == '\0')
             {
-                ExitNow(rval = "");
+                ExitNow(rval = &start[len]);
             }
         }
         last  = start;
