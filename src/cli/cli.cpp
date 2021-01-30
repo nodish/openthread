@@ -4967,30 +4967,24 @@ extern "C" void otCliAppendResult(otError aError)
     Interpreter::GetInterpreter().OutputResult(aError);
 }
 
-extern "C" void otCliPlatLogv(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, va_list aArgs)
+#if OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_APP
+extern "C" void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ...)
 {
     OT_UNUSED_VARIABLE(aLogLevel);
     OT_UNUSED_VARIABLE(aLogRegion);
 
+    va_list ap;
     VerifyOrExit(Interpreter::IsInitialized());
 
-    Interpreter::GetInterpreter().OutputFormatV(aFormat, aArgs);
+    va_start(ap, aFormat);
+    Interpreter::GetInterpreter().OutputFormatV(aFormat, ap);
     Interpreter::GetInterpreter().OutputLine("");
-exit:
-    return;
-}
-
-extern "C" void otCliPlatLogLine(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aLogLine)
-{
-    OT_UNUSED_VARIABLE(aLogLevel);
-    OT_UNUSED_VARIABLE(aLogRegion);
-
-    VerifyOrExit(Interpreter::IsInitialized());
-    Interpreter::GetInterpreter().OutputLine(aLogLine);
+    va_end(ap);
 
 exit:
     return;
 }
+#endif
 
 } // namespace Cli
 } // namespace ot
