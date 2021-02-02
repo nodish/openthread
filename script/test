@@ -291,6 +291,42 @@ do_pktverify()
     python3 ./tests/scripts/thread-cert/pktverify/verify.py "$1"
 }
 
+ot_exec_expect_script()
+{
+    local log_file="tmp/log_expect"
+    local script="$1"
+
+    sudo killall ot-rcp || true
+    sudo killall ot-cli || true
+    sudo killall ot-cli-ftd || true
+    sudo killall ot-cli-mtd || true
+    sudo rm -rf tmp
+    mkdir tmp
+    {
+        if [[ ${OT_NATIVE_IP} == 1 ]]; then
+            sudo -E "${script}"
+        else
+            expect -df "${script}" 2>"${log_file}"
+        fi
+    } || {
+        local EXIT_CODE=$?
+
+            # The exit status 77 for skipping is inherited from automake's test driver for script-based testsuites
+            if [[ ${EXIT_CODE} == 77 ]]; then
+                echo -e "\n${COLOR_SKIP}SKIP${COLOR_NONE} ${script}"
+                return 0
+            else
+                echo -e "\n${COLOR_FAIL}FAIL${COLOR_NONE} ${script}"
+                cat "${log_file}" >&2
+                return "${EXIT_CODE}"
+            fi
+        }
+    echo -e "\n${COLOR_PASS}PASS${COLOR_NONE} ${script}"
+    if [[ ${VERBOSE} == 1 ]]; then
+        cat "${log_file}" >&2
+    fi
+}
+
 do_expect()
 {
     local test_patterns
@@ -307,44 +343,13 @@ do_expect()
         test_patterns=(-name 'cli-*.exp' -o -name 'simulation-*.exp')
     fi
 
-    local log_file="tmp/log_expect"
-    while read -r script; do
-        sudo killall ot-rcp || true
-        sudo killall ot-cli || true
-        sudo killall ot-cli-ftd || true
-        sudo killall ot-cli-mtd || true
-        sudo rm -rf tmp
-        mkdir tmp
-        {
-            if [[ ${OT_NATIVE_IP} == 1 ]]; then
-                sudo -E expect -df "${script}" 2>"${log_file}"
-            else
-                expect -df "${script}" 2>"${log_file}"
-            fi
-        } || {
-            local EXIT_CODE=$?
+    export -f ot_exec_expect_script
 
-            # The exit status 77 for skipping is inherited from automake's test driver for script-based testsuites
-            if [[ ${EXIT_CODE} == 77 ]]; then
-                echo -e "\n${COLOR_SKIP}SKIP${COLOR_NONE} ${script}"
-                continue
-            else
-                echo -e "\n${COLOR_FAIL}FAIL${COLOR_NONE} ${script}"
-                cat "${log_file}" >&2
-                exit "${EXIT_CODE}"
-            fi
-        }
-        echo -e "\n${COLOR_PASS}PASS${COLOR_NONE} ${script}"
-        if [[ ${VERBOSE} == 1 ]]; then
-            cat "${log_file}" >&2
-        fi
-    done < <(
-        if [[ $# != 0 ]]; then
-            for script in "$@"; do echo ${script}; done
-        else
-            find tests/scripts/expect -type f -perm "$([[ $OSTYPE = darwin* ]] && echo '+' || echo '/')"111 \( "${test_patterns[@]}" \)
-        fi
-    )
+    if [[ $# != 0 ]]; then
+        for script in "$@"; do bash -c "ot_exec_expect_script ${script}"; done
+    else
+        find tests/scripts/expect -type f -perm "$([[ $OSTYPE = darwin* ]] && echo '+' || echo '/')"111 \( "${test_patterns[@]}" \) -exec bash ot_exec_expect_script {} \;
+    fi
 
     exit 0
 }
