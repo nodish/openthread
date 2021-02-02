@@ -40,6 +40,7 @@ readonly COLOR_FAIL='\033[0;31m'
 readonly COLOR_SKIP='\033[0;33m'
 readonly COLOR_NONE='\033[0m'
 
+readonly OT_GCOV_TOOL=${OT_GCOV_TOOL:-gcov-tool}
 readonly OT_NODE_TYPE="${OT_NODE_TYPE:-cli}"
 readonly OT_NATIVE_IP="${OT_NATIVE_IP:-0}"
 readonly THREAD_VERSION="${THREAD_VERSION:-1.1}"
@@ -495,7 +496,7 @@ do_generate_coverage()
         ./script/gcda-tool collect
         ./script/gcda-tool install
 
-        lcov --directory . --capture --output-file tmp/coverage.info
+        lcov --gcov-tool "${OT_GCOV_TOOL}" --directory . --capture --output-file tmp/coverage.info
     fi
     lcov --list tmp/coverage.info
     lcov --extract tmp/coverage.info "$PWD/src/core/common/message.cpp" | c++filt
