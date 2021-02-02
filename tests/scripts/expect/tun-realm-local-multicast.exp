@@ -50,6 +50,9 @@ expect_line "Done"
 
 set extaddr1 [get_extaddr]
 
+send "netstat\n"
+expect_line "Done"
+
 spawn_node 2 cli
 setup_default_network
 
