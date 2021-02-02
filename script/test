@@ -40,7 +40,6 @@ readonly COLOR_FAIL='\033[0;31m'
 readonly COLOR_SKIP='\033[0;33m'
 readonly COLOR_NONE='\033[0m'
 
-readonly OT_GCOV_TOOL=${OT_GCOV_TOOL:-gcov-tool}
 readonly OT_NODE_TYPE="${OT_NODE_TYPE:-cli}"
 readonly OT_NATIVE_IP="${OT_NATIVE_IP:-0}"
 readonly THREAD_VERSION="${THREAD_VERSION:-1.1}"
@@ -486,18 +485,17 @@ do_generate_coverage()
     sudo chmod 777 tmp/
     rm -f tmp/coverage.lcov
     if [[ $1 == "llvm" ]]; then
-        local llvm_gcov
-        llvm_gcov="$(mktemp -d)/llvm-gcov"
-        echo '#!/bin/bash' >>"$llvm_gcov"
-        echo 'exec llvm-cov gcov "$@"' >>"$llvm_gcov"
-        chmod +x "$llvm_gcov"
-        lcov --gcov-tool "$llvm_gcov" --directory . --capture --output-file tmp/coverage.info
+        local gcov_tool
+        gcov_tool="$(mktemp -d)/llvm-gcov"
+        echo '#!/bin/bash' >>"$gcov_tool"
+        echo 'exec llvm-cov gcov "$@"' >>"$gcov_tool"
+        chmod +x "$gcov_tool"
     else
+        local gcov_tool=${OT_GCOV_TOOL:-gcov-tool}
         ./script/gcda-tool collect
         ./script/gcda-tool install
-
-        lcov --gcov-tool "${OT_GCOV_TOOL}" --directory . --capture --output-file tmp/coverage.info
     fi
+    lcov --gcov-tool "$gcov_tool" --directory . --capture --output-file tmp/coverage.info
     lcov --list tmp/coverage.info
     lcov --extract tmp/coverage.info "$PWD/src/core/common/message.cpp" | c++filt
 }
