@@ -348,7 +348,7 @@ do_expect()
     if [[ $# != 0 ]]; then
         for script in "$@"; do bash -c "ot_exec_expect_script ${script}"; done
     else
-        find tests/scripts/expect -type f -perm "$([[ $OSTYPE = darwin* ]] && echo '+' || echo '/')"111 \( "${test_patterns[@]}" \) -exec bash ot_exec_expect_script {} \;
+        find tests/scripts/expect -type f -perm "$([[ $OSTYPE = darwin* ]] && echo '+' || echo '/')"111 \( "${test_patterns[@]}" \) -exec bash -c 'ot_exec_expect_script "$1"' _ {} \;
     fi
 
     exit 0
