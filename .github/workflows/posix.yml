@@ -59,6 +59,13 @@ jobs:
     - name: Run RCP Mode
       run: |
         OT_OPTIONS='-DOT_READLINE=OFF -DOT_APP_NCP=OFF -DOT_LOG_OUTPUT=APP' VIRTUAL_TIME=0 OT_NODE_TYPE=rcp-cli ./script/test build expect
+    - name: Generate Coverage
+      run: |
+        ./script/test generate_coverage llvm
+    - uses: actions/upload-artifact@v2
+      with:
+        name: cov-expects-1
+        path: tmp/coverage.info
     - name: Run Native IP Mode
       run: |
         brew install dnsmasq
@@ -66,3 +73,10 @@ jobs:
         sudo brew services start dnsmasq
         host ipv6.google.com ::1
         OT_OPTIONS=-DOT_READLINE=OFF OT_NATIVE_IP=1 OT_NODE_TYPE=rcp-cli ./script/test clean build expect
+    - name: Generate Coverage
+      run: |
+        ./script/test generate_coverage llvm
+    - uses: actions/upload-artifact@v2
+      with:
+        name: cov-expects-2
+        path: tmp/coverage.info
