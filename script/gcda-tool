@@ -31,6 +31,8 @@ set -euxo pipefail
 
 readonly OT_MERGED_PROFILES=merged_profiles
 readonly OT_GCOV_PREFIX_BASE=ot-run
+readonly OT_GCOV_TOOL=${OT_GCOV_TOOL:-gcov-tool}
+
 
 merge_profiles()
 {
@@ -41,7 +43,7 @@ merge_profiles()
 
     local profile_temporary="${profile_merged}.tmp"
 
-    gcov-tool merge "${profile_current}" "${profile_merged}" -o "${profile_temporary}" || return 0
+    "${OT_GCOV_TOOL}" merge "${profile_current}" "${profile_merged}" -o "${profile_temporary}" || return 0
     cp -r "${profile_temporary}"/* "${profile_merged}"
     rm -rf "${profile_temporary}"
 }

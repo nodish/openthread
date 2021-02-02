@@ -47,12 +47,14 @@ jobs:
     env:
       CFLAGS: -DCLI_COAP_SECURE_USE_COAP_DEFAULT_HANDLER=1 -DOPENTHREAD_CONFIG_MLE_MAX_CHILDREN=15 -DOPENTHREAD_CONFIG_MAC_SCAN_DURATION=500
       CXXFLAGS: -DCLI_COAP_SECURE_USE_COAP_DEFAULT_HANDLER=1 -DOPENTHREAD_CONFIG_MLE_MAX_CHILDREN=15 -DOPENTHREAD_CONFIG_MAC_SCAN_DURATION=500
-      CC: gcc
-      CXX: g++
+      CC: gcc-9
+      CXX: g++-9
+      OT_GCOV_TOOL: gcov-tool-9
     steps:
     - uses: actions/checkout@v2
     - name: Bootstrap
       run: |
+        ls $(brew --prefix gcc)/bin
         brew install ninja lcov
     - name: Run RCP Mode
       run: |
