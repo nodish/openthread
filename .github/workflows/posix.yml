@@ -55,7 +55,7 @@ jobs:
         submodules: true
     - name: Bootstrap
       run: |
-        brew install ninja
+        brew install ninja lcov
     - name: Run RCP Mode
       run: |
         OT_OPTIONS='-DOT_READLINE=OFF -DOT_APP_NCP=OFF -DOT_LOG_OUTPUT=APP' VIRTUAL_TIME=0 OT_NODE_TYPE=rcp-cli ./script/test build expect
