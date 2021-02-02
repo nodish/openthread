@@ -56,6 +56,11 @@ jobs:
     - name: Bootstrap
       run: |
         brew install ninja lcov
+        command -v clang
+        clang --version
+        brew --prefix llvm
+        brew --prefix llvm@12
+        brew --prefix llvm@11
     - name: Run RCP Mode
       run: |
         OT_OPTIONS='-DOT_READLINE=OFF -DOT_APP_NCP=OFF -DOT_LOG_OUTPUT=APP' VIRTUAL_TIME=0 OT_NODE_TYPE=rcp-cli ./script/test build expect
@@ -75,7 +80,7 @@ jobs:
         OT_OPTIONS=-DOT_READLINE=OFF OT_NATIVE_IP=1 OT_NODE_TYPE=rcp-cli ./script/test clean build expect
     - name: Generate Coverage
       run: |
-        ./script/test generate_coverage llvm
+        PATH=$PATH:$(brew --prefix llvm)/bin ./script/test generate_coverage llvm
     - uses: actions/upload-artifact@v2
       with:
         name: cov-expects-2
