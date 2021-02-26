@@ -35,6 +35,14 @@
 #ifndef OPENTHREAD_CONFIG_H_
 #define OPENTHREAD_CONFIG_H_
 
+#ifndef OPENTHREAD_POSIX
+#if defined(__unix__) || defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__ANDROID__)
+#define OPENTHREAD_POSIX 1
+#else
+#define OPENTHREAD_POSIX 0
+#endif
+#endif
+
 /**
  * @def OPENTHREAD_CONFIG_FILE
  *

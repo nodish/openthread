@@ -44,7 +44,6 @@
 #include <openthread/logging.h>
 #include <openthread/ncp.h>
 #include <openthread/thread.h>
-#include <openthread/platform/uart.h>
 #if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
 #include <openthread/network_time.h>
 #endif
@@ -110,9 +109,12 @@ namespace Cli {
 constexpr Interpreter::Command Interpreter::sCommands[];
 
 Interpreter *Interpreter::sInterpreter = nullptr;
+static OT_DEFINE_ALIGNED_VAR(sInterpreterRaw, sizeof(Interpreter), uint64_t);
 
-Interpreter::Interpreter(Instance *aInstance)
+Interpreter::Interpreter(Instance *aInstance, otCliOutputCallback aCallback, void *aContext)
     : mInstance(aInstance)
+    , mOutputCallback(aCallback)
+    , mOutputContext(aContext)
     , mUserCommands(nullptr)
     , mUserCommandsLength(0)
     , mPingLength(kDefaultPingLength)
@@ -570,7 +572,7 @@ otError Interpreter::ProcessDua(uint8_t aArgsLength, char *aArgs[])
         if (iid != nullptr)
         {
             OutputBytes(iid->mFields.m8, sizeof(otIp6InterfaceIdentifier));
-            OutputLine("");
+            OutputFormat("\r\n");
         }
         break;
     }
@@ -692,7 +694,7 @@ otError Interpreter::ProcessChannel(uint8_t aArgsLength, char *aArgs[])
                     occupancy = (occupancy * 10000) / 0xffff;
                     OutputLine("%2d.%02d%% busy", occupancy / 100, occupancy % 100);
                 }
-                OutputLine("");
+                OutputFormat("\r\n");
             }
         }
         else if (strcmp(aArgs[1], "start") == 0)
@@ -857,7 +859,7 @@ otError Interpreter::ProcessChild(uint8_t aArgsLength, char *aArgs[])
             }
         }
 
-        OutputLine("");
+        OutputFormat("\r\n");
         ExitNow();
     }
 
@@ -868,7 +870,7 @@ otError Interpreter::ProcessChild(uint8_t aArgsLength, char *aArgs[])
     OutputLine("Rloc: %04x", childInfo.mRloc16);
     OutputFormat("Ext Addr: ");
     OutputExtAddress(childInfo.mExtAddress);
-    OutputLine("");
+    OutputFormat("\r\n");
     OutputFormat("Mode: ");
 
     if (!(childInfo.mRxOnWhenIdle || childInfo.mFullThreadDevice || childInfo.mFullNetworkData))
@@ -893,7 +895,7 @@ otError Interpreter::ProcessChild(uint8_t aArgsLength, char *aArgs[])
         }
     }
 
-    OutputLine("");
+    OutputFormat("\r\n");
 
     OutputLine("Net Data: %d", childInfo.mNetworkDataVersion);
     OutputLine("Timeout: %d", childInfo.mTimeout);
@@ -931,7 +933,7 @@ otError Interpreter::ProcessChildIp(uint8_t aArgsLength, char *aArgs[])
             {
                 OutputFormat("%04x: ", childInfo.mRloc16);
                 OutputIp6Address(ip6Address);
-                OutputLine("");
+                OutputFormat("\r\n");
             }
         }
     }
@@ -1500,7 +1502,7 @@ void Interpreter::HandleDnsAddressResponse(otError aError, const otDnsAddressRes
             index++;
         }
 
-        OutputLine("");
+        OutputFormat("\r\n");
     }
 
     OutputResult(aError);
@@ -1556,7 +1558,7 @@ void Interpreter::HandleDnsBrowseResponse(otError aError, const otDnsBrowseRespo
                 OutputDnsServiceInfo(kIndentSize, serviceInfo);
             }
 
-            OutputLine("");
+            OutputFormat("\r\n");
         }
     }
 
@@ -1589,7 +1591,7 @@ void Interpreter::HandleDnsServiceResponse(otError aError, const otDnsServiceRes
         if (otDnsServiceResponseGetServiceInfo(aResponse, &serviceInfo) == OT_ERROR_NONE)
         {
             OutputDnsServiceInfo(/* aIndetSize */ 0, serviceInfo);
-            OutputLine("");
+            OutputFormat("\r\n");
         }
     }
 
@@ -1634,7 +1636,7 @@ otError Interpreter::ProcessEui64(uint8_t aArgsLength, char *aArgs[])
 
     otLinkGetFactoryAssignedIeeeEui64(mInstance, &extAddress);
     OutputBytes(extAddress.m8, OT_EXT_ADDRESS_SIZE);
-    OutputLine("");
+    OutputFormat("\r\n");
 
 exit:
     return error;
@@ -1648,7 +1650,7 @@ otError Interpreter::ProcessExtAddress(uint8_t aArgsLength, char *aArgs[])
     {
         const uint8_t *extAddress = reinterpret_cast<const uint8_t *>(otLinkGetExtendedAddress(mInstance));
         OutputBytes(extAddress, OT_EXT_ADDRESS_SIZE);
-        OutputLine("");
+        OutputFormat("\r\n");
     }
     else
     {
@@ -1724,7 +1726,7 @@ otError Interpreter::ProcessExtPanId(uint8_t aArgsLength, char *aArgs[])
     {
         const uint8_t *extPanId = reinterpret_cast<const uint8_t *>(otThreadGetExtendedPanId(mInstance));
         OutputBytes(extPanId, OT_EXT_PAN_ID_SIZE);
-        OutputLine("");
+        OutputFormat("\r\n");
     }
     else
     {
@@ -1900,7 +1902,7 @@ otError Interpreter::ProcessIpAddr(uint8_t aArgsLength, char *aArgs[])
         for (const otNetifAddress *addr = unicastAddrs; addr; addr = addr->mNext)
         {
             OutputIp6Address(addr->mAddress);
-            OutputLine("");
+            OutputFormat("\r\n");
         }
     }
     else
@@ -1916,17 +1918,17 @@ otError Interpreter::ProcessIpAddr(uint8_t aArgsLength, char *aArgs[])
         else if (strcmp(aArgs[0], "linklocal") == 0)
         {
             OutputIp6Address(*otThreadGetLinkLocalIp6Address(mInstance));
-            OutputLine("");
+            OutputFormat("\r\n");
         }
         else if (strcmp(aArgs[0], "rloc") == 0)
         {
             OutputIp6Address(*otThreadGetRloc(mInstance));
-            OutputLine("");
+            OutputFormat("\r\n");
         }
         else if (strcmp(aArgs[0], "mleid") == 0)
         {
             OutputIp6Address(*otThreadGetMeshLocalEid(mInstance));
-            OutputLine("");
+            OutputFormat("\r\n");
         }
         else
         {
@@ -2003,7 +2005,7 @@ otError Interpreter::ProcessIpMulticastAddr(uint8_t aArgsLength, char *aArgs[])
         for (const otNetifMulticastAddress *addr = otIp6GetMulticastAddresses(mInstance); addr; addr = addr->mNext)
         {
             OutputIp6Address(addr->mAddress);
-            OutputLine("");
+            OutputFormat("\r\n");
         }
     }
     else
@@ -2190,7 +2192,7 @@ void Interpreter::HandleLinkMetricsReport(const otIp6Address *       aAddress,
 {
     OutputFormat("Received Link Metrics Report from: ");
     OutputIp6Address(*aAddress);
-    OutputLine("");
+    OutputFormat("\r\n");
 
     if (aMetricsValues != nullptr)
     {
@@ -2211,7 +2213,7 @@ void Interpreter::HandleLinkMetricsMgmtResponse(const otIp6Address *aAddress, ui
 {
     OutputFormat("Received Link Metrics Management Response from: ");
     OutputIp6Address(*aAddress);
-    OutputLine("");
+    OutputFormat("\r\n");
 
     OutputLine("Status: %s", LinkMetricsStatusToStr(aStatus));
 }
@@ -2231,7 +2233,7 @@ void Interpreter::HandleLinkMetricsEnhAckProbingIe(otShortAddress             aS
     OutputFormat("Received Link Metrics data in Enh Ack from neighbor, short address:0x%02x , extended address:",
                  aShortAddress);
     OutputExtAddress(*aExtAddress);
-    OutputLine("");
+    OutputFormat("\r\n");
 
     if (aMetricsValues != nullptr)
     {
@@ -2498,7 +2500,7 @@ otError Interpreter::ProcessPskc(uint8_t aArgsLength, char *aArgs[])
         const otPskc *pskc = otThreadGetPskc(mInstance);
 
         OutputBytes(pskc->m8);
-        OutputLine("");
+        OutputFormat("\r\n");
     }
     else
     {
@@ -2534,7 +2536,7 @@ otError Interpreter::ProcessMasterKey(uint8_t aArgsLength, char *aArgs[])
     if (aArgsLength == 0)
     {
         OutputBytes(otThreadGetMasterKey(mInstance)->m8);
-        OutputLine("");
+        OutputFormat("\r\n");
     }
     else
     {
@@ -2626,7 +2628,7 @@ void Interpreter::HandleMlrRegResult(otError             aError,
         for (uint8_t i = 0; i < aFailedAddressNum; i++)
         {
             OutputIp6Address(aFailedAddresses[i]);
-            OutputLine("");
+            OutputFormat("\r\n");
         }
     }
 
@@ -2668,7 +2670,7 @@ otError Interpreter::ProcessMode(uint8_t aArgsLength, char *aArgs[])
             }
         }
 
-        OutputLine("");
+        OutputFormat("\r\n");
 
         ExitNow();
     }
@@ -2833,7 +2835,7 @@ otError Interpreter::ProcessNeighbor(uint8_t aArgsLength, char *aArgs[])
             }
         }
 
-        OutputLine("");
+        OutputFormat("\r\n");
     }
     else
     {
@@ -3117,7 +3119,7 @@ otError Interpreter::ProcessParent(uint8_t aArgsLength, char *aArgs[])
     SuccessOrExit(error = otThreadGetParentInfo(mInstance, &parentInfo));
     OutputFormat("Ext Addr: ");
     OutputExtAddress(parentInfo.mExtAddress);
-    OutputLine("");
+    OutputFormat("\r\n");
     OutputLine("Rloc: %x", parentInfo.mRloc16);
     OutputLine("Link Quality In: %d", parentInfo.mLinkQualityIn);
     OutputLine("Link Quality Out: %d", parentInfo.mLinkQualityOut);
@@ -3179,7 +3181,7 @@ void Interpreter::HandleIcmpReceive(otMessage *          aMessage,
         OutputFormat(" time=%dms", TimerMilli::GetNow().GetValue() - HostSwap32(timestamp));
     }
 
-    OutputLine("");
+    OutputFormat("\r\n");
 
     SignalPingReply(static_cast<const Ip6::MessageInfo *>(aMessageInfo)->GetPeerAddr(), dataSize, HostSwap32(timestamp),
                     aMessageInfo->mHopLimit);
@@ -3356,7 +3358,7 @@ void Interpreter::HandleLinkPcapReceive(const otRadioFrame *aFrame, bool aIsTx)
 {
     OT_UNUSED_VARIABLE(aIsTx);
 
-    OutputLine("");
+    OutputFormat("\r\n");
 
     for (size_t i = 0; i < 44; i++)
     {
@@ -3370,7 +3372,7 @@ void Interpreter::HandleLinkPcapReceive(const otRadioFrame *aFrame, bool aIsTx)
         OutputFormat("=");
     }
 
-    OutputLine("");
+    OutputFormat("\r\n");
 
     for (size_t i = 0; i < aFrame->mLength; i += 16)
     {
@@ -3417,7 +3419,7 @@ void Interpreter::HandleLinkPcapReceive(const otRadioFrame *aFrame, bool aIsTx)
         OutputFormat("-");
     }
 
-    OutputLine("");
+    OutputFormat("\r\n");
 }
 
 #if OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
@@ -3812,7 +3814,7 @@ otError Interpreter::ProcessRouter(uint8_t aArgsLength, char *aArgs[])
             }
         }
 
-        OutputLine("");
+        OutputFormat("\r\n");
         ExitNow();
     }
 
@@ -3832,7 +3834,7 @@ otError Interpreter::ProcessRouter(uint8_t aArgsLength, char *aArgs[])
         {
             OutputFormat("Ext Addr: ");
             OutputExtAddress(routerInfo.mExtAddress);
-            OutputLine("");
+            OutputFormat("\r\n");
             OutputLine("Cost: %d", routerInfo.mPathCost);
             OutputLine("Link Quality In: %d", routerInfo.mLinkQualityIn);
             OutputLine("Link Quality Out: %d", routerInfo.mLinkQualityOut);
@@ -4326,7 +4328,7 @@ otError Interpreter::ProcessUnsecurePort(uint8_t aArgsLength, char *aArgs[])
             }
         }
 
-        OutputLine("");
+        OutputFormat("\r\n");
     }
     else
     {
@@ -4452,7 +4454,7 @@ void Interpreter::PrintMacFilter(void)
             OutputFormat(" : rss %d (lqi %d)", entry.mRssIn, otLinkConvertRssToLinkQuality(mInstance, entry.mRssIn));
         }
 
-        OutputLine("");
+        OutputFormat("\r\n");
     }
 
     iterator = OT_MAC_FILTER_ITERATOR_INIT;
@@ -4516,7 +4518,7 @@ otError Interpreter::ProcessMacFilterAddress(uint8_t aArgsLength, char *aArgs[])
                              otLinkConvertRssToLinkQuality(mInstance, entry.mRssIn));
             }
 
-            OutputLine("");
+            OutputFormat("\r\n");
         }
     }
     else
@@ -4777,7 +4779,7 @@ otError Interpreter::ProcessDiag(uint8_t aArgsLength, char *aArgs[])
     output[sizeof(output) - 1] = '\0';
 
     error = otDiagProcessCmd(mInstance, aArgsLength, aArgs, output, sizeof(output) - 1);
-    Output(output, static_cast<uint16_t>(strlen(output)));
+    OutputFormat("%s", output);
 
     return error;
 }
@@ -4903,7 +4905,7 @@ void Interpreter::HandleDiagnosticGetResponse(otError                 aError,
         bytesPrinted += bytesToPrint;
     }
 
-    OutputLine("");
+    OutputFormat("\r\n");
 
     // Output Network Diagnostic TLV values in standard YAML format.
     while ((aError = otThreadGetNextDiagnosticTlv(aMessage, &iterator, &diagTlv)) == OT_ERROR_NONE)
@@ -4948,7 +4950,7 @@ void Interpreter::HandleDiagnosticGetResponse(otError                 aError,
             {
                 OutputFormat(kIndentSize, "- ");
                 OutputIp6Address(diagTlv.mData.mIp6AddrList.mList[i]);
-                OutputLine("");
+                OutputFormat("\r\n");
             }
             break;
         case OT_NETWORK_DIAGNOSTIC_TLV_MAC_COUNTERS:
@@ -5161,24 +5163,33 @@ void Interpreter::OutputLine(uint8_t aIndentSize, const char *aFormat, ...)
 
 void Interpreter::OutputSpaces(uint8_t aCount)
 {
-    static const char kSpaces[] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
+    char format[sizeof("%256s")];
 
-    while (aCount > 0)
-    {
-        uint8_t len = OT_MIN(aCount, sizeof(kSpaces));
+    sprintf(format, "%%%us", aCount);
 
-        Output(kSpaces, len);
-        aCount -= len;
-    }
+    OutputFormat(format, "");
 }
 
 int Interpreter::OutputFormatV(const char *aFormat, va_list aArguments)
 {
-    char buf[kMaxLineLength];
+    return mOutputCallback(mOutputContext, aFormat, aArguments);
+}
 
-    vsnprintf(buf, sizeof(buf), aFormat, aArguments);
+void Interpreter::Initialize(otInstance *aInstance, otCliOutputCallback aCallback, void *aContext)
+{
+    Instance *instance = static_cast<Instance *>(aInstance);
 
-    return Output(buf, static_cast<uint16_t>(strlen(buf)));
+    Interpreter::sInterpreter = new (&sInterpreterRaw) Interpreter(instance, aCallback, aContext);
+}
+
+extern "C" void otCliInit(otInstance *aInstance, otCliOutputCallback aCallback, void *aContext)
+{
+    Interpreter::Initialize(aInstance, aCallback, aContext);
+}
+
+extern "C" void otCliInputLine(char *aBuf)
+{
+    Interpreter::GetInterpreter().ProcessLine(aBuf);
 }
 
 extern "C" void otCliSetUserCommands(const otCliCommand *aUserCommands, uint8_t aLength, void *aContext)
@@ -5199,11 +5210,6 @@ extern "C" void otCliOutputFormat(const char *aFmt, ...)
     va_end(aAp);
 }
 
-extern "C" void otCliOutput(const char *aString, uint16_t aLength)
-{
-    Interpreter::GetInterpreter().Output(aString, aLength);
-}
-
 extern "C" void otCliAppendResult(otError aError)
 {
     Interpreter::GetInterpreter().OutputResult(aError);
@@ -5217,7 +5223,7 @@ extern "C" void otCliPlatLogv(otLogLevel aLogLevel, otLogRegion aLogRegion, cons
     VerifyOrExit(Interpreter::IsInitialized());
 
     Interpreter::GetInterpreter().OutputFormatV(aFormat, aArgs);
-    Interpreter::GetInterpreter().OutputLine("");
+    Interpreter::GetInterpreter().OutputFormat("\r\n");
 exit:
     return;
 }
